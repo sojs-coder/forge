@@ -17,6 +17,8 @@ export class Game extends Part {
     hovering?: Part;
     tooltipLocked?: boolean; // Whether the tooltip is locked (debug only)
     lastMousePosition?: { x: number, y: number }; // Last mouse position for hover tracking (debug only)
+    scaleFactor: number = 1; // New property for canvas scaling
+    canvasOffset: { x: number, y: number } = { x: 0, y: 0 }; // New property for canvas offset
     private _isRunning: boolean = false;
     private _isPaused: boolean = false;
     private _animationFrameId?: number;
@@ -38,7 +40,13 @@ export class Game extends Part {
                 tooltip = this.createDebugTooltip();
             }
             document.addEventListener("mousemove", (event) => {
-                this.lastMousePosition = { x: event.clientX - this.canvas.offsetLeft, y: event.clientY - this.canvas.offsetTop };
+                const rect = this.canvas.getBoundingClientRect();
+                const clientX = event.clientX - rect.left;
+                const clientY = event.clientY - rect.top;
+                this.lastMousePosition = {
+                    x: (clientX / this.scaleFactor) - (this.canvasOffset.x / this.scaleFactor),
+                    y: (clientY / this.scaleFactor) - (this.canvasOffset.y / this.scaleFactor)
+                };
             });
             document.addEventListener("click", (event) => {
                 if (tooltip && !this.tooltipLocked) {
@@ -103,14 +111,19 @@ export class Game extends Part {
         }
 
         if (!this._isPaused && this.currentScene) {
+            // Clear the canvas based on the game's logical dimensions
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             if (this.devmode) {
                 this.currentScene.calculateLayout();
-                this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 }); // Render debug tree at a fixed position
+                // Render debug tree at a fixed position, scaled by the inverse of the canvas scale
+                this.context.save();
+                this.context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for debug UI
+                this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
+                this.context.restore();
                 this.currentScene.act();
                 this.updateDebugToolTip(); // Update tooltip based on current mouse position
 
-                // Draw a center dot
+                // Draw a center dot (also scaled)
                 this.context.fillStyle = "red";
                 this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
             } else {
@@ -181,8 +194,9 @@ export class Game extends Part {
         }
         if (this.hovering) {
             if (tooltip) {
-                tooltip.style.left = `${(this.lastMousePosition?.x || 0) + 10}px`;
-                tooltip.style.top = `${(this.lastMousePosition?.y || 0) + 10}px`;
+                // Adjust tooltip position based on scaled canvas and offset
+                tooltip.style.left = `${(this.lastMousePosition!.x * this.scaleFactor) + this.canvasOffset.x + 10}px`;
+                tooltip.style.top = `${(this.lastMousePosition!.y * this.scaleFactor) + this.canvasOffset.y + 10}px`;
                 tooltip.style.display = "block";
                 tooltip.innerHTML = getDebugInfo(this.hovering, 0);
             }

@@ -20,6 +20,7 @@ export function setupGameControls() {
         canvas.height = state.gameTree.properties.height;
         gameContainer.innerHTML = '';
         gameContainer.appendChild(canvas);
+        gameContainer.classList.add('game-active'); // Add this line
 
         try {
             const gameFunction = getGameFunction(gameCode);
@@ -35,9 +36,13 @@ export function setupGameControls() {
     });
 
     pauseButton.addEventListener('click', () => {
-        if (!state.currentGameInstance) return;
-        if (state.isGamePaused) resumeGame();
-        else pauseGame();
+        if (!state.currentGameInstance) {
+            playButton.click();
+        } else if (state.isGamePaused) {
+            resumeGame();
+        } else {
+            pauseGame();
+        }
     });
 
     stopButton.addEventListener('click', () => {
@@ -69,6 +74,7 @@ function stopGame() {
         pauseButton.disabled = true;
         pauseButton.textContent = 'Pause';
         stopButton.disabled = true;
+        gameContainer.classList.remove('game-active'); // Add this line
     }
 }
 
@@ -127,7 +133,6 @@ function generateGameCode(node: GameNode, start = true): string {
         const starter = node.properties.starterScene ? getVarName(node.properties.starterScene) : '';
         code += `${varName}.start(${starter});`;
     }
-
     return code;
 }
 

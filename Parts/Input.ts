@@ -7,14 +7,14 @@ import { PolygonCollider } from "./Children/PolygonCollider";
 import { isPointInObject, isPointInPolygon } from "../helpers";
 
 export class Input extends Part {
-    key: (event: KeyboardEvent) => void;
-    keyup: (event: KeyboardEvent) => void;
-    mousemove: (event: MouseEvent, hovering: Part) => void;
-    click: (event: MouseEvent, clicked: Part) => void;
+    key?: (event: KeyboardEvent) => void;
+    keyup?: (event: KeyboardEvent) => void;
+    mousemove?: (event: MouseEvent, hovering: Part) => void;
+    click?: (event: MouseEvent, clicked: Part) => void;
     downkeys: Set<string> = new Set(); // Track currently pressed keys
     currentMousePos: { x: number, y: number } = { x: 0, y: 0 };
     lastClickPos: { x: number, y: number } | null = null;
-
+    initialized: boolean; // Have the event listeners been initialized?
     constructor({
         key,
         keyup,
@@ -33,17 +33,9 @@ export class Input extends Part {
         this.keyup = keyup;
         this.mousemove = mousemove;
         this.click = click;
+        this.initialized = false;
     }
-
-    onMount(parent: Part) {
-        super.onMount(parent);
-        if ((!this.top || this.parent instanceof Game)) {
-            throw new Error("Please mount Input to a Scene already attached to a Game. You may attach the same input to multiple scenes if you want to share input handling across them.");
-        }
-        const canvas = this.top.canvas as HTMLCanvasElement;
-        if (!canvas) {
-            throw new Error("Input requires a canvas to be mounted to. Ensure the Game instance has a valid canvas.");
-        }
+    initialize(canvas: HTMLCanvasElement) {
         canvas.addEventListener("mousemove", (event) => {
             const game = this.top as Game;
             const rect = canvas.getBoundingClientRect();
@@ -92,13 +84,25 @@ export class Input extends Part {
         });
         document.addEventListener("keyup", (event) => {
             this.downkeys.delete(event.key);
-            this.keyup(event);
+            if (typeof this.keyup == "function") {
+                this.keyup(event);
+            }
         });
+        this.initialized = true; // Mark as initialized after setting up listeners
     }
+
 
     act() {
         super.act();
-
+        if(!this.initialized) {
+            if(!this.top || !(this.top instanceof Game)) {
+                throw new Error("Input must be attached to a Game instance.");
+            }
+            if (!this.top.canvas) {
+                throw new Error("Game instance must have a canvas element.");
+            }
+            this.initialize(this.top.canvas as HTMLCanvasElement);
+        }
         const game = this.top as Game;
         if (!game || !game.currentScene || game.currentScene !== this.parent) {
             // Only process input for the current scene that this Input instance is attached to
@@ -157,13 +161,17 @@ export class Input extends Part {
             });
 
             if (clicked) {
-                this.click(new MouseEvent("click"), clicked);
+                if (typeof this.click == "function") {
+                    this.click(new MouseEvent("click"), clicked);
+                }
             }
             this.lastClickPos = null; // Clear click after processing
         }
 
         this.downkeys.forEach(key => {
-            this.key(new KeyboardEvent("keydown", { key }));
+            if (typeof this.key == "function") {
+                this.key(new KeyboardEvent("keydown", { key }));
+            }
         });
     }
 

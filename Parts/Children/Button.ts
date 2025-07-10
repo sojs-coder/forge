@@ -4,22 +4,32 @@ import { Part } from "../Part";
 import { Input } from "../Input";
 import { Scene } from "../Scene";
 import { Renderer } from "./Renderer";
+import { Sound } from "../Sound";
 
 export class Button extends Renderer {
     styles?: ButtonStyles;
     private isHovered: boolean = false;
     private isActive: boolean = false;
     private onClickHandler: () => void;
+    clickSound?: Sound;
+    hoverSound?: Sound;
+    activeSound?: Sound;
 
-    constructor({ label, onClick, styles }: { label: string; onClick: () => void; styles?: ButtonStyles }) {
+    constructor({ label, onClick, styles, clickSound, hoverSound, activeSound }: { label: string; onClick: () => void; styles?: ButtonStyles, clickSound?: Sound, hoverSound?: Sound, activeSound?: Sound }) {
         super({ width: styles?.default?.width ?? 100, height: styles?.default?.height ?? 50, disableAntiAliasing: true });
         this.name = label;
         this.onClickHandler = onClick;
         this.styles = styles;
+        this.clickSound = clickSound;
+        this.hoverSound = hoverSound;
+        this.activeSound = activeSound;
 
         this.onclick = (event: MouseEvent, input: any) => {
             if (this.onClickHandler) {
                 this.onClickHandler();
+            }
+            if (this.clickSound) {
+                this.clickSound.play({ clone: true });
             }
             event.stopPropagation(); // Prevent further propagation of the click event
             event.preventDefault(); // Prevent default action of the click event
@@ -27,6 +37,9 @@ export class Button extends Renderer {
 
         this.onhover = () => {
             this.isHovered = true;
+            if (this.hoverSound) {
+                this.hoverSound.play({ clone: true });
+            }
             console.log(`Button ${this.name} hovered`);
         };
 
@@ -39,6 +52,9 @@ export class Button extends Renderer {
         this.onmousedown = (event: MouseEvent) => {
             if (event.button === 0) { // Left mouse button
                 this.isActive = true;
+                if (this.activeSound) {
+                    this.activeSound.play({ clone: true });
+                }
             }
         };
 

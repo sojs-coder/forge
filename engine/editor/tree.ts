@@ -21,9 +21,13 @@ function renderTree(node: GameNode, parentElement: HTMLElement) {
     nodeElement.dataset.nodeType = node.type;
     nodeElement.draggable = true;
 
+    const nodeHeader = document.createElement('div');
+    nodeHeader.classList.add('node-header');
+    nodeElement.appendChild(nodeHeader);
+
     const nodeContent = document.createElement('span');
     nodeContent.textContent = node.properties.name || node.type + (node.properties.name ? ' (' + node.type + ')' : '');
-    nodeElement.appendChild(nodeContent);
+    nodeHeader.appendChild(nodeContent);
 
     if (node.children && node.children.length > 0) {
         const toggle = document.createElement('span');
@@ -34,7 +38,7 @@ function renderTree(node: GameNode, parentElement: HTMLElement) {
             node.expanded = !node.expanded;
             updateTreeDisplay();
         });
-        nodeElement.prepend(toggle);
+        nodeHeader.prepend(toggle);
     }
 
     if (node === state.selectedNode) {
@@ -72,31 +76,82 @@ export function setupTreeControls() {
 
         const allowedChildren = (window as any).nodeDefinitions[state.selectedNode.type]?.children || [];
         const customNodeTypes = Object.keys((window as any).nodeDefinitions).filter(key => (window as any).nodeDefinitions[key].code);
-        const allAllowedTypes = [...allowedChildren, ...customNodeTypes];
+        const allAllowedTypes = [...allowedChildren, ...customNodeTypes].sort();
 
         const selectContainer = document.createElement('div');
         selectContainer.classList.add('node-select-container');
 
-        const select = document.createElement('select');
-        allAllowedTypes.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            select.appendChild(option);
-        });
-        selectContainer.appendChild(select);
+        let selectedIndex = -1; // -1 means no selection
 
-        const confirmButton = document.createElement('button');
-        confirmButton.textContent = 'Add';
-        const cancelButton = document.createElement('button');
-        cancelButton.textContent = 'Cancel';
-        confirmButton.classList.add('confirm-button');
-        cancelButton.classList.add('cancel-button');
-        cancelButton.addEventListener('click', () => {
-            selectContainer.remove();
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search parts...';
+        searchInput.classList.add('node-search-input');
+        selectContainer.appendChild(searchInput);
+
+        const optionsContainer = document.createElement('div');
+        optionsContainer.classList.add('node-options-container');
+        selectContainer.appendChild(optionsContainer);
+
+        let currentFilteredTypes: string[] = [];
+
+        const renderOptions = (filter: string) => {
+            optionsContainer.innerHTML = '';
+            currentFilteredTypes = allAllowedTypes.filter(type => type.toLowerCase().includes(filter.toLowerCase()));
+
+            if (selectedIndex >= currentFilteredTypes.length) {
+                selectedIndex = currentFilteredTypes.length > 0 ? 0 : -1;
+            }
+
+            currentFilteredTypes.forEach((type, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.classList.add('node-option');
+                optionDiv.textContent = type;
+                if (index === selectedIndex) {
+                    optionDiv.classList.add('selected-option');
+                }
+                optionDiv.addEventListener('click', () => {
+                    addNode(type);
+                    selectContainer.remove();
+                });
+                optionsContainer.appendChild(optionDiv);
+            });
+        };
+
+        searchInput.addEventListener('input', (event) => {
+            selectedIndex = -1; // Reset selection on input change
+            renderOptions((event.target as HTMLInputElement).value);
         });
-        confirmButton.addEventListener('click', () => {
-            const nodeType = select.value;
+
+        searchInput.addEventListener('keydown', (event) => {
+            if (currentFilteredTypes.length === 0) return;
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                selectedIndex = (selectedIndex + 1) % currentFilteredTypes.length;
+                renderOptions(searchInput.value);
+                optionsContainer.children[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                selectedIndex = (selectedIndex - 1 + currentFilteredTypes.length) % currentFilteredTypes.length;
+                renderOptions(searchInput.value);
+                optionsContainer.children[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                if (selectedIndex !== -1) {
+                    addNode(currentFilteredTypes[selectedIndex]);
+                    selectContainer.remove();
+                }
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                selectContainer.remove();
+            }
+        });
+
+        // Initial render of options
+        renderOptions('');
+
+        const addNode = (nodeType: string) => {
             const newNodeDef = (window as any).nodeDefinitions[nodeType];
             const newProperties: Record<string, any> = {};
             for (const key in newNodeDef.properties) {
@@ -116,12 +171,69 @@ export function setupTreeControls() {
             state.selectedNode!.children.push(newNode);
             updateTreeDisplay();
             selectNode(newNode);
+        };
+
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.classList.add('cancel-button');
+        cancelButton.addEventListener('click', () => {
             selectContainer.remove();
         });
-        selectContainer.appendChild(confirmButton);
         selectContainer.appendChild(cancelButton);
+
         document.body.appendChild(selectContainer);
-        confirmButton.focus();
+        searchInput.focus();
+    });
+
+    treeView.addEventListener('keydown', (event) => {
+        const allVisibleNodes: GameNode[] = [];
+        const collectVisibleNodes = (node: GameNode) => {
+            allVisibleNodes.push(node);
+            if (node.expanded && node.children) {
+                node.children.forEach(collectVisibleNodes);
+            }
+        };
+        collectVisibleNodes(state.gameTree);
+
+        if (allVisibleNodes.length === 0) return;
+
+        let currentIndex = state.selectedNode ? allVisibleNodes.findIndex(n => n.id === state.selectedNode!.id) : -1;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (currentIndex < allVisibleNodes.length - 1) {
+                selectNode(allVisibleNodes[currentIndex + 1]);
+            } else if (currentIndex === -1) {
+                selectNode(allVisibleNodes[0]);
+            }
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (currentIndex > 0) {
+                selectNode(allVisibleNodes[currentIndex - 1]);
+            } else if (currentIndex === -1) {
+                selectNode(allVisibleNodes[allVisibleNodes.length - 1]);
+            }
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            if (state.selectedNode && state.selectedNode.children && state.selectedNode.children.length > 0 && !state.selectedNode.expanded) {
+                state.selectedNode.expanded = true;
+                updateTreeDisplay();
+            }
+        } else if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            if (state.selectedNode && state.selectedNode.expanded) {
+                state.selectedNode.expanded = false;
+                updateTreeDisplay();
+            } else if (state.selectedNode) {
+                const parent = findParentNode(state.gameTree, state.selectedNode.id);
+                if (parent) {
+                    selectNode(parent);
+                }
+            }
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            // Optionally, trigger some action on Enter, e.g., open properties if not already open
+        }
     });
 }
 
@@ -160,6 +272,34 @@ export function selectNode(node: GameNode) {
     }
 }
 
+export function deleteNode(nodeId: string) {
+    const nodeToDelete = findNodeById(state.gameTree, nodeId);
+    if (!nodeToDelete) return;
+
+    if (nodeToDelete.id === state.gameTree.id) {
+        alert("Cannot delete the root Game node.");
+        return;
+    }
+
+    const parent = findParentNode(state.gameTree, nodeId);
+    if (parent) {
+        parent.children = parent.children.filter(child => child.id !== nodeId);
+        if (state.selectedNode?.id === nodeId) {
+            state.selectedNode = null;
+        }
+        updateTreeDisplay();
+        renderProperties(state.selectedNode!); // Re-render properties panel (empty or for new selection)
+    }
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Delete' && state.selectedNode) {
+        if (confirm(`Are you sure you want to delete ${state.selectedNode.name}?`)) {
+            deleteNode(state.selectedNode.id);
+        }
+    }
+});
+
 function handleDragStart(event: DragEvent) {
     const target = event.target as HTMLElement;
     draggedNode = findNodeById(state.gameTree, target.dataset.nodeId!)
@@ -168,36 +308,60 @@ function handleDragStart(event: DragEvent) {
 }
 
 function handleDragOver(event: DragEvent) {
+    event.preventDefault();
     const target = event.target as HTMLElement;
-    if (target.classList.contains('node-item') || target.closest('.node-item')) {
-        event.preventDefault();
-        event.dataTransfer!.dropEffect = 'move';
-        const nodeElement = target.classList.contains('node-item') ? target : target.closest('.node-item')!;
-        nodeElement.classList.add('drag-over');
+    const nodeElement = target.closest('.node-item');
+
+    if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
+        return;
+    }
+
+    // Clear previous drag-over classes
+    document.querySelectorAll('.node-item').forEach(item => {
+        item.classList.remove('drag-over-above', 'drag-over-below', 'drag-over-child');
+    });
+
+    const rect = nodeElement.getBoundingClientRect();
+    const mouseY = event.clientY;
+
+    if (mouseY < rect.top + rect.height * 0.25) {
+        nodeElement.classList.add('drag-over-above');
+    } else if (mouseY > rect.bottom - rect.height * 0.25) {
+        nodeElement.classList.add('drag-over-below');
+    } else {
+        nodeElement.classList.add('drag-over-child');
     }
 }
 
 function handleDragLeave(event: DragEvent) {
     const target = event.target as HTMLElement;
-    const nodeElement = target.classList.contains('node-item') ? target : target.closest('.node-item');
+    const nodeElement = target.closest('.node-item');
     if (nodeElement) {
-        nodeElement.classList.remove('drag-over');
+        nodeElement.classList.remove('drag-over-above', 'drag-over-below', 'drag-over-child');
     }
 }
 
 function handleDrop(event: DragEvent) {
     event.preventDefault();
     const target = event.target as HTMLElement;
-    target.classList.remove('drag-over');
+    const nodeElement = target.closest('.node-item');
 
-    const droppedNodeId = event.dataTransfer!.getData('text/plain');
-    const targetNodeId = target.dataset.nodeId!;
-    const targetNode = findNodeById(state.gameTree, targetNodeId);
+    // Clear all drag-over classes
+    document.querySelectorAll('.node-item').forEach(item => {
+        item.classList.remove('drag-over-above', 'drag-over-below', 'drag-over-child');
+    });
 
-    if (!draggedNode || !targetNode || draggedNode.id === targetNode.id) {
+    if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
         return;
     }
 
+    const droppedNodeId = draggedNode.id;
+    const targetNodeId = nodeElement.dataset.nodeId!;
+    const targetNode = findNodeById(state.gameTree, targetNodeId);
+
+    if (!targetNode) return;
+
+    // Prevent dropping a parent onto its child
     let tempNode: GameNode | null = targetNode;
     while (tempNode) {
         if (tempNode.id === draggedNode.id) {
@@ -207,15 +371,33 @@ function handleDrop(event: DragEvent) {
         tempNode = findParentNode(state.gameTree, tempNode.id);
     }
 
-    const oldParent = findParentNode(state.gameTree, draggedNode.id);
-    if (oldParent) {
-        oldParent.children = oldParent.children.filter(child => child.id !== draggedNode.id);
-    }
+    const oldParent = findParentNode(state.gameTree, droppedNodeId);
+    if (!oldParent) return; // Should always have a parent unless it's the root (which is not draggable)
 
-    if (!targetNode.children) {
-        targetNode.children = [];
+    // Remove dragged node from its original position
+    oldParent.children = oldParent.children.filter(child => child.id !== droppedNodeId);
+
+    if (nodeElement.classList.contains('drag-over-child')) {
+        // Drop as a child
+        if (!targetNode.children) {
+            targetNode.children = [];
+        }
+        targetNode.children.push(draggedNode);
+        targetNode.expanded = true; // Expand parent if dropping as child
+    } else {
+        // Drop above or below
+        const targetParent = findParentNode(state.gameTree, targetNodeId);
+        if (!targetParent) return; // Should always have a parent
+
+        const targetIndex = targetParent.children.findIndex(child => child.id === targetNodeId);
+        if (targetIndex === -1) return;
+
+        if (nodeElement.classList.contains('drag-over-above')) {
+            targetParent.children.splice(targetIndex, 0, draggedNode);
+        } else if (nodeElement.classList.contains('drag-over-below')) {
+            targetParent.children.splice(targetIndex + 1, 0, draggedNode);
+        }
     }
-    targetNode.children.push(draggedNode);
 
     updateTreeDisplay();
     selectNode(draggedNode);

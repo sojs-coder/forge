@@ -28,8 +28,10 @@ The `Sound` component allows you to load and play audio files within your game. 
 
 ## Methods
 
--   `play()`
-    Starts playing the sound. If the sound is already playing, it will restart from the beginning.
+-   `play(options?: { restart?: boolean, clone?: boolean })`
+    Starts playing the sound.
+    -   `options.restart`: If `true`, the sound will restart from the beginning if it's already playing. Default is `false`.
+    -   `options.clone`: If `true`, it will play a new, overlapping instance of the sound. This is useful for rapid-fire sound effects. Default is `false`.
 
 -   `pause()`
     Pauses the sound at its current playback position.

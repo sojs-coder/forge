@@ -21,13 +21,14 @@
   </div>
   <div id="main-content">
     <div id="left-panel">
-      <div id="tree-view"></div>
+      <div id="tree-view" tabindex="0"></div>
       <div id="custom-nodes-list">
         <h3>Custom Nodes</h3>
         <div id="custom-nodes-container"></div>
       </div>
       <button id="add-node-button">Add Node</button>
     </div>
+    <div id="left-resizer" class="resizer"></div>
     <div id="center-panel">
       <div id="center-tabs">
         <button id="game-tab" class="tab-button active">Game</button>
@@ -39,9 +40,11 @@
       <div id="node-editor-container" class="tab-content">
         <div id="node-editor-header">
           <div>
-            <h3 id="node-editor-title">Custom Node Editor</h3> <a href="../docs/index.html" target="_blank">Read the API Docs</a>
+            <h3 id="node-editor-title">Custom Node Editor</h3> <a href="../docs/index.html" target="_blank">Read the API
+              Docs</a>
           </div>
           <div id="node-editor-controls">
+            <button id="expand-editor-button">&#x25B2;</button>
             <button id="save-node-button">Save Node</button>
             <button id="new-node-button">New Node</button>
           </div>
@@ -49,13 +52,23 @@
         <div id="node-code-editor"></div>
       </div>
     </div>
+    <div id="right-resizer" class="resizer"></div>
     <div id="right-panel">
       <div id="property-editor-container">
         <div id="property-editor"></div>
       </div>
     </div>
   </div>
+  <!-- Custom Alert HTML -->
+  <div id="custom-alert" class="custom-alert-overlay" style="display: none;">
+    <div class="custom-alert-content">
+      <p id="custom-alert-message"></p>
+      <button id="custom-alert-close">OK</button>
+    </div>
+  </div>
   <script src="editor.js" type="module"></script>
+
+
 </body>
 
 </html>

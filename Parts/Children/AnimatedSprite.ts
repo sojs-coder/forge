@@ -17,7 +17,7 @@ export class AnimatedSprite extends Renderer {
     currentAnimation: string = "default"; // Current animation name
     disableAntiAliasing: boolean = false; // Option to disable anti-aliasing
     onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void; // Callback for when an animation completes
-    constructor({ spritesheet, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete }: { spritesheet: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void }) {
+    constructor({ spritesheet, spritesheetImage, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete }: { spritesheet: string, spritesheetImage?: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void }) {
         super({ width, height }); // Call the parent constructor with empty imageSource
         this.name = "AnimatedSprite";
         this.debugEmoji = "🎞️"; // Default emoji for debugging the animated sprite
@@ -36,42 +36,53 @@ export class AnimatedSprite extends Renderer {
         parent.setSuperficialDimensions(this.width, this.height); // Set dimensions for the parent part
         console.log(this.width, this.height);
         console.log(this.parent)
-        const response = await fetch(this.spritesheet);
-        if (!response.ok) {
-            throw new Error(`Failed to load spritesheet: ${response.statusText}`);
+        let spritesheetData: SpriteSheetData;
+        if (this.spritesheet.startsWith("data:application/json")) {
+            spritesheetData = JSON.parse(atob(this.spritesheet.split(',')[1]));
+        } else {
+            const response = await fetch(this.spritesheet);
+            if (!response.ok) {
+                throw new Error(`Failed to load spritesheet: ${response.statusText}`);
+            }
+            spritesheetData = await response.json() as SpriteSheetData; // Assuming the spritesheet is a JSON file
         }
-        const data = await response.json() as SpriteSheetData; // Assuming the spritesheet is a JSON file
+
         // Validate the data structure
-        if (!data.frames || !Array.isArray(data.frames)) {
+        if (!spritesheetData.frames || !Array.isArray(spritesheetData.frames)) {
             throw new Error("Invalid spritesheet format: 'frames' array is missing or not an array.");
         }
-        if (!data.meta || !data.meta.image) {
+        if (!spritesheetData.meta || !spritesheetData.meta.image) {
             throw new Error("Invalid spritesheet format: 'meta.image' is missing.");
         }
-        if (!data.meta.size || typeof data.meta.size.w !== "number" || typeof data.meta.size.h !== "number") {
+        if (!spritesheetData.meta.size || typeof spritesheetData.meta.size.w !== "number" || typeof spritesheetData.meta.size.h !== "number") {
             throw new Error("Invalid spritesheet format: 'meta.size' is missing or invalid.");
         }
-        if (!data.meta.animations || typeof data.meta.animations !== "object") {
+        if (!spritesheetData.meta.animations || typeof spritesheetData.meta.animations !== "object") {
             throw new Error("Invalid spritesheet format: 'meta.animations' is missing or not an object.");
         }
 
         const image = new Image();
-        const relativeToSpritesheet = this.spritesheet.split("/").slice(0, -1).join("/");
-        const path = data.meta.image.startsWith("http") ? data.meta.image : new URL(relativeToSpritesheet + "/" + data.meta.image, window.location.href).href;  // Handle relative paths
-        image.src = path; // Set the image source to the spritesheet image path
+        if (spritesheetImage) {
+            image.src = spritesheetImage;
+        } else {
+            const relativeToSpritesheet = this.spritesheet.startsWith("data:") ? "" : this.spritesheet.split("/").slice(0, -1).join("/");
+            const path = spritesheetData.meta.image.startsWith("http") ? spritesheetData.meta.image : new URL(relativeToSpritesheet + "/" + spritesheetData.meta.image, window.location.href).href;  // Handle relative paths
+            image.src = path; // Set the image source to the spritesheet image path
+        }
+
         image.onerror = (err) => {
-            console.error(`Failed to load spritesheet image <${data.meta.image}>:`, err);
+            console.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
             this.ready = false;
         };
-        this.spritesheetData = data; // Store the parsed spritesheet data
-        this.frames = Object.fromEntries(Object.keys(data.meta.animations).map(animationName => [animationName, Array(data.meta.animations[animationName].frames.length).fill(null)])); // Initialize frames for each animation
+        this.spritesheetData = spritesheetData; // Store the parsed spritesheet data
+        this.frames = Object.fromEntries(Object.keys(spritesheetData.meta.animations).map(animationName => [animationName, Array(spritesheetData.meta.animations[animationName].frames.length).fill(null)])); // Initialize frames for each animation
         await new Promise<void>((resolve, reject) => {
             image.onload = () => {
                 this.loadedSheet = image;
                 resolve();
             };
             image.onerror = (err) => {
-                console.error(`Failed to load spritesheet image <${data.meta.image}>:`, err);
+                console.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
                 this.ready = false;
                 reject(err);
             };

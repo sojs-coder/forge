@@ -16,10 +16,11 @@ export interface NodeDefinition {
 }
 
 export interface PropertyDefinition {
-    type: 'text' | 'number' | 'boolean' | 'Vector' | 'color' | 'Part' | 'list';
+    type: 'text' | 'number' | 'boolean' | 'Vector' | 'color' | 'Part' | 'list' | 'file';
     default?: any;
     description?: string; // Optional description for the property
     subType?: string; // For Part and list types
+    fileType?: 'image' | 'audio' | 'video' | 'json'; // For 'file' type
 }
 
 export interface EditorState {

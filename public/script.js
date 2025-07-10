@@ -1241,7 +1241,7 @@ class AnimatedSprite extends Renderer {
   currentAnimation = "default";
   disableAntiAliasing = false;
   onAnimationComplete;
-  constructor({ spritesheet, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete }) {
+  constructor({ spritesheet, spritesheetImage: spritesheetImage2, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete }) {
     super({ width, height });
     this.name = "AnimatedSprite";
     this.debugEmoji = "\uD83C\uDF9E️";
@@ -1258,40 +1258,49 @@ class AnimatedSprite extends Renderer {
     parent.setSuperficialDimensions(this.width, this.height);
     console.log(this.width, this.height);
     console.log(this.parent);
-    const response = await fetch(this.spritesheet);
-    if (!response.ok) {
-      throw new Error(`Failed to load spritesheet: ${response.statusText}`);
+    let spritesheetData;
+    if (this.spritesheet.startsWith("data:application/json")) {
+      spritesheetData = JSON.parse(atob(this.spritesheet.split(",")[1]));
+    } else {
+      const response = await fetch(this.spritesheet);
+      if (!response.ok) {
+        throw new Error(`Failed to load spritesheet: ${response.statusText}`);
+      }
+      spritesheetData = await response.json();
     }
-    const data = await response.json();
-    if (!data.frames || !Array.isArray(data.frames)) {
+    if (!spritesheetData.frames || !Array.isArray(spritesheetData.frames)) {
       throw new Error("Invalid spritesheet format: 'frames' array is missing or not an array.");
     }
-    if (!data.meta || !data.meta.image) {
+    if (!spritesheetData.meta || !spritesheetData.meta.image) {
       throw new Error("Invalid spritesheet format: 'meta.image' is missing.");
     }
-    if (!data.meta.size || typeof data.meta.size.w !== "number" || typeof data.meta.size.h !== "number") {
+    if (!spritesheetData.meta.size || typeof spritesheetData.meta.size.w !== "number" || typeof spritesheetData.meta.size.h !== "number") {
       throw new Error("Invalid spritesheet format: 'meta.size' is missing or invalid.");
     }
-    if (!data.meta.animations || typeof data.meta.animations !== "object") {
+    if (!spritesheetData.meta.animations || typeof spritesheetData.meta.animations !== "object") {
       throw new Error("Invalid spritesheet format: 'meta.animations' is missing or not an object.");
     }
     const image = new Image;
-    const relativeToSpritesheet = this.spritesheet.split("/").slice(0, -1).join("/");
-    const path = data.meta.image.startsWith("http") ? data.meta.image : new URL(relativeToSpritesheet + "/" + data.meta.image, window.location.href).href;
-    image.src = path;
+    if (spritesheetImage) {
+      image.src = spritesheetImage;
+    } else {
+      const relativeToSpritesheet = this.spritesheet.startsWith("data:") ? "" : this.spritesheet.split("/").slice(0, -1).join("/");
+      const path = spritesheetData.meta.image.startsWith("http") ? spritesheetData.meta.image : new URL(relativeToSpritesheet + "/" + spritesheetData.meta.image, window.location.href).href;
+      image.src = path;
+    }
     image.onerror = (err) => {
-      console.error(`Failed to load spritesheet image <${data.meta.image}>:`, err);
+      console.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
       this.ready = false;
     };
-    this.spritesheetData = data;
-    this.frames = Object.fromEntries(Object.keys(data.meta.animations).map((animationName) => [animationName, Array(data.meta.animations[animationName].frames.length).fill(null)]));
+    this.spritesheetData = spritesheetData;
+    this.frames = Object.fromEntries(Object.keys(spritesheetData.meta.animations).map((animationName) => [animationName, Array(spritesheetData.meta.animations[animationName].frames.length).fill(null)]));
     await new Promise((resolve, reject) => {
       image.onload = () => {
         this.loadedSheet = image;
         resolve();
       };
       image.onerror = (err) => {
-        console.error(`Failed to load spritesheet image <${data.meta.image}>:`, err);
+        console.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
         this.ready = false;
         reject(err);
       };
@@ -1572,20 +1581,32 @@ class Button extends Renderer {
   isHovered = false;
   isActive = false;
   onClickHandler;
-  constructor({ label, onClick, styles }) {
+  clickSound;
+  hoverSound;
+  activeSound;
+  constructor({ label, onClick, styles, clickSound, hoverSound, activeSound }) {
     super({ width: styles?.default?.width ?? 100, height: styles?.default?.height ?? 50, disableAntiAliasing: true });
     this.name = label;
     this.onClickHandler = onClick;
     this.styles = styles;
+    this.clickSound = clickSound;
+    this.hoverSound = hoverSound;
+    this.activeSound = activeSound;
     this.onclick = (event, input) => {
       if (this.onClickHandler) {
         this.onClickHandler();
+      }
+      if (this.clickSound) {
+        this.clickSound.play({ clone: true });
       }
       event.stopPropagation();
       event.preventDefault();
     };
     this.onhover = () => {
       this.isHovered = true;
+      if (this.hoverSound) {
+        this.hoverSound.play({ clone: true });
+      }
       console.log(`Button ${this.name} hovered`);
     };
     this.onunhover = () => {
@@ -1596,6 +1617,9 @@ class Button extends Renderer {
     this.onmousedown = (event) => {
       if (event.button === 0) {
         this.isActive = true;
+        if (this.activeSound) {
+          this.activeSound.play({ clone: true });
+        }
       }
     };
     this.onmouseup = (event) => {

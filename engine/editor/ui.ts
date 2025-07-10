@@ -12,11 +12,114 @@ const customNodesList = document.getElementById('custom-nodes-list')!;
 const addNodeButton = document.getElementById('add-node-button')!;
 const saveButton = document.getElementById('save-button')! as HTMLButtonElement;
 const loadButton = document.getElementById('load-button')! as HTMLButtonElement;
+const playButton = document.getElementById('play-button')! as HTMLButtonElement;
+const pauseButton = document.getElementById('pause-button')! as HTMLButtonElement;
+const stopButton = document.getElementById('stop-button')! as HTMLButtonElement;
+
+const expandEditorButton = document.getElementById('expand-editor-button')! as HTMLButtonElement;
+
+let isEditorExpanded = false;
 
 export function setupUI(editor: any) {
     gameTab.addEventListener('click', () => switchTab('game', editor));
     editorTab.addEventListener('click', () => switchTab('editor', editor));
+    expandEditorButton.addEventListener('click', () => toggleEditorExpansion());
     switchTab('game', editor); // Initial state
+
+    document.addEventListener('keydown', (event) => {
+        // Alt + A: Add Node
+        if (event.altKey && event.key === 'a') {
+            event.preventDefault();
+            addNodeButton.click();
+        }
+        // Alt + P: Play/Pause
+        if (event.altKey && event.key === 'p') {
+            event.preventDefault();
+            pauseButton.click();
+        }
+        // Alt + S: Stop
+        if (event.altKey && event.key === 's') {
+            event.preventDefault();
+            stopButton.click();
+        }
+        // Ctrl + S: Save
+        if (event.ctrlKey && event.key === 's') {
+            event.preventDefault();
+            saveButton.click();
+        }
+        // Ctrl + L: Load
+        if (event.ctrlKey && event.key === 'l') {
+            event.preventDefault();
+            loadButton.click();
+        }
+        // Alt + N: Node Editor
+        if (event.altKey && event.key === 'n') {
+            event.preventDefault();
+            editorTab.click();
+        }
+        // Alt + /: Show Keybinds
+        if (event.altKey && event.key === '/') {
+            event.preventDefault();
+            showKeybindsAsTable();
+        }
+        // Alt + F: Focus Selected Node
+        if (event.altKey && event.key === 'f') {
+            event.preventDefault();
+            if (state.selectedNode) {
+                const nodeElement = document.querySelector(`[data-node-id="${state.selectedNode.id}"]`);
+                nodeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
+}
+
+function toggleEditorExpansion() {
+    isEditorExpanded = !isEditorExpanded;
+    if (isEditorExpanded) {
+        nodeEditorContainer.classList.add('expanded');
+        gameContainer.style.display = 'none';
+        expandEditorButton.innerHTML = '&#x25BC;'; // Down arrow
+    } else {
+        nodeEditorContainer.classList.remove('expanded');
+        gameContainer.style.display = 'flex'; // Restore original display
+        expandEditorButton.innerHTML = '&#x25B2;'; // Up arrow
+    }
+}
+
+function showKeybinds() {
+    const keybinds = [
+        "Alt + A: Add Node",
+        "Alt + P: Play/Pause Game",
+        "Alt + S: Stop Game",
+        "Ctrl + S: Save Project",
+        "Ctrl + L: Load Project",
+        "Alt + N: Switch to Node Editor",
+        "Alt + /: Show Keybinds List",
+        "Alt + F: Focus Selected Node",
+        "Delete: Delete Selected Node",
+        "Arrow Keys (Tree View): Navigate Nodes",
+        "Enter (Add Node Popup): Select Node",
+        "Arrow Keys (Add Node Popup): Navigate Options"
+    ];
+    alert("Keybinds:\n\n" + keybinds.join("\n"));
+}
+
+function showKeybindsAsTable() {
+    const keybinds = {
+        "Alt + A": "Add Node",
+        "Alt + P": "Play/Pause Game",
+        "Alt + S": "Stop Game",
+        "Ctrl + S": "Save Project",
+        "Ctrl + L": "Load Project",
+        "Alt + N": "Switch to Node Editor",
+        "Alt + /": "Show Keybinds List",
+        "Alt + F": "Focus Selected Node",
+        "Delete": "Delete Selected Node",
+        "Arrow Keys (Tree View)": "Navigate Nodes",
+        "Enter (Add Node Popup)": "Select Node",
+        "Arrow Keys (Add Node Popup)": "Navigate Options"
+    };
+    alert(keybinds);
 }
 
 export function switchTab(tab: 'game' | 'editor', editor: any) {
@@ -27,9 +130,13 @@ export function switchTab(tab: 'game' | 'editor', editor: any) {
     if (tab === 'game') {
         gameTab.classList.add('active');
         gameContainer.classList.add('active');
+        nodeEditorContainer.classList.remove('active');
         treeView.classList.remove('hidden');
         customNodesList.classList.remove('active');
         addNodeButton.style.display = 'block';
+        if (isEditorExpanded) {
+            toggleEditorExpansion(); // Collapse editor if game tab is selected while expanded
+        }
     } else {
         editorTab.classList.add('active');
         nodeEditorContainer.classList.add('active');
