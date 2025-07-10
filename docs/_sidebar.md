@@ -8,6 +8,7 @@
     - [Scene](api/Scene.md)
     - [Layer](api/Layer.md)
     - [GameObject](api/GameObject.md)
+    - [Sound](api/Sound.md)
   - **Components**
     - [Transform](api/Transform.md)
     - [Camera](api/Camera.md)

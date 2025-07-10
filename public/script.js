@@ -990,6 +990,80 @@ class BoxCollider extends Collider {
   }
 }
 
+// Parts/Sound.ts
+class Sound extends Part {
+  audio;
+  playAfterLoad = false;
+  _isLoaded = false;
+  constructor({ name, src, volume = 1, loop = false }) {
+    super({ name });
+    this.debugEmoji = "\uD83D\uDD0A";
+    this.audio = new Audio(src);
+    this.audio.volume = volume;
+    this.audio.loop = loop;
+    this.audio.addEventListener("canplaythrough", () => {
+      this._isLoaded = true;
+      this.ready = true;
+      if (this.playAfterLoad) {
+        this.playAfterLoad = false;
+        if (document.readyState === "complete" && (document.hasFocus() || ("ontouchstart" in window))) {
+          this.play();
+        } else {
+          const tryPlay = () => {
+            this.play();
+            window.removeEventListener("pointerdown", tryPlay);
+            window.removeEventListener("keydown", tryPlay);
+          };
+          window.addEventListener("pointerdown", tryPlay, { once: true });
+          window.addEventListener("keydown", tryPlay, { once: true });
+        }
+      }
+      console.log(`Sound <${this.name}> loaded successfully.`);
+    });
+    this.audio.addEventListener("error", () => {
+      this._isLoaded = false;
+      this.ready = false;
+      console.error(`Failed to load sound <${this.name}> from src: ${src}`);
+    });
+  }
+  play(options = {}) {
+    const { restart = false, clone = false } = options;
+    if (!this._isLoaded) {
+      console.warn(`Sound <${this.name}> is not loaded yet. Cannot play.`);
+      this.playAfterLoad = true;
+      return;
+    }
+    if (clone) {
+      const cloneAudio = this.audio.cloneNode(true);
+      cloneAudio.volume = this.audio.volume;
+      cloneAudio.loop = this.audio.loop;
+      cloneAudio.play().catch((e) => console.error(`Error playing cloned sound <${this.name}>:`, e));
+    } else {
+      if (restart) {
+        this.audio.currentTime = 0;
+      }
+      this.audio.play().catch((e) => console.error(`Error playing sound <${this.name}>:`, e));
+    }
+  }
+  pause() {
+    this.audio.pause();
+  }
+  stop() {
+    this.audio.pause();
+    this.audio.currentTime = 0;
+  }
+  setVolume(volume) {
+    this.audio.volume = Math.max(0, Math.min(1, volume));
+  }
+  setLoop(loop) {
+    this.audio.loop = loop;
+  }
+  act() {
+    super.act();
+    this.hoverbug = `${this.audio.paused ? "⏸️" : "▶️"} V:${this.audio.volume.toFixed(2)} L:${this.audio.loop ? "✅" : "❌"}`;
+  }
+}
+
 // Parts/Input.ts
 class Input extends Part {
   key;
@@ -1718,9 +1792,16 @@ var MONSTER_BASE_HEIGHT = 27;
 var MONSTER_SCALE = 3;
 var MONSTER_SCALED_HEIGHT = MONSTER_BASE_HEIGHT * MONSTER_SCALE;
 var gameOver = false;
-var game = new Game({ name: "Monster Run", canvas: "game-canvas", width: GAME_WIDTH, height: GAME_HEIGHT, devmode: true, disableAntiAliasing: true });
+var game = new Game({ name: "Monster Run", canvas: "game-canvas", width: GAME_WIDTH, height: GAME_HEIGHT, devmode: false, disableAntiAliasing: true });
 var scene1 = new Scene({ name: "Game Scene" });
 var gameLayer = new Layer({ name: "Game Layer" });
+var backgroundLayer = new Layer({ name: "Background Layer" });
+scene1.addChild(backgroundLayer);
+backgroundLayer.addChildren(new Transform({ position: new Vector(GAME_WIDTH / 2, GAME_HEIGHT / 2) }), new ColorRender({
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  color: "lightblue"
+}));
 game.addChild(scene1);
 scene1.addChild(gameLayer);
 var scoreCounter = new ScoreCounter;
@@ -1733,6 +1814,12 @@ monster.addChildren(new Transform({ position: new Vector(20, 0), scale: Vector.F
   height: 27,
   startingAnimation: "idle"
 }), new BoxCollider({ width: 17, height: 27 }));
+monster.addChild(new Sound({
+  name: "JumpSound",
+  src: "TestAssets/jump.mp3",
+  loop: false,
+  volume: 1
+}));
 var PLAYER_START_Y = GAME_HEIGHT - PLATFORM_HEIGHT - MONSTER_SCALED_HEIGHT / 2;
 monster.children["Transform"].position.y = PLAYER_START_Y;
 gameLayer.addChild(monster);
@@ -1776,6 +1863,7 @@ class GameLogic extends Part {
       const targetCollider = target.children["BoxCollider"];
       if (monsterCollider.collidingWith.has(targetCollider)) {
         scoreCounter.addScore(10);
+        this.sibling("CoinCollect")?.play({ clone: true });
         gameLayer.removeChild(target);
         targets.splice(i2, 1);
       }
@@ -1804,6 +1892,18 @@ class GameLogic extends Part {
 }
 var gameLogicInstance = new GameLogic({ name: "Game Logic" });
 scene1.addChild(gameLogicInstance);
+scene1.addChild(new Sound({
+  name: "CoinCollect",
+  src: "TestAssets/coin.mp3",
+  loop: false
+}));
+scene1.addChild(new Sound({
+  name: "BackgroundMusic",
+  src: "TestAssets/background.mp3",
+  loop: true,
+  volume: 0.5
+}));
+scene1.children["BackgroundMusic"].play({ restart: true });
 scene1.addChild(new Input({
   key: (event) => {
     const monsterTransform = monster.children["Transform"];
@@ -1811,8 +1911,8 @@ scene1.addChild(new Input({
     switch (event.key) {
       case "ArrowLeft":
         monsterTransform.position.x -= PLAYER_SPEED;
-        if (monsterTransform.position.x < 0) {
-          monsterTransform.position.x = 0;
+        if (monsterTransform.position.x - monster._superficialWidth < 0) {
+          monsterTransform.position.x = monster._superficialWidth;
         }
         animatedSprite.face(new Vector(-1, 1));
         if (animatedSprite.currentAnimation !== "walk" && !gameLogicInstance.isJumping) {
@@ -1831,6 +1931,8 @@ scene1.addChild(new Input({
         break;
       case " ":
         if (!gameLogicInstance.isJumping) {
+          const jumpSound = monster.children["JumpSound"];
+          jumpSound.play({ clone: true });
           gameLogicInstance.isJumping = true;
           gameLogicInstance.velocityY = -JUMP_FORCE;
           animatedSprite.setAnimation("idle");
@@ -1902,15 +2004,6 @@ restartButton.addChildren(new Transform({ position: new Vector(GAME_WIDTH / 2, G
     }
   }
 }));
-var furtherCollisionTesting = new GameObject({ name: "Further Collision Testing" });
-furtherCollisionTesting.addChildren(new Transform({ position: new Vector(GAME_WIDTH / 2, GAME_HEIGHT - PLATFORM_HEIGHT - 100), rotation: Math.PI / 4 }), new ColorRender({ width: 50, height: 50, color: "red" }), new BoxCollider({ width: 50, height: 50 }), new TextRender({
-  name: "Collision Test Text",
-  textContent: "Collision Test",
-  align: "center",
-  font: "13px Arial",
-  color: "black"
-}));
-gameLayer.addChild(furtherCollisionTesting);
 gameOverLayer.addChild(restartButton);
 game.addChild(gameOverScene);
 gameOverScene.addChild(new Input({
@@ -1924,4 +2017,4 @@ gameOverScene.addChild(new Input({
   }
 }));
 game.calculateLayout();
-game.act();
+game.start(scene1);

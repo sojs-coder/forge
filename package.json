@@ -10,8 +10,12 @@
   },
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/main.ts --outfile ./public/script.js --minify",
-    "watch": "bun build ./src/main.ts --outfile ./public/script.js --watch --minify"
+    "build:engine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --minify",
+    "build:editor": "bun build ./engine/editor/editor.ts --outfile ./engine/editor.js --minify",
+    "build:all": "bun run build:engine && bun run build:editor",
+    "watch:engine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --watch --minify",
+    "watch:editor": "bun build ./engine/editor.ts --outfile ./engine/editor.js --watch --minify",
+    "watch:all": "bun run watch:engine & bun run watch:editor"
   },
   "dependencies": {
     "terser": "^5.43.1"

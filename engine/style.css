@@ -23,6 +23,8 @@ button {
 button:hover {
   background-color: #4b5263; /* Lighter on hover */
 }
+
+
 .property-group {
   margin-bottom: 8px; /* More compact spacing */
   padding: 5px;
@@ -89,10 +91,11 @@ button:hover {
   border-bottom: 1px solid #3e4451;
   display: flex;
   align-items: center;
+  gap: 10px;
   padding: 0 10px;
 }
 
-#play-button {
+#play-button, #save-button, #load-button {
   background-color: #61afef; /* Accent color */
   color: white;
   padding: 5px 10px;
@@ -102,7 +105,7 @@ button:hover {
   font-size: 0.9em;
 }
 
-#play-button:hover {
+#play-button:hover, #save-button:hover, #load-button:hover {
   background-color: #529dcc;
 }
 
@@ -114,7 +117,6 @@ button:hover {
   border-radius: 3px;
   cursor: pointer;
   font-size: 0.9em;
-  margin-left: 10px;
 }
 
 #pause-button:hover {
@@ -134,7 +136,6 @@ button:hover {
   border-radius: 3px;
   cursor: pointer;
   font-size: 0.9em;
-  margin-left: 10px;
 }
 
 #stop-button:hover {

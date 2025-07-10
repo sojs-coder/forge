@@ -15,6 +15,7 @@ export * from '../Parts/Children/Renderer';
 export * from '../Parts/Children/SpriteRender';
 export * from '../Parts/Children/TextRender';
 export * from '../Parts/Children/Transform';
+export * from '../Parts/Sound';
 export * from '../Math/Vector';
 export * from '../helpers';
 export * from '../types';

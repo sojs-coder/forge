@@ -7,6 +7,7 @@ import { Transform } from '../Parts/Children/Transform';
 import { BoxCollider } from '../Parts/Children/BoxCollider';
 import { Vector } from '../Math/Vector';
 import { Camera } from '../Parts/Camera';
+import { Sound } from '../Parts/Sound';
 import { Input } from '../Parts/Input';
 import { AnimatedSprite } from '../Parts/Children/AnimatedSprite';
 import { ColorRender } from '../Parts/Children/ColorRender';
@@ -32,10 +33,21 @@ const MONSTER_SCALED_HEIGHT = MONSTER_BASE_HEIGHT * MONSTER_SCALE; // Scaled hei
 let gameOver = false;
 
 
-const game = new Game({ name: 'Monster Run', canvas: 'game-canvas', width: GAME_WIDTH, height: GAME_HEIGHT, devmode: true, disableAntiAliasing: true });
+const game = new Game({ name: 'Monster Run', canvas: 'game-canvas', width: GAME_WIDTH, height: GAME_HEIGHT, devmode: false, disableAntiAliasing: true });
 
 const scene1 = new Scene({ name: 'Game Scene' });
 const gameLayer = new Layer({ name: 'Game Layer' });
+const backgroundLayer = new Layer({ name: 'Background Layer' });
+scene1.addChild(backgroundLayer);
+backgroundLayer.addChildren(
+    new Transform({ position: new Vector(GAME_WIDTH / 2, GAME_HEIGHT / 2) }),
+    new ColorRender({
+        width: GAME_WIDTH,
+        height: GAME_HEIGHT,
+        color: 'lightblue',
+    })
+);
+
 game.addChild(scene1);
 scene1.addChild(gameLayer);
 
@@ -55,6 +67,14 @@ monster.addChildren(
     }),
     new BoxCollider({ width: 17, height: 27 })
 );
+monster.addChild(
+    new Sound({
+        name: 'JumpSound',
+        src: 'TestAssets/jump.mp3',
+        loop: false,
+        volume: 1,
+    })
+)
 const PLAYER_START_Y = GAME_HEIGHT - PLATFORM_HEIGHT - (MONSTER_SCALED_HEIGHT / 2);
 (monster.children['Transform'] as Transform).position.y = PLAYER_START_Y;
 gameLayer.addChild(monster);
@@ -119,6 +139,7 @@ class GameLogic extends Part {
             const targetCollider = target.children['BoxCollider'] as BoxCollider;
             if (monsterCollider.collidingWith.has(targetCollider)) {
                 scoreCounter.addScore(10);
+                this.sibling<Sound>('CoinCollect')?.play({ clone: true });
                 gameLayer.removeChild(target);
                 targets.splice(i, 1);
             }
@@ -153,6 +174,18 @@ class GameLogic extends Part {
 
 const gameLogicInstance = new GameLogic({ name: "Game Logic" });
 scene1.addChild(gameLogicInstance);
+scene1.addChild(new Sound({
+    name: 'CoinCollect',
+    src: 'TestAssets/coin.mp3',
+    loop: false,
+}));
+scene1.addChild(new Sound({
+    name: 'BackgroundMusic',
+    src: 'TestAssets/background.mp3',
+    loop: true,
+    volume: 0.5,
+}));
+(scene1.children['BackgroundMusic'] as Sound).play({ restart: true });
 
 scene1.addChild(new Input({
     key: (event) => {
@@ -162,8 +195,8 @@ scene1.addChild(new Input({
         switch (event.key) {
             case 'ArrowLeft':
                 monsterTransform.position.x -= PLAYER_SPEED;
-                if (monsterTransform.position.x < 0) {
-                    monsterTransform.position.x = 0; // Prevent going out of bounds
+                if (monsterTransform.position.x - monster._superficialWidth < 0) {
+                    monsterTransform.position.x = monster._superficialWidth; // Prevent going out of bounds
                 }
                 animatedSprite.face(new Vector(-1, 1));
                 if (animatedSprite.currentAnimation !== "walk" && !gameLogicInstance.isJumping) {
@@ -182,6 +215,8 @@ scene1.addChild(new Input({
                 break;
             case ' ': // Spacebar for jump
                 if (!gameLogicInstance.isJumping) {
+                    const jumpSound = monster.children['JumpSound'] as Sound;
+                    jumpSound.play({ clone: true});
                     gameLogicInstance.isJumping = true;
                     gameLogicInstance.velocityY = -JUMP_FORCE;
                     animatedSprite.setAnimation("idle"); // Set to idle during jump
@@ -264,20 +299,20 @@ restartButton.addChildren(
 
 
 
-const furtherCollisionTesting = new GameObject({ name: "Further Collision Testing" });
-furtherCollisionTesting.addChildren(
-    new Transform({ position: new Vector(GAME_WIDTH / 2, GAME_HEIGHT - PLATFORM_HEIGHT - 100), rotation: Math.PI / 4 }),
-    new ColorRender({ width: 50, height: 50, color: 'red' }),
-    new BoxCollider({ width: 50, height: 50 }),
-    new TextRender({
-        name: "Collision Test Text",
-        textContent: "Collision Test",
-        align: "center",
-        font: "13px Arial",
-        color: "black",
-    })
-);
-gameLayer.addChild(furtherCollisionTesting);
+// const furtherCollisionTesting = new GameObject({ name: "Further Collision Testing" });
+// furtherCollisionTesting.addChildren(
+//     new Transform({ position: new Vector(GAME_WIDTH / 2, GAME_HEIGHT - PLATFORM_HEIGHT - 100), rotation: Math.PI / 4 }),
+//     new ColorRender({ width: 50, height: 50, color: 'red' }),
+//     new BoxCollider({ width: 50, height: 50 }),
+//     new TextRender({
+//         name: "Collision Test Text",
+//         textContent: "Collision Test",
+//         align: "center",
+//         font: "13px Arial",
+//         color: "black",
+//     })
+// );
+// gameLayer.addChild(furtherCollisionTesting);
 gameOverLayer.addChild(restartButton);
 game.addChild(gameOverScene);
 gameOverScene.addChild(new Input({
@@ -289,5 +324,5 @@ gameOverScene.addChild(new Input({
 // Player movement, bounds checking, and enemy movement/collision logic
 // These are now handled by the Input key handler and the main game loop's act calls on game objects.
 game.calculateLayout();
-game.act();
-// game.start(scene1);
+// game.act();
+game.start(scene1);
