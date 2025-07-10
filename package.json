@@ -1,0 +1,19 @@
+{
+  "name": "forge",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "docsify-cli": "^4.4.4"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/main.ts --outfile ./public/script.js --minify",
+    "watch": "bun build ./src/main.ts --outfile ./public/script.js --watch --minify"
+  },
+  "dependencies": {
+    "terser": "^5.43.1"
+  }
+}

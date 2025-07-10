@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Forge Engine Editor</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+</head>
+
+<body>
+  <div id="top-panel">
+    <button id="play-button">Play</button>
+    <button id="pause-button" disabled>Pause</button>
+    <button id="stop-button" disabled>Stop</button>
+  </div>
+  <div id="main-content">
+    <div id="left-panel">
+      <div id="tree-view"></div>
+      <div id="custom-nodes-list">
+        <h3>Custom Nodes</h3>
+        <div id="custom-nodes-container"></div>
+      </div>
+      <button id="add-node-button">Add Node</button>
+    </div>
+    <div id="center-panel">
+      <div id="center-tabs">
+        <button id="game-tab" class="tab-button active">Game</button>
+        <button id="editor-tab" class="tab-button">Node Editor</button>
+      </div>
+      <div id="game-container" class="tab-content active">
+        <canvas id="gamecanvas"></canvas>
+      </div>
+      <div id="node-editor-container" class="tab-content">
+        <div id="node-editor-header">
+          <div>
+            <h3 id="node-editor-title">Custom Node Editor</h3> <a href="../docs/index.html" target="_blank">Read the API Docs</a>
+          </div>
+          <div id="node-editor-controls">
+            <button id="save-node-button">Save Node</button>
+            <button id="new-node-button">New Node</button>
+          </div>
+        </div>
+        <div id="node-code-editor"></div>
+      </div>
+    </div>
+    <div id="right-panel">
+      <div id="property-editor-container">
+        <div id="property-editor"></div>
+      </div>
+    </div>
+  </div>
+  <script src="bundle.js" type="module"></script>
+  <script src="defs.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

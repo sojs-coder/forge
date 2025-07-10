@@ -1,0 +1,254 @@
+{
+    "frames": [
+        {
+            "filename": "idle-0",
+            "duration": 100,
+            "frame": {
+                "x": 100,
+                "y": 1,
+                "w": 17,
+                "h": 26
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 26
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 26
+            }
+        },
+        {
+            "filename": "idle-1",
+            "duration": 100,
+            "frame": {
+                "x": 21,
+                "y": 1,
+                "w": 17,
+                "h": 27
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 27
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 27
+            }
+        },
+        {
+            "filename": "idle-2",
+            "duration": 100,
+            "frame": {
+                "x": 1,
+                "y": 1,
+                "w": 18,
+                "h": 27
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 18,
+                "h": 27
+            },
+            "sourceSize": {
+                "w": 18,
+                "h": 27
+            }
+        },
+        {
+            "filename": "idle-3",
+            "duration": 100,
+            "frame": {
+                "x": 78,
+                "y": 1,
+                "w": 20,
+                "h": 26
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 20,
+                "h": 26
+            },
+            "sourceSize": {
+                "w": 20,
+                "h": 26
+            }
+        },
+        {
+            "filename": "walk-0",
+            "duration": 100,
+            "frame": {
+                "x": 177,
+                "y": 1,
+                "w": 17,
+                "h": 25
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 25
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 25
+            }
+        },
+        {
+            "filename": "walk-1",
+            "duration": 100,
+            "frame": {
+                "x": 119,
+                "y": 1,
+                "w": 17,
+                "h": 26
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 26
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 26
+            }
+        },
+        {
+            "filename": "walk-2",
+            "duration": 100,
+            "frame": {
+                "x": 40,
+                "y": 1,
+                "w": 17,
+                "h": 27
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 27
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 27
+            }
+        },
+        {
+            "filename": "walk-3",
+            "duration": 100,
+            "frame": {
+                "x": 157,
+                "y": 1,
+                "w": 18,
+                "h": 25
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 18,
+                "h": 25
+            },
+            "sourceSize": {
+                "w": 18,
+                "h": 25
+            }
+        },
+        {
+            "filename": "walk-4",
+            "duration": 100,
+            "frame": {
+                "x": 138,
+                "y": 1,
+                "w": 17,
+                "h": 26
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 26
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 26
+            }
+        },
+        {
+            "filename": "walk-5",
+            "duration": 100,
+            "frame": {
+                "x": 59,
+                "y": 1,
+                "w": 17,
+                "h": 27
+            },
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {
+                "x": 0,
+                "y": 0,
+                "w": 17,
+                "h": 27
+            },
+            "sourceSize": {
+                "w": 17,
+                "h": 27
+            }
+        }
+    ],
+    "meta": {
+        "image": "monster.png",
+        "size": {
+            "w": 195,
+            "h": 29
+        },
+        "animations": {
+            "idle": {
+                "frames": [
+                    "idle-0",
+                    "idle-1",
+                    "idle-2",
+                    "idle-3"
+                ]
+            },
+            "walk": {
+                "frames": [
+                    "walk-0",
+                    "walk-1",
+                    "walk-2",
+                    "walk-3",
+                    "walk-4",
+                    "walk-5"
+                ],
+                "loop": false
+            }
+        },
+        "startingAnimation": "idle",
+        "startingFrame": "idle-0"
+    }
+}
