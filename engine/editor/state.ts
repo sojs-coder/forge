@@ -7,9 +7,9 @@ export const state: EditorState = {
     isGamePaused: false,
     currentTab: 'game',
     selectedCustomNode: null,
+    fileNames: new Map<string, string>(), // For file inputs, maps symbol to file name
     gameTree: {
         id: 'game_root',
-        name: 'Game',
         type: 'Game',
         properties: {
             name: 'MyGame',

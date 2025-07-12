@@ -67,6 +67,8 @@ export class BoxCollider extends Collider {
                 rel.x * cos - rel.y * sin,
                 rel.x * sin + rel.y * cos
             );
+            console.log(transform);
+
             return transform.worldPosition.add(rotated.add(center));
         });
 
@@ -93,27 +95,30 @@ export class BoxCollider extends Collider {
         console.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
         return false;
     }
+    get vertices(): Vector[] {
+        const width = this.end.x - this.start.x;
+        const height = this.end.y - this.start.y;
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
 
-    act() {
+        const vertices = [
+            new Vector(-halfWidth, -halfHeight),
+            new Vector(halfWidth, -halfHeight),
+            new Vector(halfWidth, halfHeight),
+            new Vector(-halfWidth, halfHeight),
+        ];
+        return vertices;
+    }
+    act(delta: number) {
+        super.act(delta); // Pass to children
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
             throw new Error(`BoxCollider <${this.name}> (${this.id}) does not have a Transform sibling. Ensure it is mounted to a GameObject with a Transform component.`);
         }
 
         if (transform.rotation !== 0) {
-            console.log("ROTATED")
             // If rotated, replace with a PolygonCollider
-            const width = this.end.x - this.start.x;
-            const height = this.end.y - this.start.y;
-            const halfWidth = width / 2;
-            const halfHeight = height / 2;
-
-            const vertices = [
-                new Vector(-halfWidth, -halfHeight),
-                new Vector(halfWidth, -halfHeight),
-                new Vector(halfWidth, halfHeight),
-                new Vector(-halfWidth, halfHeight),
-            ];
+            const vertices = this.vertices;
 
             const polygonCollider = new PolygonCollider({ vertices });
             this.parent?.addChild(polygonCollider);
@@ -147,11 +152,7 @@ export class BoxCollider extends Collider {
                         ? "rgba(255, 0, 0, 0.5)"
                         : "rgba(0, 255, 0, 0.5)"
                 );
-            } else {
-                // Should be drawn by PolygonCollider
             }
         }
-        super.act(); // Pass to children
-
     }
 }

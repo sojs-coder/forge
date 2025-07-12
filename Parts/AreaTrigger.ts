@@ -4,7 +4,7 @@ import { Collider } from "./Children/Collider";
 export class AreaTrigger extends Part {
     onEnter?: (other: Collider) => void;
     onExit?: (other: Collider) => void;
-    private activeCollisions: Set<string> = new Set();
+    activeCollisions: Set<Collider> = new Set();
 
     constructor({ name, onEnter, onExit }: { name?: string, onEnter?: (other: Collider) => void, onExit?: (other: Collider) => void }) {
         super({ name: name || 'AreaTrigger' });
@@ -13,19 +13,19 @@ export class AreaTrigger extends Part {
         this.debugEmoji = "🧲";
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const collider = this.sibling<Collider>("Collider");
         if (!collider) {
             console.warn(`AreaTrigger <${this.name}> requires a Collider sibling.`);
             return;
         }
 
-        const currentCollisions = new Set<string>();
+        const currentCollisions = new Set<Collider>();
         if (collider.colliding) {
             for (const other of collider.collidingWith) {
-                currentCollisions.add(other.id);
-                if (!this.activeCollisions.has(other.id)) {
+                currentCollisions.add(other);
+                if (!this.activeCollisions.has(other)) {
                     // New collision - onEnter
                     if (this.onEnter) {
                         this.onEnter(other);
@@ -35,9 +35,9 @@ export class AreaTrigger extends Part {
         }
 
         // Check for exited collisions - onExit
-        for (const activeId of this.activeCollisions) {
-            if (!currentCollisions.has(activeId)) {
-                const exitedCollider = collider.collidingWith.find(c => c.id === activeId); // This might be tricky as collidingWith is reset
+        for (const other of this.activeCollisions) {
+            if (!currentCollisions.has(other)) {
+                const exitedCollider = Array.from(collider.collidingWith).find(c => c.id === other.id); // This might be tricky as collidingWith is reset
                 // A more robust way would be to store references to the actual collider objects
                 // For simplicity, we'll just call onExit without the specific collider for now
                 if (this.onExit) {

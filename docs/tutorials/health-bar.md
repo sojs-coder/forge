@@ -37,6 +37,7 @@ enemy.addChildren(
     new HealthBar({ // The HealthBar component
         width: 60, // Width of the health bar
         height: 8, // Height of the health bar
+        offsetHeight: 30, // Position the health bar 5 px above the enemey (30 px above the middle)
         color: 'lime', // Color of the health (e.g., green)
         backgroundColor: 'darkred' // Color of the empty health bar (e.g., red)
     })

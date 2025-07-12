@@ -25,23 +25,17 @@ async function decompressToString(input: Uint8Array): Promise<string> {
         throw new Error("DecompressionStream is not supported in this browser.");
     }
     const ds = new DecompressionStream("gzip");
-    console.log("Got decomp stream");
     const decoder = new TextDecoderStream();
-    console.log("Got decoder stream");
     const inputStream = new Blob([input]).stream();
-    console.log("Created input stream from Uint8Array");
     const decompressedStream = inputStream.pipeThrough(ds).pipeThrough(decoder);
-    console.log("Piped input stream through decompression and decoding streams");
     const chunks: string[] = [];
     const reader = decompressedStream.getReader();
     while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        console.log("Decompressed chunk:", value);
         chunks.push(value);
     }
     const decompressed = chunks.join("");
-    console.log("Decompressed string:", decompressed);
     return decompressed;
 }
 
@@ -52,7 +46,8 @@ export async function exportSaveFile(gameTree: GameNode, nodeDefinitions: Record
     // Remove undefined/null values for smaller output
     const saveData = {
         gameTree: JSON.parse(JSON.stringify(gameTree)),
-        nodeDefinitions: JSON.parse(JSON.stringify(nodeDefinitions))
+        nodeDefinitions: JSON.parse(JSON.stringify(nodeDefinitions)),
+        fileNames: JSON.parse(JSON.stringify(Array.from(state.fileNames.entries())))
     };
     const json = JSON.stringify(saveData);
     const compressed = await compressString(json);
@@ -60,7 +55,7 @@ export async function exportSaveFile(gameTree: GameNode, nodeDefinitions: Record
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${state.gameTree.properties.name || state.gameTree.name}.fesave`;
+    a.download = `${state.gameTree.properties.name || "forgeenginegame"}.fesave`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -70,20 +65,18 @@ export async function exportSaveFile(gameTree: GameNode, nodeDefinitions: Record
 /**
  * Import save file from .fesave (compressed, binary)
  */
-export async function importSaveFile(file: File): Promise<{ gameTree: GameNode, nodeDefinitions: Record<string, NodeDefinition> }> {
+export async function importSaveFile(file: File): Promise<{ gameTree: GameNode, nodeDefinitions: Record<string, NodeDefinition>, fileNames: Map<string, string> }> {
     const arrayBuffer = await file.arrayBuffer();
-    console.log("Importing save file:", file.name, "Size:", arrayBuffer.byteLength, "bytes");
     if (arrayBuffer.byteLength === 0) {
         throw new Error("Empty save file");
     }
     const decompressed = await decompressToString(new Uint8Array(arrayBuffer));
-    console.log("Decompressed save file size:", decompressed.length, "bytes (utf-8)");
     const data = JSON.parse(decompressed);
-    console.log("Parsed save file data:", data);
     if (data.gameTree && data.nodeDefinitions) {
         return {
             gameTree: data.gameTree,
-            nodeDefinitions: data.nodeDefinitions
+            nodeDefinitions: data.nodeDefinitions,
+            fileNames: new Map(data.fileNames) // Convert array back to Map
         };
     } else {
         throw new Error("Invalid save file format");

@@ -27,8 +27,6 @@
       - [PolygonCollider](api/PolygonCollider.md)
     - **Utility Components**
       - [CharacterMovement](api/CharacterMovement.md)
-      - [Clickable](api/Clickable.md)
-      - [Draggable](api/Draggable.md)
       - [Rotator](api/Rotator.md)
       - [Scaler](api/Scaler.md)
       - [Projectile](api/Projectile.md)

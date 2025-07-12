@@ -14,17 +14,8 @@ This project is a game engine, called Forge. The engine follows a "Game Tree" co
 
 ## Tasks
 
-## Tasks
-
-- Property type "File" looks ugly. 
-![Ugly file select](image.png)
-![Uglier when it is cramped](image-1.png)
-
-- `Uncaught (in promise) ReferenceError: spritesheetImage is not defined`: This occurs when adding spritesheet JSON, then adding actual spritesheet image, and running. Also, there are duplicate properties for spritesheet image. One appears when adding the JSON. Remove that one. Also on AnimatedSprite, when spritesheet JSON is loaded, use meta.startingAnimation to pre-load starting animation into the property.
-- Add an "enum" type in definitions.ts and when rendering properties that shows up as a select input.
-- Use this enum type for starting animation selection in AnimatedSprite (load it when spritesheet JSON is loaded)
-- When dragging/dropping nodes around in the heigharchy, they just dissappear instead of actually being moved. Note: when fixing this, if a node of the same name already exists, change node.properties.name and add -1 (or increment the number after the dash if that node already exists)
-- Once an error occurs (Eg: Error: No scenes available to start the game.), the canvas is removed. This means that attempts to access the canvas result in an error. Fix this, and just set canvas.style.display to none in order to allow access to the canvas element
-- Color inputs don't show the actual color (see image below). Make the input wider to support this
-![Color input too narrow to show color](image-2.png)
-- `ALT + P` shortcut does not properly start/pause the game. Please debug. It only pauses/resumes it. It should start it if no game is running
+- [ ] Dragging/dropping nodes no longer deletes the node completely, but silently fails. No nodes are moved. Please double check integration.
+- [ ] PhysicsEngine and PhysicsBody still do not work. Gravity does not seem to be applied. Build a "physics.html" page in src to test physics integration.
+- [ ] Some parts are designed to exist in multiple (eg: multiple gameObject children in one scene), however some are supposed to only exist one time (eg: transform, colliders, renderers). Add a property in definitions.ts to make this happen, and do not ask for a name on these part when creating a new one (@engine/editor/tree.ts).
+- [ ] Line 165 of @engine/editor/tree.ts "const name = prompt(...)". Please create a custom prompt to make it look prettier (see @engine/editor.ts for example implementation with `alert`. You may need to modify @engine/index.html)
+- [ ] Documentation for physicsEngine does not follow actuall implementation. Please reference other documentation (@docs/*) to understand the formatting, syntax, and usage of other types. Update both physicsEngine and physicsBody to the lastest versions.

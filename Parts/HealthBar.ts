@@ -8,15 +8,16 @@ export class HealthBar extends Part {
     height: number;
     color: string;
     backgroundColor: string;
-    targetHealth: Health | null = null;
-
-    constructor({ name, width = 100, height = 10, color = "green", backgroundColor = "red" }: { name?: string, width?: number, height?: number, color?: string, backgroundColor?: string }) {
+    targetHealth: Health | undefined = undefined;
+    offsetHeight: number = 0; // Offset from the parent GameObject's position
+    constructor({ name, width = 100, height = 10, color = "green", backgroundColor = "red", offsetHeight = 0 }: { name?: string, width?: number, height?: number, color?: string, backgroundColor?: string, offsetHeight?: number }) {
         super({ name: name || 'HealthBar' });
         this.width = width;
         this.height = height;
         this.color = color;
         this.backgroundColor = backgroundColor;
         this.debugEmoji = "🩹";
+        this.offsetHeight = offsetHeight;
     }
 
     onMount(parent: Part) {
@@ -27,15 +28,15 @@ export class HealthBar extends Part {
         }
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
+
         if (!this.top) {
             throw new Error(`HealthBar <${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);
         }
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
-            console.warn(`HealthBar <${this.name}> does not have a Transform sibling. Skipping rendering.`);
-            return;
+            throw new Error(`HealthBar <${this.name}> requires a Transform sibling to determine position. Ensure it is mounted to a GameObject with a Transform component.`);
         }
         const ctx = this.top.context;
         if (!ctx) {
@@ -49,18 +50,19 @@ export class HealthBar extends Part {
 
         // Draw background bar
         ctx.fillStyle = this.backgroundColor;
-        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        ctx.fillRect(-this.width / 2, (-this.height / 2) - this.offsetHeight, this.width, this.height);
 
         // Draw health bar
         if (this.targetHealth) {
             const healthPercentage = this.targetHealth.currentHealth / this.targetHealth.maxHealth;
             const currentHealthWidth = this.width * healthPercentage;
             ctx.fillStyle = this.color;
-            ctx.fillRect(-this.width / 2, -this.height / 2, currentHealthWidth, this.height);
+            ctx.fillRect(-this.width / 2, (-this.height / 2) - this.offsetHeight, currentHealthWidth, this.height);
         }
 
         ctx.restore();
 
         this.hoverbug = this.targetHealth ? `${this.targetHealth.currentHealth}/${this.targetHealth.maxHealth}` : "No Health target";
+
     }
 }

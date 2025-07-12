@@ -12,6 +12,12 @@ export class Vector {
         }
         return new Vector(this.x + other, this.y + other);
     }
+    toObject(): { x: number, y: number } {
+        return { x: this.x, y: this.y };
+    }
+    toArray(): [number, number] {
+        return [this.x, this.y];
+    }
     subtract(other: number | Vector): Vector {
         if (other instanceof Vector) {
             return new Vector(this.x - other.x, this.y - other.y);
@@ -45,6 +51,21 @@ export class Vector {
     }
     dot(other: Vector): number {
         return this.x * other.x + this.y * other.y;
+    }
+    clone(): Vector {
+        return new Vector(this.x, this.y);
+    }
+    set(...args: [number, number] | [Vector]): Vector {
+        if (args.length === 1 && args[0] instanceof Vector) {
+            this.x = args[0].x;
+            this.y = args[0].y;
+        } else if (args.length === 2) {
+            this.x = args[0];
+            this.y = args[1];
+        } else {
+            throw new Error("Invalid arguments for set method");
+        }
+        return this;
     }
     static From(scalar: number): Vector {
         return new Vector(scalar, scalar);

@@ -8,7 +8,6 @@ export class AnimatedSprite extends Renderer {
     spritesheetData?: SpriteSheetData; // Parsed spritesheet data
     loadedSheet?: HTMLImageElement; // Loaded image for the spritesheet
     frames: Record<string, HTMLImageElement[]> = {}; // Object to hold individual frame images for each animation
-    lastFrameTime: number = 0; // Timestamp of the last frame update
     currentFrameIndex: number = 0; // Index of the current frame being displayed
     hasWarnedAboutTransform: boolean = false; // Flag to prevent multiple warnings about missing Transform part
     width: number; // Width of the animated sprite
@@ -16,8 +15,9 @@ export class AnimatedSprite extends Renderer {
     bouncing: boolean = false; // Flag to indicate if the sprite animation is in reverse (bouncing)
     currentAnimation: string = "default"; // Current animation name
     disableAntiAliasing: boolean = false; // Option to disable anti-aliasing
+    webEngine: boolean = false; // Flag to indicate if this is running in a web engine context
     onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void; // Callback for when an animation completes
-    constructor({ spritesheet, spritesheetImage, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete }: { spritesheet: string, spritesheetImage?: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void }) {
+    constructor({ spritesheet, spritesheetImage, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete, webEngine = false }: { spritesheet: string, spritesheetImage?: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void, webEngine?: boolean }) {
         super({ width, height }); // Call the parent constructor with empty imageSource
         this.name = "AnimatedSprite";
         this.debugEmoji = "🎞️"; // Default emoji for debugging the animated sprite
@@ -25,18 +25,20 @@ export class AnimatedSprite extends Renderer {
         this.width = width;
         this.height = height;
         this.ready = false;
+        this.spritesheetImage = spritesheetImage; // Optional image for the spritesheet
         this.currentAnimation = startingAnimation || "default";
         this.disableAntiAliasing = disableAntiAliasing;
         this.onAnimationComplete = onAnimationComplete; // Set the callback for animation completion
-
+        this.webEngine = webEngine; // Set the web engine flag
     }
 
     async onMount(parent: Part) {
         super.onMount(parent);
         parent.setSuperficialDimensions(this.width, this.height); // Set dimensions for the parent part
-        console.log(this.width, this.height);
-        console.log(this.parent)
         let spritesheetData: SpriteSheetData;
+        if (!this.spritesheet) {
+            return;
+        }
         if (this.spritesheet.startsWith("data:application/json")) {
             spritesheetData = JSON.parse(atob(this.spritesheet.split(',')[1]));
         } else {
@@ -46,7 +48,6 @@ export class AnimatedSprite extends Renderer {
             }
             spritesheetData = await response.json() as SpriteSheetData; // Assuming the spritesheet is a JSON file
         }
-
         // Validate the data structure
         if (!spritesheetData.frames || !Array.isArray(spritesheetData.frames)) {
             throw new Error("Invalid spritesheet format: 'frames' array is missing or not an array.");
@@ -62,12 +63,15 @@ export class AnimatedSprite extends Renderer {
         }
 
         const image = new Image();
-        if (spritesheetImage) {
-            image.src = spritesheetImage;
+        // If spritesheetImage is provided, use it directly. Otherwise, try to resolve from spritesheet data.
+        if (this.spritesheetImage) {
+            image.src = this.spritesheetImage;
         } else {
-            const relativeToSpritesheet = this.spritesheet.startsWith("data:") ? "" : this.spritesheet.split("/").slice(0, -1).join("/");
-            const path = spritesheetData.meta.image.startsWith("http") ? spritesheetData.meta.image : new URL(relativeToSpritesheet + "/" + spritesheetData.meta.image, window.location.href).href;  // Handle relative paths
-            image.src = path; // Set the image source to the spritesheet image path
+            if (!this.webEngine) {
+                const relativeToSpritesheet = this.spritesheet.startsWith("data:") ? "" : this.spritesheet.split("/").slice(0, -1).join("/");
+                const path = spritesheetData.meta.image.startsWith("http") ? spritesheetData.meta.image : new URL(relativeToSpritesheet + "/" + spritesheetData.meta.image, window.location.href).href;  // Handle relative paths
+                image.src = path; // Set the image source to the spritesheet image path
+            }
         }
 
         image.onerror = (err) => {
@@ -91,9 +95,9 @@ export class AnimatedSprite extends Renderer {
         for (const animation of Object.keys(this.frames)) {
             this.frames[animation] = new Array(this.frames[animation].length);
             for (let i = 0; i < this.frames[animation].length; i++) {
-                const frameIndex = this.spritesheetData?.frames.findIndex(frame => frame.filename === data.meta.animations[animation].frames[i]);
+                const frameIndex = this.spritesheetData?.frames.findIndex(frame => frame.filename === this.spritesheetData!.meta.animations[animation].frames[i]);
                 if (frameIndex === -1) {
-                    throw new Error(`Frame '${data.meta.animations[animation].frames[i]}' does not exist in spritesheet for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
+                    throw new Error(`Frame '${this.spritesheetData!.meta.animations[animation].frames[i]}' does not exist in spritesheet for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
                 }
                 const frame: HTMLImageElement | null = this.frame(frameIndex!);
                 if (frame) {
@@ -171,7 +175,6 @@ export class AnimatedSprite extends Renderer {
             this.currentAnimation = animationName;
             this.currentFrameIndex = 0; // Reset to the first frame of the new animation
             this.bouncing = bounce ?? this.spritesheetData.meta.animations[animationName].bounce ?? false; // Reset bouncing state
-            this.lastFrameTime = performance.now(); // Reset frame timing
 
             if (loop !== undefined) {
                 this.spritesheetData.meta.animations[this.currentAnimation].loop = loop;
@@ -180,10 +183,11 @@ export class AnimatedSprite extends Renderer {
             console.warn(`Animation '${animationName}' does not exist in spritesheet for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
         }
     }
-    act() {
-        super.act();
-        const now = performance.now();
-        const delta = now - this.lastFrameTime;
+    act(delta: number) {
+        super.act(delta);
+        if (!this.ready) {
+            return;
+        }
         const duration = (this.spritesheetData?.frames[this.currentFrameIndex].duration || 100)
         if (this.ready && this.spritesheetData) {
             if (delta > duration) {
@@ -220,7 +224,6 @@ export class AnimatedSprite extends Renderer {
                         // Stay at the last frame if we've reached it
                     }
                 }
-                this.lastFrameTime = now;
             }
             const transform = this.sibling<Transform>("Transform");
             if (!transform) {

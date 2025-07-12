@@ -1,3 +1,4 @@
+import { updateCustomNodesList } from "./customNodes.ts";
 import { nodeDefinitions } from "./definitions.ts";
 import { exportSaveFile, importSaveFile } from "./exporter.ts";
 import { state } from "./state.ts";
@@ -35,7 +36,11 @@ export function setupUI(editor: any) {
         // Alt + P: Play/Pause
         if (event.altKey && event.key === 'p') {
             event.preventDefault();
-            pauseButton.click();
+            if (!state.currentGameInstance) {
+                playButton.click();
+            } else {
+                pauseButton.click();
+            }
         }
         // Alt + S: Stop
         if (event.altKey && event.key === 's') {
@@ -78,10 +83,14 @@ function toggleEditorExpansion() {
     if (isEditorExpanded) {
         nodeEditorContainer.classList.add('expanded');
         gameContainer.style.display = 'none';
+        const canvas = document.getElementById('gamecanvas');
+        if (canvas) canvas.style.display = 'none';
         expandEditorButton.innerHTML = '&#x25BC;'; // Down arrow
     } else {
         nodeEditorContainer.classList.remove('expanded');
         gameContainer.style.display = 'flex'; // Restore original display
+        const canvas = document.getElementById('gamecanvas');
+        if (canvas) canvas.style.display = 'block';
         expandEditorButton.innerHTML = '&#x25B2;'; // Up arrow
     }
 }
@@ -122,7 +131,7 @@ function showKeybindsAsTable() {
     alert(keybinds);
 }
 
-export function switchTab(tab: 'game' | 'editor', editor: any) {
+export function switchTab(tab: 'game' | 'editor', editor?: any) {
     state.currentTab = tab;
     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -150,7 +159,6 @@ export function switchTab(tab: 'game' | 'editor', editor: any) {
 }
 
 saveButton.addEventListener('click', () => {
-    console.log("Saving game state...");
     exportSaveFile(state.gameTree, nodeDefinitions);
 });
 
@@ -162,11 +170,13 @@ loadButton.addEventListener('click', () => {
         const file = (event.target as HTMLInputElement).files?.[0];
         if (file) {
             try {
-                const { gameTree, nodeDefinitions: loadedNodeDefinitions } = await importSaveFile(file);
+                const { gameTree, nodeDefinitions: loadedNodeDefinitions, fileNames: loadedFileNames } = await importSaveFile(file);
                 state.gameTree = gameTree;
+                state.fileNames = loadedFileNames; // Restore file names
+                Object.assign(loadedNodeDefinitions, nodeDefinitions); // Merge loaded definitions with existing ones (prioritize existing definitions)
+                Object.assign(nodeDefinitions, loadedNodeDefinitions); // Update global node definitions
                 updateTreeDisplay();
-                Object.assign(nodeDefinitions, loadedNodeDefinitions);
-                console.log("Game state loaded successfully.");
+                updateCustomNodesList();
             } catch (error) {
                 console.error("Error loading game state:", error);
             }
@@ -175,3 +185,42 @@ loadButton.addEventListener('click', () => {
     input.click();
 });
 
+export function customPrompt(message: string, defaultValue: string): Promise<string | null> {
+    return new Promise((resolve) => {
+        const promptBox = document.getElementById('custom-prompt')!;
+        const messageElement = document.getElementById('custom-prompt-message')!;
+        const inputElement = document.getElementById('custom-prompt-input')! as HTMLInputElement;
+        const okButton = document.getElementById('custom-prompt-ok')!;
+        const cancelButton = document.getElementById('custom-prompt-cancel')!;
+
+        messageElement.textContent = message;
+        inputElement.value = defaultValue;
+        promptBox.style.display = 'flex';
+
+        const closePrompt = (value: string | null) => {
+            promptBox.style.display = 'none';
+            inputElement.removeEventListener('keydown', onKeyDown);
+            okButton.onclick = null;
+            cancelButton.onclick = null;
+            resolve(value);
+        };
+
+        okButton.onclick = () => closePrompt(inputElement.value);
+        cancelButton.onclick = () => closePrompt(null);
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                closePrompt(inputElement.value);
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closePrompt(null);
+            }
+        };
+
+        inputElement.addEventListener('keydown', onKeyDown);
+        inputElement.focus();
+        inputElement.select();
+    });
+}

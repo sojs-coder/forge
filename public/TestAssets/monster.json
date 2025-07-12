@@ -224,8 +224,8 @@
     "meta": {
         "image": "monster.png",
         "size": {
-            "w": 195,
-            "h": 29
+            "w": 17,
+            "h": 27
         },
         "animations": {
             "idle": {

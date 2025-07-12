@@ -3,6 +3,7 @@
   "module": "index.ts",
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/matter-js": "^0.19.8",
     "docsify-cli": "^4.4.4"
   },
   "peerDependencies": {

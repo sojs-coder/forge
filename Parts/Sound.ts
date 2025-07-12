@@ -30,7 +30,6 @@ export class Sound extends Part {
                     window.addEventListener('keydown', tryPlay, { once: true });
                 }
             }
-            console.log(`Sound <${this.name}> loaded successfully.`);
         });
 
         this.audio.addEventListener('error', () => {
@@ -81,8 +80,8 @@ export class Sound extends Part {
         this.audio.loop = loop;
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         this.hoverbug = `${this.audio.paused ? "⏸️" : "▶️"} V:${this.audio.volume.toFixed(2)} L:${this.audio.loop ? "✅" : "❌"}`;
     }
 }

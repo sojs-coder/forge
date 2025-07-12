@@ -3,6 +3,7 @@ import { Transform } from "./Children/Transform";
 import { BoxCollider } from "./Children/BoxCollider";
 import { PolygonCollider } from "./Children/PolygonCollider";
 import { PhysicsEngine } from "./PhysicsEngine";
+import { Vector } from "../Math/Vector";
 import { Bodies, Body, World } from "matter-js";
 
 export class PhysicsBody extends Part {
@@ -11,6 +12,7 @@ export class PhysicsBody extends Part {
     density: number;
     friction: number;
     restitution: number;
+    initialized: boolean;
 
     constructor({ name, isStatic = false, density = 0.001, friction = 0.1, restitution = 0 }: { name?: string, isStatic?: boolean, density?: number, friction?: number, restitution?: number }) {
         super({ name: name || 'PhysicsBody' });
@@ -19,66 +21,70 @@ export class PhysicsBody extends Part {
         this.friction = friction;
         this.restitution = restitution;
         this.debugEmoji = "🏋️";
+        this.initialized = false;
     }
-
-    onMount(parent: Part) {
-        super.onMount(parent);
+    initialize() {
+        if (this.initialized) return; // Prevent re-initialization
+        this.initialized = true;
         const transform = this.sibling<Transform>("Transform");
-        const boxCollider = this.sibling<BoxCollider>("BoxCollider");
-        const polygonCollider = this.sibling<PolygonCollider>("PolygonCollider");
-        const physicsEngine = this.top?.currentScene?.sibling<PhysicsEngine>("PhysicsEngine");
+        const collider = this.sibling<BoxCollider | PolygonCollider>("BoxCollider") || this.sibling<PolygonCollider>("PolygonCollider");
+        const engine = this.registrations.scene?.children["PhysicsEngine"] as PhysicsEngine | undefined;
 
         if (!transform) {
             console.warn(`PhysicsBody <${this.name}> requires a Transform sibling.`);
             return;
         }
-        if (!physicsEngine) {
+        if (!collider) {
+            console.warn(`PhysicsBody <${this.name}> requires a BoxCollider or PolygonCollider sibling.`);
+            return;
+        }
+        if (!engine) {
             console.warn(`PhysicsBody <${this.name}> requires a PhysicsEngine in the current scene.`);
             return;
         }
 
-        if (boxCollider) {
-            this.body = Bodies.rectangle(
-                transform.worldPosition.x,
-                transform.worldPosition.y,
-                boxCollider.end.x - boxCollider.start.x,
-                boxCollider.end.y - boxCollider.start.y,
-                {
-                    isStatic: this.isStatic,
-                    density: this.density,
-                    friction: this.friction,
-                    restitution: this.restitution
-                }
-            );
-        } else if (polygonCollider) {
-            // Matter.js expects vertices relative to the body's center
-            const vertices = polygonCollider.localVertices.map(v => ({ x: v.x, y: v.y }));
-            this.body = Bodies.fromVertices(
-                transform.worldPosition.x,
-                transform.worldPosition.y,
-                [vertices],
-                {
-                    isStatic: this.isStatic,
-                    density: this.density,
-                    friction: this.friction,
-                    restitution: this.restitution
-                }
-            );
+        // Create the body based on the collider type
+        this.body = Bodies.fromVertices(
+            transform.worldPosition.x,
+            transform.worldPosition.y,
+            [collider.vertices.map(v => v.toObject())],
+            {
+                isStatic: this.isStatic,
+                density: this.density,
+                friction: this.friction,
+                restitution: this.restitution,
+                angle: transform.rotation
+            }
+        );
+        if (this.body) {
+            Body.setAngle(this.body, transform.rotation);
+            this.body.label = this.name; // Set label for easier debugging
+            World.add(engine.world, this.body);
+        } else {
+            console.warn(`Failed to create body for PhysicsBody <${this.name}>. Ensure the collider is properly defined.`);
         }
 
-        if (this.body) {
-            World.add(physicsEngine.world, this.body);
-        }
+    }
+    onMount(parent: Part) {
+        super.onMount(parent);
+
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
+        if (!this.initialized) {
+            this.initialize();
+        }
+        if (!this.body) {
+            console.warn(`PhysicsBody <${this.name}> has no body initialized. Ensure it is mounted with a Transform and Collider.`);
+            return;
+        }
         if (this.body && !this.isStatic) {
             const transform = this.sibling<Transform>("Transform");
             if (transform) {
-                transform.position.x = this.body.position.x;
-                transform.position.y = this.body.position.y;
-                transform.rotation = this.body.angle;
+                // console.log(`Updating transform for PhysicsBody <${this.name}>: Position: ${this.body.position.x}, ${this.body.position.y}, Rotation: ${this.body.angle}`);
+                transform.moveTo(new Vector(this.body.position.x, this.body.position.y));
+                transform.setRotation(this.body.angle);
             }
         }
         this.hoverbug = `Static: ${this.isStatic ? "✅" : "❌"}`;

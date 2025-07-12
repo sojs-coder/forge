@@ -37,8 +37,8 @@ export class TextRender extends Renderer {
         this.textContent = text;
         this.updateSuperficialDimensions();
     }
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const transform = this.sibling<Transform>('Transform');
         if (!transform) {
             console.warn(`Text <${this.name}> (${this.id}) does not have a Transform sibling. Skipping rendering.`);

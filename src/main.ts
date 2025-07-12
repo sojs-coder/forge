@@ -93,7 +93,7 @@ const enemies: GameObject[] = [];
 for (let i = 0; i < 3; i++) {
     const enemy = new GameObject({ name: `Blue Man ${i + 1}` });
     enemy.addChildren(
-        new Transform({ position: new Vector(GAME_WIDTH / 4 + i * (GAME_WIDTH / 4), GAME_HEIGHT - (PLATFORM_HEIGHT/2) - 45) }),
+        new Transform({ position: new Vector(GAME_WIDTH / 4 + i * (GAME_WIDTH / 4), GAME_HEIGHT - (PLATFORM_HEIGHT / 2) - 45) }),
         new ColorRender({ width: 30, height: 40, color: 'blue' }),
         new BoxCollider({ width: 30, height: 40 }),
         new EnemyMovement(GAME_WIDTH, ENEMY_SPEED) // Custom part for enemy movement
@@ -110,14 +110,14 @@ class GameLogic extends Part {
         super.onMount(parent);
     }
 
-    act() {
+    act(delta: number) {
         if (gameOver) return;
 
         const monsterTransform = monster.children['Transform'] as Transform;
         const monsterCollider = monster.children['BoxCollider'] as BoxCollider;
         const animatedSprite = monster.children['AnimatedSprite'] as AnimatedSprite;
 
-        // Apply gravity
+        // Apply gravity    
         if (this.isJumping) {
             this.velocityY += GRAVITY;
             monsterTransform.position.y += this.velocityY;
@@ -168,7 +168,7 @@ class GameLogic extends Part {
             }
         }
 
-        super.act();
+        super.act(delta);
     }
 }
 
@@ -216,7 +216,7 @@ scene1.addChild(new Input({
             case ' ': // Spacebar for jump
                 if (!gameLogicInstance.isJumping) {
                     const jumpSound = monster.children['JumpSound'] as Sound;
-                    jumpSound.play({ clone: true});
+                    jumpSound.play({ clone: true });
                     gameLogicInstance.isJumping = true;
                     gameLogicInstance.velocityY = -JUMP_FORCE;
                     animatedSprite.setAnimation("idle"); // Set to idle during jump
@@ -263,7 +263,7 @@ restartButton.addChildren(
             gameLogicInstance.velocityY = 0;
             enemies.forEach((enemy, index) => {
                 const enemyTransform = enemy.children['Transform'] as Transform;
-                enemyTransform.position.x = GAME_WIDTH  / 4 + index * (GAME_WIDTH / 4) ;
+                enemyTransform.position.x = GAME_WIDTH / 4 + index * (GAME_WIDTH / 4);
             });
             // Clear any lingering collision states for the monster
             (monster.children['BoxCollider'] as BoxCollider).collidingWith.clear();
@@ -316,10 +316,10 @@ restartButton.addChildren(
 gameOverLayer.addChild(restartButton);
 game.addChild(gameOverScene);
 gameOverScene.addChild(new Input({
-    key: () => {},
-    keyup: () => {},
-    mousemove: () => {},
-    click: (event, input) => {},
+    key: () => { },
+    keyup: () => { },
+    mousemove: () => { },
+    click: (event, input) => { },
 }));
 // Player movement, bounds checking, and enemy movement/collision logic
 // These are now handled by the Input key handler and the main game loop's act calls on game objects.

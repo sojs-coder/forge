@@ -7,14 +7,11 @@ import { Scene } from "./Scene";
 export class Camera extends Part {
     zoom: Vector;
 
-    constructor({ name, position = new Vector(0, 0), zoom = Vector.From(1) }: { name: string, position: Vector, zoom?: Vector }) {
+    constructor({ name }: { name: string, zoom?: Vector }) {
         super();
         this.name = name;
-        this.zoom = zoom;
+        this.zoom = Vector.From(1);
         this.debugEmoji = "📷"; // Camera specific emoji for debugging
-
-        this.addChild(new Transform({ position })); // Add a Transform part for position
-
     }
 
     onMount(parent: Part) {
@@ -47,11 +44,13 @@ export class Camera extends Part {
         };
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const transform = this.children["Transform"] as Transform;
         if (transform) {
             this.zoom = transform.scale;
+        } else {
+            console.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. Camera zoom will not be updated.`);
         }
     }
 

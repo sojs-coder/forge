@@ -28,13 +28,13 @@ export class SpriteRender extends Renderer {
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
-            throw new Error(`SpriteRender <${this.name}> requires a Transform component to be mounted to a parent GameObject.`);
+            console.warn(`SpriteRender <${this.name}> requires a Transform component to be mounted to a parent GameObject.`);
         }
         this.parent?.setSuperficialDimensions(this.width, this.height);
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
 
         if (!this.ready) return;
         if (!this.top) {

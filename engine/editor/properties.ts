@@ -5,7 +5,6 @@ import { updateTreeDisplay } from "./tree.ts";
 import type { GameNode, PropertyDefinition } from "./types.ts";
 
 const propertyEditor = document.getElementById('property-editor')!;
-
 export function renderProperties(node: GameNode) {
     propertyEditor.innerHTML = '';
     if (!node) return;
@@ -33,7 +32,10 @@ export function renderProperties(node: GameNode) {
         label.textContent = formatPropertyKey(key) + ':';
 
         let input: HTMLElement;
-
+        if (propDef.dontShow) {
+            // Skip properties that should not be shown
+            continue;
+        }
         switch (propDef.type) {
             case 'boolean':
                 const checkbox = document.createElement('input');
@@ -55,8 +57,7 @@ export function renderProperties(node: GameNode) {
                 const partContainer = document.createElement('div');
                 partContainer.classList.add('part-property-container');
 
-                const currentPartId = node.properties[key];
-                const currentPart = currentPartId ? findNodeById(state.gameTree, currentPartId) : null;
+                const currentPart = node.properties[key];
 
                 const partDisplay = document.createElement('span');
                 partDisplay.classList.add('part-name-display');
@@ -78,14 +79,21 @@ export function renderProperties(node: GameNode) {
                     if (droppedNodeId) {
                         const droppedNode = findNodeById(state.gameTree, droppedNodeId);
                         if (droppedNode) {
-                            // Check if the dropped node is compatible with the subType
-                            const allowedTypes = getAllowedSubtypes(propDef.subType!);
-                            if (allowedTypes.includes(droppedNode.type)) {
-                                node.properties[key] = droppedNode.id;
+                            // If the subType is 'Part', allow any node to be assigned
+                            if (propDef.subType === 'Part') {
+                                node.properties[key] = droppedNode;
                                 updateTreeDisplay();
                                 renderProperties(node); // Re-render to update display
                             } else {
-                                alert(`Cannot assign ${droppedNode.type} to ${propDef.subType} property.`);
+                                // Check if the dropped node is compatible with the subType
+                                const allowedTypes = getAllowedSubtypes(propDef.subType!);
+                                if (allowedTypes.includes(droppedNode.type)) {
+                                    node.properties[key] = droppedNode;
+                                    updateTreeDisplay();
+                                    renderProperties(node); // Re-render to update display
+                                } else {
+                                    alert(`Cannot assign ${droppedNode.type} to ${propDef.subType} property.`);
+                                }
                             }
                         }
                     }
@@ -113,6 +121,21 @@ export function renderProperties(node: GameNode) {
                 break;
             case 'list':
                 input = createListInput(node, key, propDef);
+                break;
+            case 'enum':
+                const select = document.createElement('select');
+                propDef.options?.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option;
+                    optionElement.textContent = option;
+                    select.appendChild(optionElement);
+                });
+                select.value = node.properties[key] !== undefined ? node.properties[key] : propDef.default;
+                select.addEventListener('change', (event) => {
+                    node.properties[key] = (event.target as HTMLSelectElement).value;
+                    if (key === 'name') updateTreeDisplay();
+                });
+                input = select;
                 break;
             default: // text, number
                 const textInput = document.createElement('input');
@@ -165,115 +188,38 @@ function createFileInput(node: GameNode, key: string, propDef: PropertyDefinitio
         video: 'video/*',
         json: 'application/json'
     };
-
-    if (node.type === 'AnimatedSprite' && key === 'spritesheet') {
-        // Custom handling for AnimatedSprite spritesheet
-        const jsonInput = document.createElement('input');
-        jsonInput.type = 'file';
-        jsonInput.accept = fileTypeAccepts.json;
-        jsonInput.style.display = 'none'; // Hide default input
-
-        const jsonButton = document.createElement('button');
-        jsonButton.textContent = node.properties[key] ? 'Change Spritesheet JSON' : 'Select Spritesheet JSON';
-        jsonButton.onclick = () => jsonInput.click();
-
-        const jsonFileNameSpan = document.createElement('span');
-        jsonFileNameSpan.textContent = node.properties[key] ? ' (Loaded)' : '';
-
-        container.append(jsonButton, jsonFileNameSpan);
-
-        const imageContainer = document.createElement('div');
-        imageContainer.classList.add('spritesheet-image-container');
-        imageContainer.style.marginTop = '10px';
-        container.appendChild(imageContainer);
-
-        const updateImageInput = (spritesheetDataUrl: string | null) => {
-            imageContainer.innerHTML = '';
-            if (spritesheetDataUrl) {
-                try {
-                    const decodedJson = JSON.parse(atob(spritesheetDataUrl.split(',')[1]));
-                    if (decodedJson.meta && decodedJson.meta.image) {
-                        const imageInput = document.createElement('input');
-                        imageInput.type = 'file';
-                        imageInput.accept = fileTypeAccepts.image;
-                        imageInput.style.display = 'none';
-
-                        const imageButton = document.createElement('button');
-                        imageButton.textContent = node.properties.spritesheetImage ? 'Change Spritesheet Image' : 'Select Spritesheet Image';
-                        imageButton.onclick = () => imageInput.click();
-
-                        const imageFileNameSpan = document.createElement('span');
-                        imageFileNameSpan.textContent = node.properties.spritesheetImage ? ' (Loaded)' : '';
-
-                        imageInput.addEventListener('change', (event) => {
-                            const file = (event.target as HTMLInputElement).files?.[0];
-                            if (file) {
-                                const reader = new FileReader();
-                                reader.onload = (e) => {
-                                    node.properties.spritesheetImage = e.target?.result;
-                                    imageButton.textContent = 'Change Spritesheet Image';
-                                    imageFileNameSpan.textContent = ' (Loaded)';
-                                    updateRender();
-                                };
-                                reader.readAsDataURL(file);
-                            }
-                        });
-                        imageContainer.append(imageButton, imageFileNameSpan);
-                    }
-                } catch (e) {
-                    console.error("Error parsing spritesheet JSON:", e);
-                }
-            }
-        };
-
-        jsonInput.addEventListener('change', (event) => {
-            const file = (event.target as HTMLInputElement).files?.[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    node.properties[key] = e.target?.result;
-                    jsonButton.textContent = 'Change Spritesheet JSON';
-                    jsonFileNameSpan.textContent = ' (Loaded)';
-                    updateImageInput(e.target?.result as string);
-                    updateRender();
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Initial call to set up image input if JSON is already present
-        updateImageInput(node.properties[key]);
-
-    } else {
-        // Existing behavior for other file types
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        if (propDef.fileType) {
-            fileInput.accept = fileTypeAccepts[propDef.fileType] || '';
-        }
-
-        const currentFileName = node.properties[key] ? (node.properties[key].substring(0, 30) + '...') : 'No file selected';
-        const displaySpan = document.createElement('span');
-        displaySpan.textContent = currentFileName;
-
-        const selectButton = document.createElement('button');
-        selectButton.textContent = 'Select File';
-        selectButton.onclick = () => fileInput.click();
-
-        fileInput.addEventListener('change', (event) => {
-            const file = (event.target as HTMLInputElement).files?.[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    node.properties[key] = e.target?.result;
-                    displaySpan.textContent = file.name;
-                    updateRender();
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        container.append(displaySpan, selectButton, fileInput);
+    // Existing behavior for other file types
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    if (propDef.fileType) {
+        fileInput.accept = fileTypeAccepts[propDef.fileType] || '';
     }
+    fileInput.style.display = 'none'; // Hide default input
+    const fileNameSymbol = (`${node.id}-${key}`); // Unique symbol for this node and property
+    const fileName = state.fileNames.get(fileNameSymbol) || '';
+    const currentFileName = (fileName) ? (fileName.substring(0, 20)) : 'No file selected';
+    const displaySpan = document.createElement('span');
+    displaySpan.textContent = currentFileName;
+
+    const selectButton = document.createElement('button');
+    selectButton.textContent = 'Select File';
+    selectButton.onclick = () => fileInput.click();
+
+    fileInput.addEventListener('change', (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                node.properties[key] = e.target?.result;
+                displaySpan.textContent = file.name;
+                updateRender();
+            };
+            // Store the file name in a symbol to avoid conflicts
+            state.fileNames.set(fileNameSymbol, file.name); // Store the file name
+            reader.readAsDataURL(file);
+        }
+    });
+    container.append(displaySpan, selectButton, fileInput);
 
     return container;
 }
@@ -326,6 +272,7 @@ function createColorInput(node: GameNode, key: string, propDef: PropertyDefiniti
     const colorInput = document.createElement('input');
     colorInput.type = 'color';
     colorInput.value = node.properties[key] !== undefined ? node.properties[key] : propDef.default;
+    colorInput.style.width = '80px'; // Make the input wider
     colorInput.addEventListener('change', (event) => {
         node.properties[key] = (event.target as HTMLInputElement).value;
         updateRender();
@@ -349,10 +296,15 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
             if (propDef.subType === 'Vector') {
                 // Assuming Vector subType for now, similar to createVectorInput
                 const vectorItemContainer = document.createElement('div');
+                vectorItemContainer.classList.add('vector-item-container');
+                
                 const xMatch = item.match(/new\s+Vector\s*\(\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*\)/);
                 let xValue = xMatch ? parseFloat(xMatch[1]) : 0;
                 let yValue = xMatch ? parseFloat(xMatch[2]) : 0;
 
+                const xLabel = document.createElement('span');
+                xLabel.textContent = 'X:';
+                
                 const xInput = document.createElement('input');
                 xInput.type = 'number';
                 xInput.value = xValue.toString();
@@ -363,6 +315,9 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
                     updateRender();
                 });
 
+                const yLabel = document.createElement('span');
+                yLabel.textContent = 'Y:';
+                
                 const yInput = document.createElement('input');
                 yInput.type = 'number';
                 yInput.value = yValue.toString();
@@ -373,7 +328,7 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
                     updateRender();
                 });
 
-                vectorItemContainer.append('X:', xInput, 'Y:', yInput);
+                vectorItemContainer.append(xLabel, xInput, yLabel, yInput);
                 itemInput = vectorItemContainer;
             } else {
                 // Default to text input for other subTypes
@@ -458,9 +413,13 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
     let selectedIndex = -1;
 
     const collectNodes = (node: GameNode) => {
-        const allowedTypes = getAllowedSubtypes(subType);
-        if (allowedTypes.includes(node.type)) {
+        if (subType === 'Part') {
             allNodes.push(node);
+        } else {
+            const allowedTypes = getAllowedSubtypes(subType);
+            if (allowedTypes.includes(node.type)) {
+                allNodes.push(node);
+            }
         }
         node.children.forEach(collectNodes);
     };
@@ -468,8 +427,8 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
 
     const renderOptions = (filter: string) => {
         optionsContainer.innerHTML = '';
-        filteredNodes = allNodes.filter(node => 
-            node.properties.name.toLowerCase().includes(filter.toLowerCase()) || 
+        filteredNodes = allNodes.filter(node =>
+            node.properties.name.toLowerCase().includes(filter.toLowerCase()) ||
             node.type.toLowerCase().includes(filter.toLowerCase())
         );
 
@@ -485,7 +444,7 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
                 optionDiv.classList.add('selected-option');
             }
             optionDiv.addEventListener('click', () => {
-                targetNode.properties[targetKey] = node.id;
+                targetNode.properties[targetKey] = node;
                 document.body.removeChild(popup);
                 updateTreeDisplay();
                 renderProperties(targetNode);
@@ -515,7 +474,7 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
         } else if (event.key === 'Enter') {
             event.preventDefault();
             if (selectedIndex !== -1) {
-                targetNode.properties[targetKey] = filteredNodes[selectedIndex].id;
+                targetNode.properties[targetKey] = filteredNodes[selectedIndex];
                 document.body.removeChild(popup);
                 updateTreeDisplay();
                 renderProperties(targetNode);

@@ -10,11 +10,11 @@ export class Layer extends Part {
         this.debugEmoji = "🗂️"; // Default emoji for debugging the layer
     }
 
-    addChild(gameObject: GameObject) {
-        gameObject.setAll("layer", this);
-        super.addChild(gameObject);
+    addChild(part: Part) {
+        part.setAll("layer", this);
+        super.addChild(part);
     }
-    addChildren(...gameObjects: GameObject[]) {
-        gameObjects.forEach((gameObject) => this.addChild(gameObject));
+    addChildren(...parts: Part[]) {
+        parts.forEach((part) => this.addChild(part));
     }
 }

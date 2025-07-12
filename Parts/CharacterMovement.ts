@@ -1,21 +1,21 @@
 import { Part } from "./Part";
 import { Transform } from "./Children/Transform";
 import { Input } from "./Input";
+import { Vector } from "../Math/Vector";
 
 export class CharacterMovement extends Part {
     speed: number;
-    movementType: 'WASD' | 'ArrowKeys';
+    movementType: 'WASD' | 'ArrowKeys' | 'BOTH';
     input: Input | undefined;
 
-    constructor({ name, speed = 5, movementType = 'WASD', input }: { name?: string, speed?: number, movementType?: 'WASD' | 'ArrowKeys', input?: Input }) {
+    constructor({ name, speed = 5, movementType = 'WASD', input }: { name?: string, speed?: number, movementType?: 'WASD' | 'ArrowKeys' | 'BOTH', input?: Input }) {
         super({ name: name || 'CharacterMovement' });
         this.speed = speed;
         this.movementType = movementType;
         this.input = input
     }
 
-
-    act(): void {
+    act(_delta: number): void {
         if (!this.input) {
             return;
         }
@@ -27,32 +27,44 @@ export class CharacterMovement extends Part {
 
         const keys = this.input.downkeys;
 
-        if (this.movementType === 'WASD') {
+        let dx = 0;
+        let dy = 0;
+
+        if (this.movementType === 'WASD' || this.movementType === 'BOTH') {
             if (keys.has('w')) {
-                transform.position.y -= this.speed;
+                dy -= 1;
             }
             if (keys.has('s')) {
-                transform.position.y += this.speed;
+                dy += 1;
             }
             if (keys.has('a')) {
-                transform.position.x -= this.speed;
+                dx -= 1;
             }
             if (keys.has('d')) {
-                transform.position.x += this.speed;
-            }
-        } else if (this.movementType === 'ArrowKeys') {
-            if (keys.has('ArrowUp')) {
-                transform.position.y -= this.speed;
-            }
-            if (keys.has('ArrowDown')) {
-                transform.position.y += this.speed;
-            }
-            if (keys.has('ArrowLeft')) {
-                transform.position.x -= this.speed;
-            }
-            if (keys.has('ArrowRight')) {
-                transform.position.x += this.speed;
+                dx += 1;
             }
         }
+        if (this.movementType === 'ArrowKeys' || this.movementType === 'BOTH') {
+            if (keys.has('ArrowUp')) {
+                dy -= 1;
+            }
+            if (keys.has('ArrowDown')) {
+                dy += 1;
+            }
+            if (keys.has('ArrowLeft')) {
+                dx -= 1;
+            }
+            if (keys.has('ArrowRight')) {
+                dx += 1;
+            }
+        }
+
+        // Normalize diagonal movement
+        if (dx !== 0 && dy !== 0) {
+            dx *= Math.SQRT1_2; // 1 / sqrt(2)
+            dy *= Math.SQRT1_2;
+        }
+
+        transform.move(new Vector(dx * this.speed, dy * this.speed));
     }
 }

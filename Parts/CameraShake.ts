@@ -21,7 +21,7 @@ export class CameraShake extends Part {
         // Find the camera in the scene and store its original position
         const camera = this.top?.currentScene?.activeCamera;
         if (camera) {
-            const cameraTransform = camera.sibling<Transform>("Transform");
+            const cameraTransform = camera.children["Transform"] as Transform | undefined;
             if (cameraTransform) {
                 this.originalCameraPosition = cameraTransform.position.clone();
             }
@@ -32,16 +32,16 @@ export class CameraShake extends Part {
         this.shakeTimer = this.duration;
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         if (this.shakeTimer > 0) {
             const camera = this.top?.currentScene?.activeCamera;
             if (camera) {
-                const cameraTransform = camera.sibling<Transform>("Transform");
+                const cameraTransform = camera.children["Transform"] as Transform | undefined;
                 if (cameraTransform) {
                     const offsetX = (Math.random() - 0.5) * this.intensity;
                     const offsetY = (Math.random() - 0.5) * this.intensity;
-                    cameraTransform.position = this.originalCameraPosition!.add(new Vector(offsetX, offsetY));
+                    cameraTransform.moveTo(this.originalCameraPosition!.add(new Vector(offsetX, offsetY)));
                 }
             }
             this.shakeTimer--;
@@ -49,9 +49,9 @@ export class CameraShake extends Part {
             // Reset camera position after shake
             const camera = this.top?.currentScene?.activeCamera;
             if (camera) {
-                const cameraTransform = camera.sibling<Transform>("Transform");
+                const cameraTransform = camera.children["Transform"] as Transform | undefined;
                 if (cameraTransform) {
-                    cameraTransform.position = this.originalCameraPosition;
+                    cameraTransform.moveTo(this.originalCameraPosition);
                 }
             }
         }

@@ -4,8 +4,9 @@ export class Health extends Part {
     maxHealth: number;
     currentHealth: number;
     onDeath?: () => void;
+    isDead: boolean = false;
 
-    constructor({ name, maxHealth = 100, onDeath }: { name?: string, maxHealth?: number, onDeath?: () => void }) {
+    constructor({ name, maxHealth = 100, onDeath = () => {} }: { name?: string, maxHealth?: number, onDeath?: () => void }) {
         super({ name: name || 'Health' });
         this.maxHealth = maxHealth;
         this.currentHealth = maxHealth;
@@ -18,6 +19,7 @@ export class Health extends Part {
         if (this.currentHealth <= 0) {
             this.currentHealth = 0;
             if (this.onDeath) {
+                this.isDead = true;
                 this.onDeath();
             }
         }
@@ -30,8 +32,8 @@ export class Health extends Part {
         }
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         this.hoverbug = `${this.currentHealth}/${this.maxHealth}`;
     }
 }

@@ -92,8 +92,8 @@ export class Input extends Part {
     }
 
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         if(!this.initialized) {
             if(!this.top || !(this.top instanceof Game)) {
                 throw new Error("Input must be attached to a Game instance.");

@@ -31,8 +31,12 @@ export class PolygonCollider extends Collider {
         }
         this.updateWorldVertices();
     }
+    get vertices(): Vector[] {
+        return this.localVertices; // Return local vertices for consistency
+    }
+    act(delta: number) {
+        super.act(delta);
 
-    act() {
         if (!this.sibling("Transform")) {
             console.warn(
                 `PolygonCollider <${this.name}> (${this.id}) is not attached to a parent with a Transform component. Skipping`
@@ -73,8 +77,6 @@ export class PolygonCollider extends Collider {
                 ctx.restore();
             }
         }
-
-        super.act();
     }
 
     updateWorldVertices() {

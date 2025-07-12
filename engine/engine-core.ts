@@ -23,8 +23,6 @@ export * from '../Parts/Follow';
 export * from '../Parts/CharacterMovement';
 export * from '../Parts/ParallaxLayer';
 export * from '../Parts/PhysicsEngine';
-export * from '../Parts/Clickable';
-export * from '../Parts/Draggable';
 export * from '../Parts/Rotator';
 export * from '../Parts/Scaler';
 export * from '../Parts/Projectile';

@@ -2,7 +2,7 @@ import { state, findNodeById, findParentNode } from "./state.ts";
 import { renderProperties } from "./properties.ts";
 import { updateRender } from "./game.ts";
 import { selectCustomNode } from "./customNodes.ts";
-import { switchTab } from "./ui.ts";
+import { switchTab, customPrompt } from "./ui.ts";
 import type { GameNode } from "./types.ts";
 
 const treeView = document.getElementById('tree-view')!;
@@ -53,7 +53,13 @@ function renderTree(node: GameNode, parentElement: HTMLElement) {
     nodeElement.addEventListener('dragstart', handleDragStart);
     nodeElement.addEventListener('dragover', handleDragOver);
     nodeElement.addEventListener('dragleave', handleDragLeave);
-    nodeElement.addEventListener('drop', handleDrop);
+    nodeElement.addEventListener('drop', (e) => {
+        handleDrop(e);
+        // Clear all drag-over classes
+        document.querySelectorAll('.node-item').forEach(item => {
+            item.classList.remove('drag-over-above', 'drag-over-below', 'drag-over-child');
+        });
+    });
 
     parentElement.appendChild(nodeElement);
 
@@ -151,15 +157,22 @@ export function setupTreeControls() {
         // Initial render of options
         renderOptions('');
 
-        const addNode = (nodeType: string) => {
+        const addNode = async (nodeType: string) => {
             const newNodeDef = (window as any).nodeDefinitions[nodeType];
             const newProperties: Record<string, any> = {};
             for (const key in newNodeDef.properties) {
                 newProperties[key] = newNodeDef.properties[key].default;
             }
 
-            if (!newProperties.name) {
-                newProperties.name = nodeType + '_' + (state.selectedNode!.children.length + 1);
+            if (newNodeDef.singular) {
+                newProperties.name = nodeType;
+            } else {
+                const defaultName = nodeType + '_' + (state.selectedNode!.children.length + 1);
+                const name = await customPrompt(`Enter name for the new ${nodeType}:`, defaultName);
+                if (name === null) {
+                    return;
+                }
+                newProperties.name = name.trim() || defaultName;
             }
 
             const newNode: GameNode = {
@@ -294,7 +307,7 @@ export function deleteNode(nodeId: string) {
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Delete' && state.selectedNode) {
-        if (confirm(`Are you sure you want to delete ${state.selectedNode.name}?`)) {
+        if (confirm(`Are you sure you want to delete ${state.selectedNode.properties.name}?`)) {
             deleteNode(state.selectedNode.id);
         }
     }
@@ -310,7 +323,7 @@ function handleDragStart(event: DragEvent) {
 function handleDragOver(event: DragEvent) {
     event.preventDefault();
     const target = event.target as HTMLElement;
-    const nodeElement = target.closest('.node-item');
+    const nodeElement = target.closest('.node-item') as HTMLElement;
 
     if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
         return;
@@ -331,6 +344,7 @@ function handleDragOver(event: DragEvent) {
     } else {
         nodeElement.classList.add('drag-over-child');
     }
+
 }
 
 function handleDragLeave(event: DragEvent) {
@@ -344,23 +358,16 @@ function handleDragLeave(event: DragEvent) {
 function handleDrop(event: DragEvent) {
     event.preventDefault();
     const target = event.target as HTMLElement;
-    const nodeElement = target.closest('.node-item');
-
-    // Clear all drag-over classes
-    document.querySelectorAll('.node-item').forEach(item => {
-        item.classList.remove('drag-over-above', 'drag-over-below', 'drag-over-child');
-    });
+    const nodeElement = target.closest('.node-item') as HTMLElement;
 
     if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
         return;
     }
 
-    const droppedNodeId = draggedNode.id;
     const targetNodeId = nodeElement.dataset.nodeId!;
     const targetNode = findNodeById(state.gameTree, targetNodeId);
 
     if (!targetNode) return;
-
     // Prevent dropping a parent onto its child
     let tempNode: GameNode | null = targetNode;
     while (tempNode) {
@@ -371,34 +378,54 @@ function handleDrop(event: DragEvent) {
         tempNode = findParentNode(state.gameTree, tempNode.id);
     }
 
-    const oldParent = findParentNode(state.gameTree, droppedNodeId);
-    if (!oldParent) return; // Should always have a parent unless it's the root (which is not draggable)
-
-    // Remove dragged node from its original position
-    oldParent.children = oldParent.children.filter(child => child.id !== droppedNodeId);
+    const oldParent = findParentNode(state.gameTree, draggedNode.id);
+    if (!oldParent) return;
+    let newParent: GameNode | null = null;
+    let insertIndex: number = -1;
 
     if (nodeElement.classList.contains('drag-over-child')) {
-        // Drop as a child
-        if (!targetNode.children) {
-            targetNode.children = [];
+        newParent = targetNode;
+        if (!newParent.children) {
+            newParent.children = [];
         }
-        targetNode.children.push(draggedNode);
-        targetNode.expanded = true; // Expand parent if dropping as child
+        newParent.expanded = true;
+        insertIndex = newParent.children.length;
     } else {
-        // Drop above or below
-        const targetParent = findParentNode(state.gameTree, targetNodeId);
-        if (!targetParent) return; // Should always have a parent
+        newParent = findParentNode(state.gameTree, targetNodeId);
+        if (!newParent) { return; } // Invalid drop target
 
-        const targetIndex = targetParent.children.findIndex(child => child.id === targetNodeId);
-        if (targetIndex === -1) return;
-
+        const targetIndex = newParent.children.findIndex(child => child.id === targetNodeId);
+        if (targetIndex === -1) { return; }
         if (nodeElement.classList.contains('drag-over-above')) {
-            targetParent.children.splice(targetIndex, 0, draggedNode);
+            insertIndex = targetIndex;
         } else if (nodeElement.classList.contains('drag-over-below')) {
-            targetParent.children.splice(targetIndex + 1, 0, draggedNode);
+            insertIndex = targetIndex + 1;
         }
     }
+    if (newParent && insertIndex !== -1) {
+        const originalIndex = oldParent.children.findIndex(child => child.id === draggedNode?.id);
+        if (originalIndex === -1) return;
+        // Adjust insert index if moving within the same parent
+        if (oldParent === newParent && originalIndex < insertIndex) {
+            insertIndex--;
+        }
 
-    updateTreeDisplay();
-    selectNode(draggedNode);
+        // Move the node
+        oldParent.children.splice(originalIndex, 1);
+
+        // Handle renaming
+        let newName = draggedNode.properties.name;
+        let counter = 1;
+        let originalName = newName.replace(/-\d+$/, '');
+        while (newParent.children.some(child => child.properties.name === newName)) {
+            newName = `${originalName}-${counter}`;
+            counter++;
+        }
+        draggedNode.properties.name = newName;
+
+        newParent.children.splice(insertIndex, 0, draggedNode);
+
+        updateTreeDisplay();
+        selectNode(draggedNode);
+    }
 }

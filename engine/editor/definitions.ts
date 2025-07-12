@@ -18,7 +18,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             name: { type: "text", default: "NewScene" },
             backgroundColor: { type: "color", default: "#000000", description: "Background color of the scene." }
         },
-        children: ["Layer", "GameObject", "Camera", "Input", "ParallaxLayer", "Sound"]
+        children: ["Layer", "GameObject", "Camera", "Input", "ParallaxLayer", "Sound", "PhysicsEngine"]
     },
     "Layer": {
         properties: {
@@ -30,18 +30,15 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         properties: {
             name: { type: "text", default: "NewGameObject" },
         },
-        children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Clickable", "Draggable", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody"]
+        children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody"]
     },
     "Camera": {
         properties: {
-            name: { type: "text", default: "New Camera" },
+            name: { type: "text", default: "NewCamera" },
             position: { type: "Vector", default: "new Vector(0, 0)", description: "Position of the camera in the scene." },
-            positionX: { type: "number", default: 0, description: "X position of the camera in the scene." },
-            positionY: { type: "number", default: 0, description: "Y position of the camera in the scene." },
             zoom: { type: "Vector", default: "new Vector(1, 1)", description: "Zoom level of the camera." },
-            zoomX: { type: "number", default: 1, description: "Horizontal zoom level of the camera." },
-            zoomY: { type: "number", default: 1, description: "Vertical zoom level of the camera." }
-        }
+        },
+        children: ["Transform","Follow"]
     },
     "Input": {
         properties: {
@@ -50,46 +47,60 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     },
     "Transform": {
         properties: {
+            name: { type: "text", default: "Transform" },
             position: { type: "Vector", default: "new Vector(0, 0)", description: "Position of the object in the scene (from the center of the object)" },
             rotation: { type: "number", default: 0, description: "Rotation of the object in degrees." },
             scale: { type: "Vector", default: "new Vector(1, 1)", description: "Scale of the object." },
-        }
+        },
+        singular: true
     },
     "BoxCollider": {
         properties: {
+            name: { type: "text", default: "BoxCollider" },
             width: { type: "number", default: 50, description: "Width of the box collider." },
             height: { type: "number", default: 50, description: "Height of the box collider." }
-        }
+        },
+        singular: true
     },
     "PolygonCollider": {
         properties: {
-            vertices: { type: "list", subType: "Vector", default: ["new Vector(0,0)", "new Vector(50,0)", "new Vector(50,50)", "new Vector(0,50)"] }
-        }
+            name: { type: "text", default: "PolygonCollider" },
+            vertices: { type: "list", subType: "Vector", default: ["new Vector(-25,-25)", "new Vector(25,-25)", "new Vector(25,25)", "new Vector(-25,25)"] }
+        },
+        singular: true
     },
     "ColorRender": {
         properties: {
+            name: { type: "text", default: "ColorRender" },
             width: { type: "number", default: 50 },
             height: { type: "number", default: 50 },
             color: { type: "color", default: "#FF0000" }
-        }
+        },
+        singular: true
     },
     "SpriteRender": {
         properties: {
+            name: { type: "text", default: "SpriteRender" },
             imageSource: { type: "file", fileType: "image", default: "" },
             width: { type: "number", default: 50 },
             height: { type: "number", default: 50 },
             facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." }
-        }
+        },
+        singular: true
     },
     "AnimatedSprite": {
         properties: {
+            name: { type: "text", default: "AnimatedSprite" },
             spritesheet: { type: "file", fileType: "json", default: "" },
             spritesheetImage: { type: "file", fileType: "image", default: "", description: "The image file for the spritesheet." },
             width: { type: "number", default: 50 },
             height: { type: "number", default: 50 },
             startingAnimation: { type: "text", default: "" },
-            facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." }
-        }
+            disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for this sprite." },
+            facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." },
+            webEngine: { type: "boolean", default: true, description: "Set to true if this is running in a web engine context.", dontShow: true },
+        },
+        singular: true
     },
     "TextRender": {
         properties: {
@@ -98,10 +109,12 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             font: { type: "text", default: "24px Arial" },
             align: { type: "text", default: "left" },
             color: { type: "color", default: "#000000" }
-        }
+        },
+        singular: true
     },
     "Button": {
         properties: {
+            name: { type: "text", default: "Button" },
             label: { type: "text", default: "Button" },
             width: { type: "number", default: 100 },
             height: { type: "number", default: 50 },
@@ -111,7 +124,8 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             clickSound: { type: "Part", subType: "Sound", description: "Sound to play on click." },
             hoverSound: { type: "Part", subType: "Sound", description: "Sound to play on hover." },
             activeSound: { type: "Part", subType: "Sound", description: "Sound to play on active." }
-        }
+        },
+        singular: true
     },
     "Sound": {
         properties: {
@@ -145,7 +159,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     "Follow": {
         properties: {
             name: { type: "text", default: "Follow" },
-            target: { type: "Part", description: "The Part to follow." },
+            target: { type: "Part", subType: "Transform", description: "The Part to follow." },
             offset: { type: "Vector", default: "new Vector(0, 0)", description: "Offset from the target's position." }
         }
     },
@@ -153,7 +167,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         properties: {
             name: { type: "text", default: "CharacterMovement" },
             speed: { type: "number", default: 5 },
-            movementType: { type: "text", default: "WASD" },
+            movementType: { type: "enum", default: "WASD", options: ["WASD", "ArrowKeys", "BOTH"], description: "Type of movement controls to use." },
             input: { type: "Part", subType: "Input", description: "The Input part to use for movement." }
         }
     },
@@ -165,17 +179,8 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     },
     "PhysicsEngine": {
         properties: {
-            name: { type: "text", default: "PhysicsEngine" }
-        }
-    },
-    "Clickable": {
-        properties: {
-            name: { type: "text", default: "Clickable" }
-        }
-    },
-    "Draggable": {
-        properties: {
-            name: { type: "text", default: "Draggable" }
+            name: { type: "text", default: "PhysicsEngine" },
+            gravity: { type: "Vector", default: "new Vector(0, 1)", description: "Gravity vector applied to all physics bodies." },
         }
     },
     "Rotator": {
@@ -236,6 +241,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             width: { type: "number", default: 100 },
             height: { type: "number", default: 10 },
             color: { type: "color", default: "green" },
+            offsetHeight: { type: "number", default: 0, description: "Offset from the parent GameObject's position." },
             backgroundColor: { type: "color", default: "red" }
         }
     },

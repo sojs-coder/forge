@@ -40,13 +40,11 @@ export class Button extends Renderer {
             if (this.hoverSound) {
                 this.hoverSound.play({ clone: true });
             }
-            console.log(`Button ${this.name} hovered`);
         };
 
         this.onunhover = () => {
             this.isHovered = false;
             this.isActive = false; // Reset active state when unhovered
-            console.log(`Button ${this.name} unhovered`);
         };
 
         this.onmousedown = (event: MouseEvent) => {
@@ -89,8 +87,8 @@ export class Button extends Renderer {
         this.superficialHeight = defaultStyle?.height ?? 50;
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
 
         if (!this.top) {
             throw new Error(`Button <${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);

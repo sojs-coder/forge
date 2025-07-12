@@ -28,8 +28,8 @@ export class Timer extends Part {
         this.startTime = Date.now();
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         if (this.isRunning) {
             const now = Date.now();
             if (now - this.startTime >= this.duration) {

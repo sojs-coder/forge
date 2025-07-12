@@ -3,6 +3,7 @@ import type { SpriteRender } from "./Children/SpriteRender";
 import type { AnimatedSprite } from "./Children/AnimatedSprite";
 import type { Game } from "./Game";
 import type { Collider } from "./Children/Collider";
+import type { Scene } from "./Scene";
 
 export class Part {
     [key: string]: any; // Allow string-based property access
@@ -157,7 +158,7 @@ export class Part {
             });
         }
     }
-    act() {
+    act(delta: number) {
         if (!this.ready) {
             return;
         }
@@ -168,7 +169,7 @@ export class Part {
             }
         });
         this.childrenArray.forEach(child => {
-            child.act();
+            child.act(delta);
         });
     }
 

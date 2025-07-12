@@ -1,4 +1,6 @@
+import type { Vector } from "../../engine/bundle";
 import { Part } from "../Part";
+import type { Transform } from "./Transform";
 
 export class Collider extends Part {
     colliding: boolean = false;
@@ -16,6 +18,10 @@ export class Collider extends Part {
             );
             return;
         }
+    }
+    get vertices(): Vector[] {
+        // Override in subclasses to provide collider-specific vertices
+        return [];
     }
 
     onRegister(attribute: string, value: any) {
@@ -36,8 +42,11 @@ export class Collider extends Part {
         }
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
+        if (!this.registrations?.layer) {
+            throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked. Collisions require layers.`)
+        }
         this.hoverbug = `${this.colliding ? "🟥" : "🟩"} - ${Array.from(this.collidingWith).map(o => o.name).join(",")} objects`
 
     }

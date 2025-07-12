@@ -78,7 +78,7 @@ button:hover {
 }
 
 .property-group input[type="color"] {
-  width: 50px;
+  width: 80px;
   height: 30px;
   border: none;
   border-radius: 3px;
@@ -487,9 +487,14 @@ button:hover {
   color: white;
   border: none;
   border-radius: 3px;
-  padding: 3px 6px;
+  padding: 3px 8px;
   cursor: pointer;
   font-size: 0.8em;
+  min-width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .remove-button:hover {
@@ -512,9 +517,34 @@ button:hover {
   display: inline;
 }
 
+/* List item row styling */
+.list-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  padding: 5px;
+  background-color: #2c323c;
+  border-radius: 3px;
+}
+
+.vector-item-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+
+.vector-item-container span {
+  font-size: 0.9em;
+  font-weight: bold;
+  color: #e5c07b;
+}
+
 /* Vector inputs in list items */
 .list-item .vector-x,
-.list-item .vector-y {
+.list-item .vector-y,
+.vector-item-container input[type="number"] {
   background-color: #3e4451;
   border: 1px solid #5c6370;
   color: #abb2bf;
@@ -525,7 +555,8 @@ button:hover {
 }
 
 .list-item .vector-x:focus,
-.list-item .vector-y:focus {
+.list-item .vector-y:focus,
+.vector-item-container input[type="number"]:focus {
   outline: none;
   border-color: #61afef;
 }
@@ -823,77 +854,82 @@ a {
   display: none !important;
 }
 
-/* Custom Alert Styles */
-.custom-alert-overlay {
+#custom-alert, #custom-prompt {
+  display: none;
   position: fixed;
-  top: 0;
+  z-index: 2000;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(40, 44, 52, 0.85); /* Match dark overlay */
   justify-content: center;
   align-items: center;
-  z-index: 9999; /* Ensure it's on top */
 }
 
-.custom-alert-content {
-  background-color: #282c34;
-  color: #abb2bf;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+#custom-alert-content, #custom-prompt-content {
+  background-color: #21252b;
+  padding: 24px 28px;
+  border-radius: 5px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
   text-align: center;
-  max-width: 400px;
-  width: 90%;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  color: #abb2bf;
+  border: 1px solid #3e4451;
+  min-width: 320px;
+  max-width: 90vw;
 }
 
-.custom-alert-content table {
+#custom-prompt-input {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.custom-alert-content th,
-.custom-alert-content td {
-  border: 1px solid #444;
   padding: 8px;
-  text-align: left;
+  margin: 14px;
+  background-color: #343a45;
+  border: 1px solid #3e4451;
+  border-radius: 3px;
+  color: #abb2bf;
+  font-size: 1em;
+  box-sizing: border-box;
 }
 
-.custom-alert-content th {
-  background-color: #333;
-  color: #e5c07b;
+#custom-prompt-input:focus {
+  outline: none;
+  border-color: #61afef;
 }
 
-.custom-alert-content tr:nth-child(even) {
-  background-color: #2c323c;
+#custom-prompt-buttons {
+  margin-top: 28px; /* Increased margin to separate from content */
+  display: flex;
+  justify-content: flex-end; /* Right-align the buttons */
+  gap: 10px;
 }
 
-.custom-alert-content tr:nth-child(odd) {
-  background-color: #282c34;
-}
-
-.custom-alert-content p {
-  margin: 0;
-  font-size: 1.1em;
-  white-space: pre-wrap; /* Preserve newlines */
-}
-
-.custom-alert-content button {
+#custom-prompt-ok, #custom-prompt-cancel {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.95em;
   background-color: #61afef;
   color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1em;
-  align-self: center;
+  transition: background 0.2s;
 }
 
-.custom-alert-content button:hover {
+#custom-prompt-ok:hover {
   background-color: #529dcc;
+}
+
+#custom-prompt-cancel {
+  background-color: #e06c75;
+}
+
+#custom-prompt-cancel:hover {
+  background-color: #c6455b;
+}
+
+/* Alert buttons alignment */
+#custom-alert-buttons {
+  margin-top: 28px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }

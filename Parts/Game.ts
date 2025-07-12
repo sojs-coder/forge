@@ -20,8 +20,11 @@ export class Game extends Part {
     scaleFactor: number = 1; // New property for canvas scaling
     canvasOffset: { x: number, y: number } = { x: 0, y: 0 }; // New property for canvas offset
     private _isRunning: boolean = false;
+    private _width: number = 800; // Default width
+    private _height: number = 600; // Default height
     private _isPaused: boolean = false;
     private _animationFrameId?: number;
+    private _lastUpdateTime: number = 0; // Track the last update time for delta calculations
     constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false }: { name: string, canvas: HTMLCanvasElement | string, devmode?: boolean, width: number, height: number, disableAntiAliasing?: boolean }) {
         super();
         this.name = name;
@@ -29,8 +32,8 @@ export class Game extends Part {
         this.canvas = typeof canvas === "string" ? document.getElementById(canvas) as HTMLCanvasElement : canvas;
         this.context = (this.canvas as HTMLCanvasElement).getContext("2d")!;
         this.devmode = devmode;
-        this.canvas.width = width;
-        this.canvas.height = height;
+        this.changeCanvasSize(width, height);
+    
         this.context.imageSmoothingEnabled = !disableAntiAliasing;
         this.debugEmoji = "🎮"; // Default emoji for debugging the game
         this.tooltipLocked = false;
@@ -57,6 +60,26 @@ export class Game extends Part {
             });
         }
     }
+    changeCanvasSize(width: number, height: number) {
+        this.canvas.width = width;
+        this.canvas.height = height;
+        this.width = width;
+        this.height = height;
+    }
+    set width(width: number) {
+        this._width = width;
+        this.canvas.width = width;
+    }
+    set height(height: number) {
+        this._height = height;
+        this.canvas.height = height;
+    }
+    get width(): number {
+        return this._width;
+    }
+    get height(): number {
+        return this._height;
+    }
     createDebugTooltip() {
         const tooltip = document.createElement("div");
         tooltip.id = "debug-tooltip";
@@ -64,6 +87,7 @@ export class Game extends Part {
         tooltip.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
         tooltip.style.color = "white";
         tooltip.style.padding = "5px";
+        tooltip.style.display = 'none';
         tooltip.style.borderRadius = "5px";
         tooltip.style.pointerEvents = "none"; // Prevent tooltip from blocking mouse events
         tooltip.style.zIndex = "1000"; // Ensure tooltip is above other elements
@@ -102,6 +126,7 @@ export class Game extends Part {
         }
         this._isRunning = true;
         this._isPaused = false;
+        this._lastUpdateTime = performance.now(); // Initialize last update time
         this.loop();
     }
 
@@ -109,8 +134,9 @@ export class Game extends Part {
         if (!this._isRunning) {
             return;
         }
-
         if (!this._isPaused && this.currentScene) {
+            const now = performance.now();
+            const delta = Math.min((now - this._lastUpdateTime), 1000 / 60); // Convert to seconds - cap at 60 FPS.. any slower will bug out physics
             // Clear the canvas based on the game's logical dimensions
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             if (this.devmode) {
@@ -120,15 +146,16 @@ export class Game extends Part {
                 this.context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for debug UI
                 this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
                 this.context.restore();
-                this.currentScene.act();
+                this.currentScene.act(delta);
                 this.updateDebugToolTip(); // Update tooltip based on current mouse position
 
                 // Draw a center dot (also scaled)
                 this.context.fillStyle = "red";
                 this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
             } else {
-                this.currentScene.act();
+                this.currentScene.act(delta);
             }
+            this._lastUpdateTime = now; // Update last update time for next frame
         }
 
         if (this._isRunning) {
@@ -138,12 +165,10 @@ export class Game extends Part {
 
     pause() {
         this._isPaused = true;
-        console.log(`Game <${this.name}> paused`);
     }
 
     resume() {
         this._isPaused = false;
-        console.log(`Game <${this.name}> resumed`);
     }
 
     stop() {
@@ -153,7 +178,6 @@ export class Game extends Part {
             window.cancelAnimationFrame(this._animationFrameId);
             this._animationFrameId = undefined;
         }
-        console.log(`Game <${this.name}> stopped`);
     }
 
     get isRunning(): boolean {
@@ -163,13 +187,13 @@ export class Game extends Part {
     get isPaused(): boolean {
         return this._isPaused;
     }
-    act(purposeful = false) {
+    act(purposeful: boolean | number = false) {
         if (!this.hasWarnedActUsage && !purposeful) {
             console.warn(`Act called on Game <${this.name}>. Use start() to begin the game loop. Calling act() directly will run 1 frame of the current scene. This message will appear only once.`);
             this.hasWarnedActUsage = true;
         }
         if (this.currentScene) {
-            this.currentScene.act();
+            this.currentScene.act(0);
         } else {
             console.warn(`No current scene set in <${this.name}>, and no available scenes to run as the current scene in game <${this.name}>. Please ensure you have added scenes and/or set a current scene before calling act().`);
         }
