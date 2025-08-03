@@ -6,12 +6,13 @@ export class Health extends Part {
     onDeath?: () => void;
     isDead: boolean = false;
 
-    constructor({ name, maxHealth = 100, onDeath = () => {} }: { name?: string, maxHealth?: number, onDeath?: () => void }) {
-        super({ name: name || 'Health' });
+    constructor({ maxHealth = 100, onDeath = () => {} }: { maxHealth?: number, onDeath?: () => void }) {
+        super({ name: 'Health' });
         this.maxHealth = maxHealth;
         this.currentHealth = maxHealth;
         this.onDeath = onDeath;
         this.debugEmoji = "❤️";
+        this.type = "Health";
     }
 
     takeDamage(amount: number) {

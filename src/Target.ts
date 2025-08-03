@@ -30,15 +30,15 @@ export class TargetLogic extends Part {
         this.onCollect = onCollect;
     }
 
-    act() {
+    act(delta: number) {
         if (!this.top) return; // Ensure it's mounted
 
-        const targetCollider = this.target.children["BoxCollider"] as BoxCollider;
-        const playerCollider = this.player.children["BoxCollider"] as PlayerBoxCollider;
+        const targetCollider = this.target.child<BoxCollider>("BoxCollider") as BoxCollider;
+        const playerCollider = this.player.child<PlayerBoxCollider>("BoxCollider") as PlayerBoxCollider;
 
         if (targetCollider && playerCollider && targetCollider.collidingWith.has(playerCollider)) {
             this.onCollect(this.target);
         }
-        super.act();
+        super.act(delta);
     }
 }

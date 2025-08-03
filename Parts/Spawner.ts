@@ -8,16 +8,17 @@ export class Spawner extends Part {
     private spawnCount: number = 0;
     private lastSpawnTime: number = 0;
 
-    constructor({ name, objectToSpawn, spawnRate, maxSpawns = Infinity }: { name?: string, objectToSpawn: () => GameObject, spawnRate: number, maxSpawns?: number }) {
-        super({ name: name || 'Spawner' });
+    constructor({ objectToSpawn, spawnRate, maxSpawns = Infinity }: { objectToSpawn: () => GameObject, spawnRate: number, maxSpawns?: number }) {
+        super({ name: 'Spawner' });
         this.objectToSpawn = objectToSpawn;
         this.spawnRate = spawnRate;
         this.maxSpawns = maxSpawns;
         this.debugEmoji = "🏭";
+        this.type = "Spawner";
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const now = Date.now();
         if (this.spawnCount < this.maxSpawns && now - this.lastSpawnTime >= this.spawnRate) {
             const newObject = this.objectToSpawn();

@@ -6,13 +6,26 @@ A `PolygonCollider` provides collision detection for objects with custom, comple
 
 This collider is more computationally expensive than a `BoxCollider` but is essential for non-rectangular shapes, especially ones that can rotate.
 
+## Constructor
+
+`new PolygonCollider({ vertices })`
+
+-   `vertices: Vector[]`
+    An array of `Vector`s that define the shape of the polygon. The vertices should be defined in local space, relative to the `Transform`'s position (which acts as the center of the polygon).
+
 ## Properties
 
 -   `localVertices: Vector[]`
-    An array of `Vector`s that define the shape of the polygon. The vertices should be defined in local space, relative to the `Transform`'s position (which acts as the center of the polygon).
+    An array of `Vector`s that define the shape of the polygon in local space.
 
 -   `worldVertices: Vector[]`
-    The vertices of the polygon in absolute world coordinates. This array is calculated automatically based on the `localVertices` and the `Transform`'s position, rotation, and scale.
+    An array of `Vector`s that define the shape of the polygon in world space.
+
+-   `realWorldStart: Vector`
+    The top-left corner of the axis-aligned bounding box (AABB) of the polygon in world coordinates.
+
+-   `realWorldEnd: Vector`
+    The bottom-right corner of the axis-aligned bounding box (AABB) of the polygon in world coordinates.
 
 ## Examples
 

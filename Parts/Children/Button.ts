@@ -5,11 +5,12 @@ import { Input } from "../Input";
 import { Scene } from "../Scene";
 import { Renderer } from "./Renderer";
 import { Sound } from "../Sound";
+import { isNamedTupleMember } from "typescript";
 
 export class Button extends Renderer {
     styles?: ButtonStyles;
-    private isHovered: boolean = false;
-    private isActive: boolean = false;
+    isHovered: boolean = false;
+    isActive: boolean = false;
     private onClickHandler: () => void;
     clickSound?: Sound;
     hoverSound?: Sound;
@@ -23,6 +24,7 @@ export class Button extends Renderer {
         this.clickSound = clickSound;
         this.hoverSound = hoverSound;
         this.activeSound = activeSound;
+        this.type = "Button";
 
         this.onclick = (event: MouseEvent, input: any) => {
             if (this.onClickHandler) {
@@ -62,7 +64,6 @@ export class Button extends Renderer {
             }
         };
     }
-
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
@@ -74,10 +75,10 @@ export class Button extends Renderer {
         // Ensure an Input instance is attached to the scene
         if (this.parent instanceof Scene && !this.parent.sibling("Input")) {
             this.parent.addChild(new Input({
-                key: () => {},
-                keyup: () => {},
-                mousemove: () => {},
-                click: () => {},
+                key: () => { },
+                keyup: () => { },
+                mousemove: () => { },
+                click: () => { },
             }));
         }
 

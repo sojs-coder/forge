@@ -18,6 +18,7 @@ export class PolygonCollider extends Collider {
         this.localVertices = vertices;
         this.realWorldStart = new Vector(0, 0); // Will be updated in act(), onMount()
         this.realWorldEnd = new Vector(0, 0);   // Will be updated in act(), onMount()
+        this.type = "PolygonCollider";
     }
 
     onMount(parent: Part) {

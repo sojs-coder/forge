@@ -5,7 +5,9 @@ export class Vector {
         this.x = x;
         this.y = y;
     }
-
+    distance(other: Vector): number {
+        return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
+    }
     add(other: number | Vector): Vector {
         if (other instanceof Vector) {
             return new Vector(this.x + other.x, this.y + other.y);

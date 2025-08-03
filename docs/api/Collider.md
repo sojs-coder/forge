@@ -9,6 +9,10 @@
 
 Colliders work within a `Layer`. They will only detect collisions with other colliders on the same `Layer`.
 
+## Constructor
+
+`new Collider()`
+
 ## Properties
 
 -   `colliding: boolean`

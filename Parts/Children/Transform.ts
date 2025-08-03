@@ -9,14 +9,14 @@ export class Transform extends Part {
     scale: Vector;
 
     constructor({ position, rotation, scale }: { position?: Vector, rotation?: number, scale?: Vector } = {}) {
-        super();
-        this.name = "Transform";
-        this.position = position || Vector.From(0);;
+        super({ name: "Transform" });
+        this.position = position || Vector.From(0);
         this.worldPosition = Vector.From(0); // Initialize worldPosition as a new Vector
         this.worldPosition.set(this.position); // Initially, worldPosition is the same as local position
         this.rotation = rotation || 0; // Default rotation in radians
         this.scale = scale || new Vector(1, 1); // Default scale
         this.debugEmoji = "📐"; // Emoji for debugging Transform
+        this.type = "Transform";
     }
 
     onMount(parent: Part) {
@@ -37,7 +37,7 @@ export class Transform extends Part {
         }
     }
     move(delta: Vector) {
-        this.position.add(delta);
+        this.position.set(this.position.add(delta));
         this.updateWorldPosition();
     }
     moveTo(position: Vector) {
@@ -63,7 +63,7 @@ export class Transform extends Part {
         }
     }
     act(_delta: number) {
-        this.updateWorldPosition(); 
+        this.updateWorldPosition();
         this.hoverbug = `${this.position.toString()} | ${this.worldPosition.toString()} | ${(this.rotation / Math.PI).toFixed(2)}pi | ${this.scale.toString()}`;
     }
 }

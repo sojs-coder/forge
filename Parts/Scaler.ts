@@ -16,17 +16,17 @@ export class Scaler extends Part {
         this.debugEmoji = "📈";
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const transform = this.sibling<Transform>("Transform");
         if (transform) {
             if (this.scalingUp) {
-                transform.scale = transform.scale.add(this.scaleSpeed);
+                transform.scale = transform.scale.add(this.scaleSpeed.multiply(delta));
                 if (transform.scale.x >= this.maxScale.x || transform.scale.y >= this.maxScale.y) {
                     this.scalingUp = false;
                 }
             } else {
-                transform.scale = transform.scale.subtract(this.scaleSpeed);
+                transform.scale = transform.scale.subtract(this.scaleSpeed.multiply(delta));
                 if (transform.scale.x <= this.minScale.x || transform.scale.y <= this.minScale.y) {
                     this.scalingUp = true;
                 }

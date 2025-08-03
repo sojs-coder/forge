@@ -19,6 +19,7 @@
     "watch:all": "bun run watch:engine & bun run watch:editor"
   },
   "dependencies": {
+    "@types/node": "^24.1.0",
     "matter-js": "^0.20.0",
     "terser": "^5.43.1"
   }

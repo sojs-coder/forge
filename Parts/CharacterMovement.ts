@@ -8,11 +8,12 @@ export class CharacterMovement extends Part {
     movementType: 'WASD' | 'ArrowKeys' | 'BOTH';
     input: Input | undefined;
 
-    constructor({ name, speed = 5, movementType = 'WASD', input }: { name?: string, speed?: number, movementType?: 'WASD' | 'ArrowKeys' | 'BOTH', input?: Input }) {
-        super({ name: name || 'CharacterMovement' });
+    constructor({ speed = 5, movementType = 'WASD', input }: { speed?: number, movementType?: 'WASD' | 'ArrowKeys' | 'BOTH', input?: Input }) {
+        super({ name: 'CharacterMovement' });
         this.speed = speed;
         this.movementType = movementType;
-        this.input = input
+        this.input = input;
+        this.type = "CharacterMovement";
     }
 
     act(_delta: number): void {
@@ -26,7 +27,6 @@ export class CharacterMovement extends Part {
         }
 
         const keys = this.input.downkeys;
-
         let dx = 0;
         let dy = 0;
 
@@ -64,7 +64,8 @@ export class CharacterMovement extends Part {
             dx *= Math.SQRT1_2; // 1 / sqrt(2)
             dy *= Math.SQRT1_2;
         }
-
-        transform.move(new Vector(dx * this.speed, dy * this.speed));
+        if (dx !== 0 || dy !== 0) {
+            transform.move(new Vector(dx * this.speed, dy * this.speed));
+        }
     }
 }

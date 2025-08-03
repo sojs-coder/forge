@@ -4,18 +4,32 @@
 
 A `BoxCollider` is a rectangular-shaped collider. It's the most common and computationally cheapest type of collider, perfect for objects that are roughly box-shaped.
 
-**Note:** Currently, `BoxCollider` does not support rotation. If its `Transform` is rotated, it will automatically convert itself into a `PolygonCollider` to maintain accurate collision detection.
+## Constructor
+
+`new BoxCollider({ width, height })`
+
+-   `width: number`
+    The width of the collision box.
+
+-   `height: number`
+    The height of the collision box.
 
 ## Properties
 
 -   `start: Vector`
-    The top-left corner of the collision box, relative to the `Transform`'s position.
+    The starting point of the box, relative to the center of the object.
 
 -   `end: Vector`
-    The bottom-right corner of the collision box, relative to the `Transform`'s position.
+    The ending point of the box, relative to the center of the object.
 
--   `width: number` & `height: number` (Constructor parameters)
-    The dimensions of the collision box. The `start` and `end` vectors are calculated from these. For a `width` of 50 and `height` of 100, `start` would be `(-25, -50)` and `end` would be `(25, 50)`.
+-   `realWorldStart: Vector`
+    The starting point of the box in world coordinates.
+
+-   `realWorldEnd: Vector`
+    The ending point of the box in world coordinates.
+
+-   `rotatedCorners: Vector[]`
+    An array of the four corners of the rotated box.
 
 ## Examples
 

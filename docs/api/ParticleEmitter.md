@@ -4,25 +4,53 @@
 
 The `ParticleEmitter` component creates and manages a system of small, temporary visual elements (particles) for effects like explosions, smoke, dust, or magic spells. It emits simple colored square particles.
 
+## Constructor
+
+`new ParticleEmitter({ range, particleColor, particleSize, particleSpeed, particleLifetime, emissionRate, maxParticles })`
+
+-   `range?: number[]`
+    An array of two numbers `[min, max]` defining the angular range (in radians) for particle emission direction. Defaults to `[0, 2 * Math.PI]` (full circle).
+
+-   `particleColor?: string`
+    The CSS color string for the particles. Defaults to `"#FFFFFF"` (white).
+
+-   `particleSize?: number`
+    The width and height of each square particle in pixels. Defaults to `5`.
+
+-   `particleSpeed?: number`
+    The maximum speed at which particles are emitted. Particles are emitted in random directions. Defaults to `2`.
+
+-   `particleLifetime?: number`
+    The number of frames each particle will exist before being removed. Defaults to `60`.
+
+-   `emissionRate?: number`
+    The delay in milliseconds between each particle emission. Defaults to `100`.
+
+-   `maxParticles?: number`
+    The maximum number of particles that can be emitted by this emitter. Defaults to `100`.
+
 ## Properties
 
 -   `particleColor: string`
-    The CSS color string for the particles. Defaults to `"#FFFFFF"` (white).
+    The CSS color string for the particles.
 
 -   `particleSize: number`
-    The width and height of each square particle in pixels. Defaults to `5`.
+    The width and height of each square particle in pixels.
 
 -   `particleSpeed: number`
-    The maximum speed at which particles are emitted. Particles are emitted in random directions. Defaults to `2`.
+    The maximum speed at which particles are emitted.
 
 -   `particleLifetime: number`
-    The number of frames each particle will exist before being removed. Defaults to `60`.
+    The number of frames each particle will exist before being removed.
 
 -   `emissionRate: number`
-    The delay in milliseconds between each particle emission. Defaults to `100`.
+    The delay in milliseconds between each particle emission.
 
 -   `maxParticles: number`
-    The maximum number of particles that can be emitted by this emitter. Defaults to `100`.
+    The maximum number of particles that can be emitted by this emitter.
+
+-   `range: number[]`
+    An array of two numbers `[min, max]` defining the angular range (in radians) for particle emission direction.
 
 ## How it Works
 

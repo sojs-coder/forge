@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Physics Test</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gamecanvas"></canvas>
+    <script src="../engine/bundle.js" type="module"></script>
+    <script type="module">
+        import * as Engine from "../engine/bundle.js";
+        Object.assign(window, Engine);
+
+        const n7zccpwwd2i2ocmzyy3a = new Input({
+            name: "Input",
+        });
+        const nduanvcjmjmeiqz7hdjx = new PhysicsEngine({
+            name: "PhysicsEngine",
+        });
+        const nvo7pemk0xypvordf7ob = new ColorRender({
+            name: "ColorRender",
+            width: 50,
+            height: 50,
+            color: "#43a6d0",
+        });
+        const nsmddv27hknrsj30kvex = new Transform({
+            name: "Transform",
+            position: new Vector(486, 184),
+            rotation: 0,
+            scale: new Vector(1, 1),
+        });
+        const ndks3rgvmmj0dnswfvt = new GameObject({
+            name: "Parallaxed",
+        });
+        const n6mrsm3ogpzyd052vi7k = new ParallaxLayer({
+            name: "ParallaxLayer_5",
+            parallaxFactor: 0.5,
+        });
+        const nkn59tmmtycpaqfz3h7g = new PhysicsBody({
+            name: "PhysicsBody",
+            isStatic: false,
+            density: 0.001,
+            friction: 0.1,
+            restitution: 0,
+        });
+        const nbkmizkipafcxxy1x9m0o = new ColorRender({
+            name: "ColorRender",
+            width: 50,
+            height: 50,
+            color: "#0040ff",
+        });
+        const n01e7dznm9qa0kbgyckk = new Transform({
+            name: "Transform",
+            position: new Vector(100, 99),
+            rotation: 0.7,
+            scale: new Vector(1, 1),
+        });
+        const n1f6eisd9pczq24y36m1 = new PolygonCollider({
+            name: "PolygonCollider",
+            vertices: [new Vector(-25, -25), new Vector(25, -25), new Vector(25, 25), new Vector(-25, 25)],
+        });
+        const n4mzagfg8c0owamtceko = new GameObject({
+            name: "PhysicsBodyTest",
+        });
+        const n6zw8vh9knx0ecqcpbam = new ColorRender({
+            name: "ColorRender",
+            width: 50,
+            height: 50,
+            color: "#00ff7b",
+        });
+        const n8fm7jchgg9hix6c1zr = new Transform({
+            name: "Transform",
+            position: new Vector(500, 300),
+            rotation: 0,
+            scale: new Vector(1, 1),
+        });
+        const nw35zwf1b2c13fdofm97 = new Rotator({
+            name: "Rotator_3",
+            rotationSpeed: 0.05,
+        });
+        const nh5ml1c9o6fh6fm8zh94 = new GameObject({
+            name: "RandomBlock",
+        });
+        const nddmqqlgx14ciui0j5ln = new Transform({
+            name: "Transform",
+            position: new Vector(360, 400),
+            rotation: 0.1,
+            scale: new Vector(1, 1),
+        });
+        const n7kd4mz51s54ql0lx5ie = new BoxCollider({
+            name: "BoxCollider",
+            width: 800,
+            height: 50,
+        });
+        const n0bn2mdcel6mleb1tedo = new ColorRender({
+            name: "ColorRender",
+            width: 800,
+            height: 50,
+            color: "#ffffff",
+        });
+        const n1uc2d03fwzdxm3ssm1l = new PhysicsBody({
+            name: "PhysicsBody_4",
+            isStatic: true,
+            density: 0.001,
+            friction: 0.1,
+            restitution: 0,
+        });
+        const ngr4pxda7c0l1qaeplm = new GameObject({
+            name: "Bottom",
+        });
+        const nslsy9mxjvdvc7rrzgce = new Transform({
+            name: "Transform",
+            position: new Vector(300, 100),
+            rotation: 0,
+            scale: new Vector(1, 1),
+        });
+        const ncwvwmjj8mz7zgd4hz3q = new ColorRender({
+            name: "ColorRender",
+            width: 50,
+            height: 50,
+            color: "#FF0000",
+        });
+        const nckcu3g67fzzvmzoto6 = new CharacterMovement({
+            name: "CharacterMovement",
+            speed: 5,
+            movementType: "ArrowKeys",
+            input: n7zccpwwd2i2ocmzyy3a,
+        });
+        const np7q97molcmnirhz36v6 = new Health({
+            name: "Health",
+            maxHealth: 100,
+        });
+        const nhhzc8569kmcfc6tdxr = new HealthBar({
+            name: "HealthBar_5",
+            width: 100,
+            height: 10,
+            color: "#00d5ff",
+            backgroundColor: "#ffffff",
+            offsetHeight: 50,
+        });
+        class HealthTest extends Part {
+            constructor({
+                name,
+                looseHealthPerSecond
+            }) {
+                super({
+                    name: name || "HealthTest"
+                });
+                this.looseHealthPerSecond = looseHealthPerSecond;
+                this.lastTickTime = Date.now();
+            }
+
+            static properties = {
+                name: {
+                    type: "text",
+                    default: "HealthTest"
+                },
+                looseHealthPerSecond: {
+                    type: "number",
+                    default: 1
+                }
+            };
+            act() {
+                super.act();
+                if (Date.now() - this.lastTickTime > 1000) {
+                    const siblingHealth = this.sibling("Health");
+                    if (!siblingHealth) {
+                        throw new Error("HealthTest requires a sibling Health part");
+                    }
+                    this.lastTickTime = Date.now();
+                    siblingHealth.takeDamage(this.looseHealthPerSecond);
+                }
+
+            }
+        }
+        const nzz4jjci2m9zrrh5zoi = new HealthTest({
+            name: "HealthTest_6",
+            looseHealthPerSecond: 1,
+        });
+        const njso4ymbwz7cj13vz4tw = new GameObject({
+            name: "Moveable",
+        });
+        const nf1arzt3mo8h728b157d = new CameraShake({
+            name: "CameraShake",
+            intensity: 500,
+            duration: 60,
+        });
+        const ndfvkvem2kzxi6rm1me5 = new GameObject({
+            name: "GameObject_5",
+        });
+        const n6bhwfdq3t5o1oug5mz4 = new Button({
+            name: "Button",
+            label: "Shake",
+            width: 100,
+            height: 50,
+            backgroundColor: "#CCCCCC",
+            color: "#000000",
+            font: "16px Arial",
+        });
+        class ShakeButtonListener extends Part {
+            constructor({
+                name,
+                button,
+                cameraShake
+            }) {
+                super({
+                    name: name || "Part"
+                });
+                this.name = name;
+                this.button = button;
+                this.cameraShake = cameraShake
+                // Add custom properties here
+            }
+
+            static properties = {
+                name: {
+                    type: "text",
+                    default: "Part"
+                },
+                button: {
+                    type: "Part",
+                    subType: "Button",
+                    default: null
+                }, // Reference to the Button instance
+                cameraShake: {
+                    type: "Part",
+                    subType: "CameraShake",
+                    default: null
+                }, // Reference to the CameraShake instance
+                // Add more properties here
+            };
+
+            act(d) {
+                super.act(d);
+                if (!this.button || !this.cameraShake) {
+                    throw new Error("ShakeButtonListener requires both button and cameraShake properties to be set.");
+                }
+                if (this.button.isActive) {
+                    this.cameraShake.shake();
+                }
+            }
+        }
+        const nl3u0m8d4kf51c2i5x1s = new ShakeButtonListener({
+            name: "ShakeButtonListener_2",
+            button: n6bhwfdq3t5o1oug5mz4,
+            cameraShake: nf1arzt3mo8h728b157d,
+        });
+        const n4qmday0ce265o952109h = new Transform({
+            name: "Transform",
+            position: new Vector(0, 0),
+            rotation: 0,
+            scale: new Vector(1, 1),
+        });
+        const ndb9mm42i314ldbr05ta = new GameObject({
+            name: "ShakeButton",
+        });
+        const nlm0kaufijaldhmrqay1 = new Layer({
+            name: "Layer_7",
+        });
+        class PolySpawner extends Part {
+            constructor({
+                name,
+                bottomRange,
+                topRange,
+                polyParent
+            }) {
+                super({
+                    name
+                });
+                this.bottomRange = bottomRange;
+                this.topRange = topRange;
+                this.spawned = false;
+                this.polyParent = polyParent;
+            }
+
+
+            static properties = {
+                name: {
+                    type: "text",
+                    default: "Part"
+                },
+                bottomRange: {
+                    type: "number",
+                    default: 0
+                },
+                topRange: {
+                    type: "number",
+                    default: 100
+                },
+                polyParent: {
+                    type: "Part",
+                    default: null,
+                    subType: "Layer"
+                },
+            };
+            randomPolygonPoints(sides, radius) {
+                const points = [];
+                const angleStep = (Math.PI * 2) / sides;
+                for (let i = 0; i < sides; i++) {
+                    const angle = i * angleStep;
+                    points.push(new Vector(
+                        Math.cos(angle) * radius,
+                        Math.sin(angle) * radius
+                    ));
+                }
+                return points;
+            }
+            act(d) {
+                super.act(d);
+                if (!this.spawned) {
+                    this.spawned = true;
+                    // Spawn the polygons
+                    const numPolygons = Math.floor(Math.random() * (this.topRange - this.bottomRange + 1)) + this.bottomRange;
+                    for (let i = 0; i < numPolygons; i++) {
+                        const sides = Math.floor(Math.random() * 5) + 3; // 3 to 7 sides
+                        const radius = Math.random() * 40 + 20; // 20 to 60 px
+                        const x = Math.random() * (this.top.width - 100) + 50;
+                        const y = Math.random() * 200 + 50;
+                        const color = `hsl(${Math.random() * 360}, 80%, 60%)`;
+
+                        const nGon = new GameObject({
+                            name: `nGon${i}`
+                        });
+                        const points = this.randomPolygonPoints(sides, radius);
+                        nGon.addChildren(
+                            new Transform({
+                                position: new Vector(x, y),
+                                rotation: Math.random() * Math.PI * 2
+                            }),
+                            new PolygonCollider({
+                                vertices: points,
+                            }),
+                            new ColorRender({
+                                vertices: points,
+                                color: color
+                            }),
+                            new PhysicsBody({
+                                isStatic: false,
+                                restitution: 0.5, // Bounciness
+                            })
+                        );
+                        // Add components to the polygon
+                        this.polyParent.addChild(nGon);
+                    }
+                }
+            }
+        }
+        const n5e8119m34m49lh136de = new PolySpawner({
+            name: "PolySpawner_2",
+            bottomRange: 10,
+            topRange: 10,
+            polyParent: nlm0kaufijaldhmrqay1,
+        });
+        const n1n18nmtdpuy4kjz2qbm = new Follow({
+            name: "Follow",
+            offset: new Vector(0, 0),
+            target: nslsy9mxjvdvc7rrzgce,
+            interpolationSpeed: 0.0009,
+        });
+        const nowsn7kr4yzyl1lgpidm = new Transform({
+            name: "Transform",
+            position: new Vector(0, 0),
+            rotation: 0,
+            scale: new Vector(1, 1),
+        });
+        const nmauli471uo7tmyedyf = new Camera({
+            name: "Camera_6",
+            position: new Vector(0, 0),
+            zoom: new Vector(1, 1),
+        });
+        const n20c1mawnycncom7zz0c = new Scene({
+            name: "NewScene",
+            backgroundColor: "#000000",
+        });
+        const ngame_root = new Game({
+            name: "MyGame",
+            canvas: "gamecanvas",
+            width: 800,
+            height: 600,
+            devmode: false,
+            disableAntiAliasing: false,
+        });
+        ndks3rgvmmj0dnswfvt.addChildren(nvo7pemk0xypvordf7ob, nsmddv27hknrsj30kvex);
+        n6mrsm3ogpzyd052vi7k.addChildren(ndks3rgvmmj0dnswfvt);
+        n4mzagfg8c0owamtceko.addChildren(nkn59tmmtycpaqfz3h7g, nbkmizkipafcxxy1x9m0o, n01e7dznm9qa0kbgyckk, n1f6eisd9pczq24y36m1);
+        nh5ml1c9o6fh6fm8zh94.addChildren(n6zw8vh9knx0ecqcpbam, n8fm7jchgg9hix6c1zr, nw35zwf1b2c13fdofm97);
+        ngr4pxda7c0l1qaeplm.addChildren(nddmqqlgx14ciui0j5ln, n7kd4mz51s54ql0lx5ie, n0bn2mdcel6mleb1tedo, n1uc2d03fwzdxm3ssm1l);
+        njso4ymbwz7cj13vz4tw.addChildren(nslsy9mxjvdvc7rrzgce, ncwvwmjj8mz7zgd4hz3q, nckcu3g67fzzvmzoto6, np7q97molcmnirhz36v6, nhhzc8569kmcfc6tdxr, nzz4jjci2m9zrrh5zoi);
+        ndfvkvem2kzxi6rm1me5.addChildren(nf1arzt3mo8h728b157d);
+        ndb9mm42i314ldbr05ta.addChildren(n6bhwfdq3t5o1oug5mz4, nl3u0m8d4kf51c2i5x1s, n4qmday0ce265o952109h);
+        nlm0kaufijaldhmrqay1.addChildren(n4mzagfg8c0owamtceko, nh5ml1c9o6fh6fm8zh94, ngr4pxda7c0l1qaeplm, njso4ymbwz7cj13vz4tw, ndfvkvem2kzxi6rm1me5, ndb9mm42i314ldbr05ta);
+        nmauli471uo7tmyedyf.addChildren(n1n18nmtdpuy4kjz2qbm, nowsn7kr4yzyl1lgpidm);
+        n20c1mawnycncom7zz0c.addChildren(n7zccpwwd2i2ocmzyy3a, nduanvcjmjmeiqz7hdjx, n6mrsm3ogpzyd052vi7k, nlm0kaufijaldhmrqay1, n5e8119m34m49lh136de, nmauli471uo7tmyedyf);
+        ngame_root.addChildren(n20c1mawnycncom7zz0c);
+        ngame_root.start();
+    </script>
+</body>
+
+</html>

@@ -6,6 +6,22 @@ The `Input` component is the bridge between the user's actions (keyboard and mou
 
 An `Input` component should be added as a child to the `Scene` it controls.
 
+## Constructor
+
+`new Input({ key, keyup, mousemove, click })`
+
+-   `key?: (event: KeyboardEvent) => void`
+    Called on every frame for every key that is currently held down.
+
+-   `keyup?: (event: KeyboardEvent) => void`
+    Called once when a key is released.
+
+-   `mousemove?: (event: MouseEvent, hovering: Part) => void`
+    Called when the mouse moves. The `hovering` parameter is the `Part` the mouse is currently over.
+
+-   `click?: (event: MouseEvent, clicked: Part) => void`
+    Called when the mouse is clicked. The `clicked` parameter is the `Part` that was clicked on.
+
 ## Properties
 
 -   `downkeys: Set<string>`
@@ -17,21 +33,13 @@ An `Input` component should be added as a child to the `Scene` it controls.
 -   `lastClickPos: { x: number, y: number } | null`
     The world coordinates of the last mouse click. It is set to `null` after being processed.
 
-## Constructor Callbacks
+-   `initialized: boolean`
+    A boolean indicating whether the event listeners have been initialized.
 
-When you create an `Input` component, you pass in functions to handle different events.
+## Methods
 
--   `key: (event: KeyboardEvent) => void`
-    Called on every frame for every key that is currently held down.
-
--   `keyup: (event: KeyboardEvent) => void`
-    Called once when a key is released.
-
--   `mousemove: (event: MouseEvent, hovering: Part) => void`
-    Called when the mouse moves. The `hovering` parameter is the `Part` the mouse is currently over.
-
--   `click: (event: MouseEvent, clicked: Part) => void`
-    Called when the mouse is clicked. The `clicked` parameter is the `Part` that was clicked on.
+-   `initialize(canvas: HTMLCanvasElement)`
+    Initializes the event listeners for the input component. This is called internally by the engine.
 
 ## Examples
 
@@ -45,7 +53,7 @@ import { GameObject } from './Parts/GameObject';
 
 // Assume 'player' is a GameObject with a Transform child
 declare const player: GameObject;
-const playerTransform = player.children['Transform'] as Transform;
+const playerTransform = player.child<Transform>('Transform');
 
 const playerInput = new Input({
     key: (event) => {

@@ -4,7 +4,12 @@
 
 The `TextRender` component draws text to the screen. It's ideal for UI elements like scores, labels, or dialogue.
 
-## Properties
+## Constructor
+
+`new TextRender({ name, textContent, font, align, color })`
+
+-   `name: string`
+    The name of the text render part.
 
 -   `textContent: string`
     The string of text that you want to display.
@@ -12,16 +17,30 @@ The `TextRender` component draws text to the screen. It's ideal for UI elements 
 -   `font: string`
     A CSS font string that defines the size and family of the font. For example: `"24px Arial"`.
 
--   `align: "center" | "left" | "right"`
+-   `align?: "center" | "left" | "right"`
     The horizontal alignment of the text relative to the `Transform`'s position. Defaults to `"left"`.
 
--   `color: string`
+-   `color?: string`
     A CSS color string for the text color. Defaults to `'black'`.
+
+## Properties
+
+-   `textContent: string`
+    The string of text that you want to display.
+
+-   `font: string`
+    A CSS font string that defines the size and family of the font.
+
+-   `align: "center" | "left" | "right"`
+    The horizontal alignment of the text relative to the `Transform`'s position.
+
+-   `color: string`
+    A CSS color string for the text color.
 
 ## Methods
 
 -   `setText(text: string)`
-    A convenience method to update the `textContent` and automatically recalculate the dimensions of the text object.
+    Sets the text content of the renderer and updates its superficial dimensions.
 
 ## Examples
 
@@ -74,7 +93,7 @@ class GameManager extends Part {
         this.score += points;
 
         // Find the TextRender component on the scoreDisplay object
-        const textRenderer = scoreDisplay.children['ScoreText'] as TextRender;
+        const textRenderer = scoreDisplay.child<TextRender>('ScoreText');
 
         if (textRenderer) {
             textRenderer.setText(`Score: ${this.score}`);

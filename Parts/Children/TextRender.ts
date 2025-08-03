@@ -15,6 +15,7 @@ export class TextRender extends Renderer {
         this.align = align || "left"; // Default to left alignment if not specified
         this.color = color || 'black'; // Default color if not specified
         this.debugEmoji = "🅰️";
+        this.type = "TextRender";
     }
     onMount(parent: Part) {
         super.onMount(parent);

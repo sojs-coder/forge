@@ -4,34 +4,47 @@
 
 The `Button` component creates a clickable UI button with different visual states for default, hover, and active (clicked).
 
+## Constructor
+
+`new Button({ label, onClick, styles, clickSound, hoverSound, activeSound })`
+
+-   `label: string`
+    The text to display on the button.
+
+-   `onClick: () => void`
+    A function to be called when the button is clicked.
+
+-   `styles?: ButtonStyles`
+    An object that defines the styles for the button in its different states (default, hover, active).
+
+-   `clickSound?: Sound`
+    A `Sound` to play when the button is clicked.
+
+-   `hoverSound?: Sound`
+    A `Sound` to play when the mouse hovers over the button.
+
+-   `activeSound?: Sound`
+    A `Sound` to play when the button is pressed.
+
 ## Properties
 
 -   `styles?: ButtonStyles`
-    An object that defines the appearance of the button. It can have `default`, `hover`, and `active` properties, each with CSS-like styles (`backgroundColor`, `borderColor`, `borderRadius`, `font`, etc.).
+    An object that defines the styles for the button in its different states (default, hover, active).
 
--   `onClickHandler: () => void`
-    The function that gets called when the button is clicked.
+-   `isHovered: boolean`
+    A boolean that is true when the mouse is hovering over the button.
 
-## `ButtonStyles` Interface
+-   `isActive: boolean`
+    A boolean that is true when the button is being pressed.
 
-```typescript
-interface ButtonStyle {
-    width?: number;
-    height?: number;
-    backgroundColor?: string;
-    borderColor?: string;
-    borderWidth?: number;
-    borderRadius?: number;
-    color?: string; // Text color
-    font?: string;
-}
+-   `clickSound?: Sound`
+    A `Sound` to play when the button is clicked.
 
-interface ButtonStyles {
-    default?: ButtonStyle;
-    hover?: ButtonStyle;
-    active?: ButtonStyle;
-}
-```
+-   `hoverSound?: Sound`
+    A `Sound` to play when the mouse hovers over the button.
+
+-   `activeSound?: Sound`
+    A `Sound` to play when the button is pressed.
 
 ## Examples
 
@@ -62,16 +75,10 @@ startButton.addChildren(
                 height: 50,
                 backgroundColor: '#4CAF50', // Green
                 color: 'white',
-                borderRadius: 8,
                 font: '20px Arial'
             },
             hover: {
                 backgroundColor: '#45a049' // Darker green
-            },
-            active: {
-                backgroundColor: '#3e8e41',
-                // Make it look pressed
-                transform: 'translateY(2px)' // Note: transform style is not yet supported
             }
         }
     })

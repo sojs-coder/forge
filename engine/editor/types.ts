@@ -6,6 +6,7 @@ export interface GameNode {
     properties: Record<string, any>;
     children: GameNode[];
     expanded?: boolean;
+    parent?: string | null; // Reference to the parent node
 }
 
 export interface NodeDefinition {

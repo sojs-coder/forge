@@ -6,9 +6,24 @@ A `Layer` is a direct child of a `Scene` and is used to group `GameObject`s for 
 
 For example, you would typically have a `Background` layer, a `Gameplay` layer, and a `UI` layer, added in that order.
 
+## Constructor
+
+`new Layer({ name })`
+
+-   `name: string`
+    The name of the layer.
+
 ## Properties
 
 A `Layer` inherits all properties from `Part`. It does not add any of its own specific properties.
+
+## Methods
+
+-   `addChild(part: Part)`
+    Adds a `Part` (typically a `GameObject`) to this layer.
+
+-   `addChildren(...parts: Part[])`
+    Adds multiple `Part`s to this layer.
 
 ## Examples
 

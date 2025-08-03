@@ -1,5 +1,7 @@
+import type { Game } from "../engine-core.ts";
 import { state } from "./state.ts";
 import type { GameNode } from "./types.ts";
+
 
 const gameContainer = document.getElementById('game-container')!;
 const playButton = document.getElementById('play-button')! as HTMLButtonElement;
@@ -9,7 +11,7 @@ const stopButton = document.getElementById('stop-button')! as HTMLButtonElement;
 export function setupGameControls() {
     playButton.addEventListener('click', async () => {
         const gameCode = generateGameCode(state.gameTree, true);
-
+        console.log(gameCode);
         gameContainer.innerHTML = ''; // Clear existing content, including old error messages
         const existingCanvas = document.getElementById('gamecanvas');
         if (existingCanvas) existingCanvas.style.display = 'none';
@@ -26,6 +28,12 @@ export function setupGameControls() {
         gameContainer.classList.add('game-active'); // Add this line
 
         try {
+            if (state.currentGameInstance) {
+                // If there's an existing game instance, stop it before starting a new one
+                (state.currentGameInstance as Game).stop();
+                // Dump the instance from memory
+                state.currentGameInstance = null;
+            }
             const gameFunction = getGameFunction(gameCode);
             state.currentGameInstance = gameFunction();
             state.isGamePaused = false;
@@ -60,7 +68,7 @@ export function setupGameControls() {
 
 function pauseGame() {
     if (state.currentGameInstance && !state.isGamePaused) {
-        (state.currentGameInstance as any).pause();
+        (state.currentGameInstance as Game).pause();
         state.isGamePaused = true;
         pauseButton.textContent = 'Resume';
     }
@@ -68,7 +76,7 @@ function pauseGame() {
 
 function resumeGame() {
     if (state.currentGameInstance && state.isGamePaused) {
-        (state.currentGameInstance as any).resume();
+        (state.currentGameInstance as Game).resume();
         state.isGamePaused = false;
         pauseButton.textContent = 'Pause';
     }
@@ -76,7 +84,7 @@ function resumeGame() {
 
 function stopGame() {
     if (state.currentGameInstance) {
-        (state.currentGameInstance as any).stop();
+        (state.currentGameInstance as Game).stop();
         state.currentGameInstance = null;
         state.isGamePaused = false;
         pauseButton.disabled = true;
@@ -84,13 +92,16 @@ function stopGame() {
         stopButton.disabled = true;
         gameContainer.classList.remove('game-active');
         const canvas = document.getElementById('gamecanvas');
-        if (canvas) canvas.style.display = 'none';
     }
 }
 
 export function updateRender() {
     if (!state.ready || state.currentTab !== 'game') return;
-
+    const canvas = document.getElementById('gamecanvas') as HTMLCanvasElement;
+    if (!canvas) {
+        throw new Error('Game canvas not found');
+    }
+    canvas.style.display = '';
     const code = generateGameCode(state.gameTree, false);
     const func = getGameFunction(code);
     const instance = func();

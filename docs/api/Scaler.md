@@ -4,16 +4,32 @@
 
 The `Scaler` component makes a `GameObject` continuously scale up and down between a minimum and maximum size. It's useful for pulsating effects, breathing animations, or indicating interactive elements.
 
+## Constructor
+
+`new Scaler({ scaleSpeed, minScale, maxScale })`
+
+-   `scaleSpeed?: Vector`
+    The rate at which the object scales per frame. This is a `Vector` to allow for independent scaling speeds on the X and Y axes. Defaults to `new Vector(0.01, 0.01)`.
+
+-   `minScale?: Vector`
+    The minimum scale the object will shrink to. Defaults to `new Vector(0.5, 0.5)`.
+
+-   `maxScale?: Vector`
+    The maximum scale the object will grow to. Defaults to `new Vector(1.5, 1.5)`.
+
 ## Properties
 
 -   `scaleSpeed: Vector`
-    The rate at which the object scales per frame. This is a `Vector` to allow for independent scaling speeds on the X and Y axes. Defaults to `new Vector(0.01, 0.01)`.
+    The rate at which the object scales per frame.
 
 -   `minScale: Vector`
-    The minimum scale the object will shrink to. Defaults to `new Vector(0.5, 0.5)`.
+    The minimum scale the object will shrink to.
 
 -   `maxScale: Vector`
-    The maximum scale the object will grow to. Defaults to `new Vector(1.5, 1.5)`.
+    The maximum scale the object will grow to.
+
+-   `scalingUp: boolean`
+    A boolean indicating whether the object is currently scaling up or down.
 
 ## How it Works
 

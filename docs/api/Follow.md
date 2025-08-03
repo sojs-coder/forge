@@ -1,67 +1,63 @@
-# Following Other Objects
+# Follow
 
-This tutorial will show you how to make a `GameObject` follow another `GameObject` or `Part` using the `Follow` component.
+**Extends:** [Part](./Part.md)
 
-## 1. Set up your Scene and GameObjects
+The `Follow` component is used to make a `GameObject` follow another `Part` in the scene. This is useful for creating camera followers, companion AI, and more.
 
-First, ensure you have a `Game` and `Scene` set up. Then, create two `GameObject`s: one that will be the `target` (the object to follow) and another that will have the `Follow` component.
+## Constructor
+
+`new Follow({ target, offset, interpolationSpeed })`
+
+-   `target: Transform`
+    The `Transform` component of the `Part` to follow.
+
+-   `offset?: Vector`
+    An optional `Vector` that specifies an offset from the target's position. This is useful for positioning the follower relative to the target (e.g., a camera slightly above the player, or a shadow slightly below). Defaults to `new Vector(0, 0)`.
+
+-   `interpolationSpeed?: number`
+    The speed at which the follower interpolates its position towards the target's position. A value of `1` will make the follower snap to the target's position instantly. A value less than `1` will create a smooth following effect. Defaults to `1`.
+
+## Properties
+
+-   `target: Part | null`
+    The `Part` that this component is currently following.
+
+-   `offset: Vector`
+    An optional `Vector` that specifies an offset from the target's position.
+
+-   `externalOffset: Vector`
+    An additional offset that can be applied externally, for example, by a `CameraShake` component.
+
+-   `interpolationSpeed: number`
+    The speed at which the follower interpolates its position towards the target's position.
+
+## How it Works
+
+The `Follow` component continuously updates the `position` of its parent `GameObject`'s `Transform` component to match the `position` of the `target`'s `Transform` component.
+
+## Example
+
+This example shows how to make a camera follow a player.
 
 ```javascript
-import { Game } from './Parts/Game';
-import { Scene } from './Parts/Scene';
 import { GameObject } from './Parts/GameObject';
 import { Transform } from './Parts/Children/Transform';
-import { ColorRender } from './Parts/Children/ColorRender';
 import { Follow } from './Parts/Follow';
-import { CharacterMovement } from './Parts/CharacterMovement'; // For moving the target
 import { Vector } from './Math/Vector';
+import { Camera } from './Parts/Camera';
 
-// 1. Create the Game instance
-const myGame = new Game({
-    name: 'FollowDemo',
-    canvas: 'game-canvas',
-    width: 800,
-    height: 600,
-    devmode: true
-});
+// Assume 'player' is a GameObject that exists in the scene
+declare const player: GameObject;
 
-// 2. Create a Scene
-const mainScene = new Scene({ name: 'MainScene' });
-
-// 3. Create the target GameObject (e.g., a player)
-const player = new GameObject({ name: 'Player' });
-player.addChildren(
-    new Transform({ position: new Vector(400, 300) }),
-    new ColorRender({ width: 50, height: 50, color: 'blue' }),
-    new CharacterMovement({ speed: 5 }) // Make the player movable
-);
-mainScene.addChild(player);
-
-// 4. Create the follower GameObject
-const cameraFollower = new GameObject({ name: 'CameraFollower' });
-cameraFollower.addChildren(
-    new Transform({ position: new Vector(0, 0) }), // Initial position (will be overridden)
-    new ColorRender({ width: 20, height: 20, color: 'red' }),
+const camera = new Camera({ name: 'MainCamera' });
+camera.addChildren(
+    new Transform(),
     new Follow({
-        target: player, // The player GameObject is our target
-        offset: new Vector(0, -50) // Follow 50 pixels above the player
+        target: player.child<Transform>('Transform'),
+        offset: new Vector(0, -100), // Follow 100 pixels above the player
+        interpolationSpeed: 0.1 // Smooth following
     })
 );
-mainScene.addChild(cameraFollower);
 
-// 5. Add the scene to the game and start
-myGame.addChild(mainScene);
-myGame.start(mainScene);
+myScene.addChild(camera);
 ```
-
-## 2. Customizing Follow Behavior
-
--   **`target: Part`**: This is the `Part` (typically a `GameObject`) that the current object will follow. It must have a `Transform` component.
--   **`offset: Vector`**: An optional `Vector` that specifies an offset from the target's position. This is useful for positioning the follower relative to the target (e.g., a camera slightly above the player, or a shadow slightly below).
-
-## 3. Common Use Cases
-
--   **Camera Following**: Make the camera follow the player or another important object.
--   **Companion AI**: Create AI companions that follow the player.
--   **UI Elements**: Attach UI elements (like health bars or names) to follow characters in the game world.
--   **Chains/Tails**: Create segmented objects where each segment follows the previous one.

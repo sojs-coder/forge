@@ -15,13 +15,17 @@ class Particle extends Part {
         this.initialLifetime = lifetime;
         this.debugEmoji = "✨";
 
-        this.addChild(new Transform());
+        this.addChild(new Transform({
+            position: Vector.From(0),
+            rotation: 0,
+            scale: Vector.From(1)
+        }));
         this.addChild(new ColorRender({ width: size, height: size, color }));
     }
 
-    act() {
-        super.act();
-        const transform = this.sibling<Transform>("Transform");
+    act(delta: number) {
+        super.act(delta);
+        const transform = this.child<Transform>("Transform");
         if (transform) {
             transform.position = transform.position.add(this.velocity);
         }
@@ -54,36 +58,45 @@ export class ParticleEmitter extends Part {
     particleLifetime: number;
     emissionRate: number; // milliseconds between emissions
     maxParticles: number;
+    range: number[]; // Range in 2Pi for emission direction
+    private particles: Particle[] = [];
     private lastEmissionTime: number = 0;
     private emittedCount: number = 0;
 
-    constructor({ name, particleColor = "#FFFFFF", particleSize = 5, particleSpeed = 2, particleLifetime = 60, emissionRate = 100, maxParticles = 100 }: { name?: string, particleColor?: string, particleSize?: number, particleSpeed?: number, particleLifetime?: number, emissionRate?: number, maxParticles?: number }) {
-        super({ name: name || 'ParticleEmitter' });
+    constructor({ range, particleColor = "#FFFFFF", particleSize = 5, particleSpeed = 2, particleLifetime = 60, emissionRate = 100, maxParticles = 100 }: { range?: number[], particleColor?: string, particleSize?: number, particleSpeed?: number, particleLifetime?: number, emissionRate?: number, maxParticles?: number }) {
+        super({ name: 'ParticleEmitter' });
         this.particleColor = particleColor;
         this.particleSize = particleSize;
         this.particleSpeed = particleSpeed;
         this.particleLifetime = particleLifetime;
         this.emissionRate = emissionRate;
         this.maxParticles = maxParticles;
+        this.range = range || [0, 6.283185307179586]; // Default to 1 radian range
         this.debugEmoji = "💨";
+        this.type = 'ParticleEmitter';
     }
-
-    act() {
-        super.act();
+    onMount(parent: Part) {
+        super.onMount(parent);
+        if (this.top?.devmode) parent.addChild(new ColorRender({ width: 100, height: 100, color: "rgba(255, 255, 255, 0.5)" }));
+    }
+    act(delta: number) {
+        super.act(delta);
         const now = Date.now();
-        if (this.emittedCount < this.maxParticles && now - this.lastEmissionTime >= this.emissionRate) {
+        if (this.particles.length < this.maxParticles && now - this.lastEmissionTime >= this.emissionRate) {
             const transform = this.sibling<Transform>("Transform");
             if (transform) {
-                const angle = Math.random() * Math.PI * 2; // Random direction
+                const angle = Math.random() * (this.range[1] - this.range[0]) + this.range[0]; // Random direction
                 const velocity = new Vector(Math.cos(angle) * this.particleSpeed, Math.sin(angle) * this.particleSpeed);
                 const particle = new Particle({
+                    name: `Particle-${this.emittedCount}`,
                     color: this.particleColor,
                     size: this.particleSize,
                     velocity: velocity,
                     lifetime: this.particleLifetime
                 });
-                particle.sibling<Transform>("Transform")!.position = transform.worldPosition; // Set particle position to emitter position
-                this.parent?.addChild(particle);
+                this.addChild(particle);
+                console.log(this);
+                particle.child<Transform>("Transform")!.position = transform.position.clone(); // Start at emitter's position
                 this.emittedCount++;
                 this.lastEmissionTime = now;
             }

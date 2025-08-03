@@ -17,6 +17,7 @@ export class AnimatedSprite extends Renderer {
     disableAntiAliasing: boolean = false; // Option to disable anti-aliasing
     webEngine: boolean = false; // Flag to indicate if this is running in a web engine context
     onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void; // Callback for when an animation completes
+    spritesheetImage?: string; // Optional image for the spritesheet
     constructor({ spritesheet, spritesheetImage, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete, webEngine = false }: { spritesheet: string, spritesheetImage?: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void, webEngine?: boolean }) {
         super({ width, height }); // Call the parent constructor with empty imageSource
         this.name = "AnimatedSprite";
@@ -25,11 +26,12 @@ export class AnimatedSprite extends Renderer {
         this.width = width;
         this.height = height;
         this.ready = false;
-        this.spritesheetImage = spritesheetImage; // Optional image for the spritesheet
+        
         this.currentAnimation = startingAnimation || "default";
         this.disableAntiAliasing = disableAntiAliasing;
         this.onAnimationComplete = onAnimationComplete; // Set the callback for animation completion
         this.webEngine = webEngine; // Set the web engine flag
+        this.type = "AnimatedSprite";
     }
 
     async onMount(parent: Part) {

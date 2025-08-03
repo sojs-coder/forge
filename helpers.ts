@@ -1,8 +1,8 @@
 import type { Vector } from "./Math/Vector";
 import type { Camera } from "./Parts/Camera";
-import type { BoxCollider } from "./Parts/Children/BoxCollider";
+import { BoxCollider } from "./Parts/Children/BoxCollider";
 import type { PolygonCollider } from "./Parts/Children/PolygonCollider";
-import type { Transform } from "./Parts/Children/Transform";
+import { Transform } from "./Parts/Children/Transform";
 import type { Part } from "./Parts/Part";
 import type { SpriteSheetData } from "./types";
 
@@ -113,11 +113,15 @@ export function isPointInPolygon(pointX: number, pointY: number, polygonVertices
     return inside;
 }
 export function isPointInObject(mouseX: number, mouseY: number, child: Part): boolean {
-    const transform = child.children["Transform"] as Transform;
+    const transform = child.child<Transform>("Transform");
+    if (!transform) {
+        console.warn(`Part <${child.name}> requires a Transform child.`);
+        return false;
+    }
     const position = transform.worldPosition;
 
-    const boxCollider = child.children["BoxCollider"] as BoxCollider | undefined;
-    const polygonCollider = child.children["PolygonCollider"] as PolygonCollider | undefined;
+    const boxCollider = child.child<BoxCollider>("BoxCollider");
+    const polygonCollider = child.child<PolygonCollider>("PolygonCollider");
     let width, height, centerX, centerY;
 
     if (boxCollider && boxCollider.start && boxCollider.end) {

@@ -1,13 +1,27 @@
-## Tasks
+I have updated child syntax from
+Part.children["NAME"] to Part.child<Type>("NAME" or "TYPE")
+This function retrieves a child by name, if it does not exist, it checks for children of a specific type and returns the first one.
 
-- Property type "File" looks ugly. 
-![Ugly file select](image.png)
-![Uglier when it is cramped](image-1.png)
+---
+Go through each Part in the folder @Parts and ensure that they are using the new child retrieving syntax, and also give them a specific type property. For Parts that should be unique among siblings (Such as a particleemitter, AreaTrigger, Health, etc), remove the name option in the constructor and set it to be the same as the type (eg: "Health" for health.)
 
-- `Uncaught (in promise) ReferenceError: spritesheetImage is not defined`: This occurs when adding spritesheet JSON, then adding actual spritesheet image, and running. Also, there are duplicate properties for spritesheet image. One appears when adding the JSON. Remove that one. Also on AnimatedSprite, when spritesheet JSON is loaded, use meta.startingAnimation to pre-load starting animation into the property.
-- Add an "enum" type in definitions.ts and when rendering properties that shows up as a select input.
-- Use this enum type for starting animation selection in AnimatedSprite (load it when spritesheet JSON is loaded)
-- When dragging/dropping nodes around in the heigharchy, they just dissappear instead of actually being moved. Note: when fixing this, if a node of the same name already exists, change node.properties.name and add -1 (or increment the number after the dash if that node already exists)
-- Once an error occurs (Eg: Error: No scenes available to start the game.), the canvas is removed. This means that attempts to access the canvas result in an error. Fix this, and just set canvas.style.display to none in order to allow access to the canvas element
-- Color inputs don't show the actual color (see image below). Make the input wider to support this
-![Color input too narrow to show color](image-2.png)
+---
+Please do the following: Read through the documentation in @docs directory and ensure that each class is fully documented with:
+
+- Description of the Part/Usage
+- Properties
+- Methods
+- Constructor definition
+- Example usage
+
+Much of the current documentation is lacking updated properties/methods and constructor definitions.
+
+---
+In @engine/editor/definitions.ts, do the following:
+- update every single NodeDefinition to represent the actual class
+- add a description to each property
+- properly document the "unique among siblings" classes with the "singular: true" property.
+
+
+---
+In @engine/editor/properties.ts, show the property description when the user hovers over the property label.

@@ -19,6 +19,7 @@ export class BoxCollider extends Collider {
         this.end = new Vector(width / 2, height / 2);
         this.realWorldStart = this.start; // Will be updated in act(), onMount()
         this.realWorldEnd = this.end; // Will be updated in act(), onMount()
+        this.type = "BoxCollider";
     }
     onMount(parent: Part) {
         super.onMount(parent);
@@ -67,7 +68,6 @@ export class BoxCollider extends Collider {
                 rel.x * cos - rel.y * sin,
                 rel.x * sin + rel.y * cos
             );
-            console.log(transform);
 
             return transform.worldPosition.add(rotated.add(center));
         });

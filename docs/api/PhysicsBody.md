@@ -4,16 +4,41 @@
 
 The `PhysicsBody` part gives a `GameObject` physical properties, allowing it to be affected by the `PhysicsEngine`.
 
+## Constructor
+
+`new PhysicsBody({ isStatic, density, friction, restitution })`
+
+-   `isStatic?: boolean`
+    If `true`, the object will not be affected by gravity or other forces. Defaults to `false`.
+
+-   `density?: number`
+    The density of the object. Defaults to `0.001`.
+
+-   `friction?: number`
+    The friction of the object. Defaults to `0.1`.
+
+-   `restitution?: number`
+    The bounciness of the object. Defaults to `0`.
+
 ## Properties
 
+-   `body: Body | null`
+    The Matter.js body object associated with this physics body.
+
 -   `isStatic: boolean`
-    If `true`, the object will not be affected by gravity or other forces. Defaults to `false`.
+    If `true`, the object will not be affected by gravity or other forces.
+
 -   `density: number`
-    The density of the object. Defaults to `0.001`.
+    The density of the object.
+
 -   `friction: number`
-    The friction of the object. Defaults to `0.1`.
+    The friction of the object.
+
 -   `restitution: number`
-    The bounciness of the object. Defaults to `0`.
+    The bounciness of the object.
+
+-   `initialized: boolean`
+    A boolean indicating whether the physics body has been initialized.
 
 ## How it Works
 

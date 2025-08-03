@@ -4,16 +4,32 @@
 
 The `SpriteRender` component is used to draw a static (non-animated) image to the screen. It's one of the most common renderers you'll use.
 
+## Constructor
+
+`new SpriteRender({ imageSource, width, height })`
+
+-   `imageSource: string`
+    The file path to the image you want to display.
+
+-   `width: number`
+    The width to draw the image.
+
+-   `height: number`
+    The height to draw the image.
+
 ## Properties
 
 -   `imageSource: string | null`
     The file path to the image you want to display.
 
--   `image: any`
+-   `image: HTMLImageElement`
     The underlying `HTMLImageElement` object that is created from the `imageSource`.
 
--   `width: number` & `height: number`
-    The dimensions to draw the image. This can be used to scale the image.
+-   `width: number`
+    The width to draw the image.
+
+-   `height: number`
+    The height to draw the image.
 
 ## Examples
 

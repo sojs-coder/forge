@@ -6,6 +6,13 @@ The `GameObject` is a fundamental building block. It serves as a container for o
 
 By itself, a `GameObject` doesn't do much. Its power comes from the components you add to it.
 
+## Constructor
+
+`new GameObject({ name })`
+
+-   `name: string`
+    The name of the GameObject.
+
 ## Properties
 
 A `GameObject` inherits all properties from `Part`, such as `name`, `parent`, and `children`.

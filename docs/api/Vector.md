@@ -4,6 +4,16 @@
 
 The `Vector` class is a fundamental utility for handling 2D mathematics in the Forge engine. It's used to represent positions, scales, velocities, and directions.
 
+## Constructor
+
+`new Vector(x, y)`
+
+-   `x: number`
+    The horizontal component of the vector.
+
+-   `y: number`
+    The vertical component of the vector.
+
 ## Properties
 
 -   `x: number`
@@ -14,26 +24,47 @@ The `Vector` class is a fundamental utility for handling 2D mathematics in the F
 
 ## Methods
 
--   `add(other: Vector): Vector`
-    Returns a new `Vector` that is the sum of this vector and another.
+-   `distance(other: Vector): number`
+    Calculates the Euclidean distance between this vector and another vector.
 
--   `subtract(other: Vector): Vector`
-    Returns a new `Vector` that is the result of subtracting another vector from this one.
+-   `add(other: number | Vector): Vector`
+    Returns a new `Vector` that is the sum of this vector and another vector or a scalar.
 
--   `multiply(scalar: number | Vector): Vector`
+-   `toObject(): { x: number, y: number }`
+    Returns a plain JavaScript object representation of the vector.
+
+-   `toArray(): [number, number]`
+    Returns an array representation of the vector.
+
+-   `subtract(other: number | Vector): Vector`
+    Returns a new `Vector` that is the result of subtracting another vector or a scalar from this one.
+
+-   `multiply(other: number | Vector): Vector`
     Returns a new `Vector` multiplied by a single number (scalar) or by another `Vector` (component-wise).
 
--   `divide(scalar: number | Vector): Vector`
+-   `divide(other: number | Vector): Vector`
     Returns a new `Vector` divided by a single number (scalar) or by another `Vector` (component-wise).
+
+-   `length(): number`
+    Calculates the length (magnitude) of the vector.
+
+-   `toString(): string`
+    Returns a string representation of the vector.
+
+-   `normalize(): Vector`
+    Returns a new `Vector` with the same direction but a magnitude of 1.
 
 -   `dot(other: Vector): number`
     Calculates the dot product of this vector and another.
 
--   `magnitude(): number`
-    Calculates the length (magnitude) of the vector.
+-   `clone(): Vector`
+    Returns a new `Vector` that is a copy of this vector.
 
--   `normalize(): Vector`
-    Returns a new `Vector` with the same direction but a magnitude of 1.
+-   `set(...args: [number, number] | [Vector]): Vector`
+    Sets the x and y components of the vector. Can take two numbers or another Vector.
+
+-   `static From(scalar: number): Vector`
+    Creates a new `Vector` with both x and y components set to the given scalar value.
 
 ## Examples
 
@@ -55,7 +86,7 @@ const difference = pos1.subtract(pos2); // Result: Vector(5, 5)
 const bigger = pos1.multiply(3); // Result: Vector(30, 60)
 
 // Magnitude
-const length = difference.magnitude(); // Result: sqrt(5*5 + 5*5) = 7.07...
+const length = difference.length(); // Result: sqrt(5*5 + 5*5) = 7.07...
 
 // Normalizing (getting a direction)
 const direction = difference.normalize(); // Result: Vector(0.707, 0.707)

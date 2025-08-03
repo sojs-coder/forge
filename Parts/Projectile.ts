@@ -17,11 +17,11 @@ export class Projectile extends Part {
         this.debugEmoji = "🚀";
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const transform = this.sibling<Transform>("Transform");
         if (transform) {
-            transform.position = transform.position.add(this.direction.multiply(this.speed));
+            transform.position = transform.position.add(this.direction.multiply(this.speed * delta));
         }
 
         const collider = this.sibling<Collider>("Collider");

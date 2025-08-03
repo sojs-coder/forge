@@ -10,14 +10,15 @@ export class HealthBar extends Part {
     backgroundColor: string;
     targetHealth: Health | undefined = undefined;
     offsetHeight: number = 0; // Offset from the parent GameObject's position
-    constructor({ name, width = 100, height = 10, color = "green", backgroundColor = "red", offsetHeight = 0 }: { name?: string, width?: number, height?: number, color?: string, backgroundColor?: string, offsetHeight?: number }) {
-        super({ name: name || 'HealthBar' });
+    constructor({ width = 100, height = 10, color = "green", backgroundColor = "red", offsetHeight = 0 }: { width?: number, height?: number, color?: string, backgroundColor?: string, offsetHeight?: number }) {
+        super({ name: 'HealthBar' });
         this.width = width;
         this.height = height;
         this.color = color;
         this.backgroundColor = backgroundColor;
         this.debugEmoji = "🩹";
         this.offsetHeight = offsetHeight;
+        this.type = "HealthBar";
     }
 
     onMount(parent: Part) {

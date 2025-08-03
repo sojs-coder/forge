@@ -7,11 +7,11 @@ import { Scene } from "./Scene";
 export class Camera extends Part {
     zoom: Vector;
 
-    constructor({ name }: { name: string, zoom?: Vector }) {
-        super();
-        this.name = name;
+    constructor({ name, zoom }: { name: string, zoom?: Vector }) {
+        super({ name });
         this.zoom = Vector.From(1);
         this.debugEmoji = "📷"; // Camera specific emoji for debugging
+        this.type = "Camera";
     }
 
     onMount(parent: Part) {
@@ -38,15 +38,20 @@ export class Camera extends Part {
 
     getViewMatrix(): { offset: Vector; scale: Vector } {
         // Could be used in rendering context
+        const transform = this.child<Transform>("Transform")
+        if (!transform) {
+            console.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. View matrix will not be calculated.`);
+            return { offset: Vector.From(0), scale: this.zoom };
+        }
         return {
-            offset: (this.children["Transform"] as Transform).worldPosition.multiply(-1), // View shift is inverse of camera
+            offset: (transform).worldPosition.multiply(-1), // View shift is inverse of camera
             scale: this.zoom
         };
     }
 
     act(delta: number) {
         super.act(delta);
-        const transform = this.children["Transform"] as Transform;
+        const transform = this.child<Transform>("Transform");
         if (transform) {
             this.zoom = transform.scale;
         } else {

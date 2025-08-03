@@ -6,11 +6,12 @@ export class AreaTrigger extends Part {
     onExit?: (other: Collider) => void;
     activeCollisions: Set<Collider> = new Set();
 
-    constructor({ name, onEnter, onExit }: { name?: string, onEnter?: (other: Collider) => void, onExit?: (other: Collider) => void }) {
-        super({ name: name || 'AreaTrigger' });
+    constructor({ onEnter, onExit }: { onEnter?: (other: Collider) => void, onExit?: (other: Collider) => void }) {
+        super({ name: 'AreaTrigger' });
         this.onEnter = onEnter;
         this.onExit = onExit;
         this.debugEmoji = "🧲";
+        this.type = "AreaTrigger";
     }
 
     act(delta: number) {

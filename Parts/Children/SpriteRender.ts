@@ -9,6 +9,7 @@ export class SpriteRender extends Renderer {
     constructor({ imageSource, width, height }: { imageSource: string, width: number, height: number }) {
         super({ width, height });
         this.name = "SpriteRender";
+        this.type = "SpriteRender";
         this.ready = false;
         this.imageSource = imageSource;
         this.debugEmoji = "🖼️"; // Default emoji for debugging the sprite render 

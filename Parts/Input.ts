@@ -26,45 +26,78 @@ export class Input extends Part {
         mousemove: (event: MouseEvent, hovering: Part) => void,
         click: (event: MouseEvent, clicked: Part) => void,
     }) {
-        super();
-        this.name = "Input";
+        super({ name: "Input" });
         this.debugEmoji = "⌨️";
         this.key = key;
         this.keyup = keyup;
         this.mousemove = mousemove;
         this.click = click;
         this.initialized = false;
+        this.type = "Input";
     }
     initialize(canvas: HTMLCanvasElement) {
         canvas.addEventListener("mousemove", (event) => {
             const game = this.top as Game;
-            const rect = canvas.getBoundingClientRect();
-            let mouseX = event.clientX - rect.left;
-            let mouseY = event.clientY - rect.top;
+            if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
+                return;
+            }
+            const rect = canvas.getBoundingClientRect(); // DOM rect (in CSS pixels)
+            const scaleFactor = game.scaleFactor ?? 1;
+            const gameCanvas = game.canvas;
+            // Convert from CSS (DOM) pixels → unscaled canvas space
+            const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
+            const mouseY = (event.clientY - rect.top) * (gameCanvas.height / rect.height);
 
             const camera = game.currentScene?.activeCamera;
+
+            let finalX = mouseX;
+            let finalY = mouseY;
+
             if (camera) {
                 const view = camera.getViewMatrix();
-                const cameraTransform = camera.children["Transform"] as Transform;
-                mouseX = (mouseX - game.canvas.width / 2) / view.scale.x + cameraTransform.worldPosition.x;
-                mouseY = (mouseY - game.canvas.height / 2) / view.scale.y + cameraTransform.worldPosition.y;
+                const transform = camera.child<Transform>("Transform");
+                if (!transform) {
+                    console.warn("Camera does not have a Transform child.");
+                    return;
+                }
+                finalX = (mouseX - game.canvas.width / 2) / view.scale.x + transform.worldPosition.x;
+                finalY = (mouseY - game.canvas.height / 2) / view.scale.y + transform.worldPosition.y;
             }
-            this.currentMousePos = { x: mouseX, y: mouseY };
+
+
+            this.currentMousePos = { x: finalX, y: finalY };
         });
+
         canvas.addEventListener("click", (event) => {
-            const game = this.top as Game;
-            const rect = canvas.getBoundingClientRect();
-            let mouseX = event.clientX - rect.left;
-            let mouseY = event.clientY - rect.top;
+           const game = this.top as Game;
+            if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
+                return;
+            }
+            const rect = canvas.getBoundingClientRect(); // DOM rect (in CSS pixels)
+            const scaleFactor = game.scaleFactor ?? 1;
+            const gameCanvas = game.canvas;
+            // Convert from CSS (DOM) pixels → unscaled canvas space
+            const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
+            const mouseY = (event.clientY - rect.top) * (gameCanvas.height / rect.height);
 
             const camera = game.currentScene?.activeCamera;
+
+            let finalX = mouseX;
+            let finalY = mouseY;
+
             if (camera) {
                 const view = camera.getViewMatrix();
-                const cameraTransform = camera.children["Transform"] as Transform;
-                mouseX = (mouseX - game.canvas.width / 2) / view.scale.x + cameraTransform.worldPosition.x;
-                mouseY = (mouseY - game.canvas.height / 2) / view.scale.y + cameraTransform.worldPosition.y;
+                const transform = camera.child<Transform>("Transform");
+                if (!transform) {
+                    console.warn("Camera does not have a Transform child.");
+                    return;
+                }
+                finalX = (mouseX - game.canvas.width / 2) / view.scale.x + transform.worldPosition.x;
+                finalY = (mouseY - game.canvas.height / 2) / view.scale.y + transform.worldPosition.y;
             }
-            this.lastClickPos = { x: mouseX, y: mouseY };
+
+
+            this.lastClickPos = { x: finalX, y: finalY };
         });
         canvas.addEventListener("mousedown", (event) => {
             const game = this.top as Game;
@@ -94,8 +127,8 @@ export class Input extends Part {
 
     act(delta: number) {
         super.act(delta);
-        if(!this.initialized) {
-            if(!this.top || !(this.top instanceof Game)) {
+        if (!this.initialized) {
+            if (!this.top || !(this.top instanceof Game)) {
                 throw new Error("Input must be attached to a Game instance.");
             }
             if (!this.top.canvas) {
@@ -123,7 +156,7 @@ export class Input extends Part {
             });
 
             const hovered = childrenFlat.find(child => {
-                if (child.children["Transform"]) {
+                if (child.child<Transform>("Transform")) {
                     return isPointInObject(this.currentMousePos.x, this.currentMousePos.y, child);
                 }
                 return false;
@@ -154,7 +187,7 @@ export class Input extends Part {
             });
 
             const clicked = childrenFlat.find(child => {
-                if (child.children["Transform"]) {
+                if (child.child<Transform>("Transform")) {
                     return isPointInObject(this.lastClickPos!.x, this.lastClickPos!.y, child);
                 }
                 return false;

@@ -1,6 +1,33 @@
 # Game
 
+**Extends:** [Part](./Part.md)
+
 The `Game` class is the heart of your application. It's the top-level container that manages the main game loop, scenes, rendering context, and user input.
+
+## Constructor
+
+`new Game({ name, canvas, devmode, width, height, disableAntiAliasing, showtoolTips })`
+
+-   `name: string`
+    The name of the game.
+
+-   `canvas: HTMLCanvasElement | string`
+    The HTML canvas element or the ID of the canvas element that the game will be rendered onto.
+
+-   `width: number`
+    The width of the game canvas.
+
+-   `height: number`
+    The height of the game canvas.
+
+-   `devmode?: boolean`
+    When set to `true`, enables special debugging features, such as the visual node tree and tooltips. Defaults to `false`.
+
+-   `disableAntiAliasing?: boolean`
+    When set to `true`, disables anti-aliasing for all rendering. Defaults to `false`.
+
+-   `showtoolTips?: boolean`
+    When set to `true`, shows tooltips in devmode. Defaults to `false`.
 
 ## Properties
 
@@ -19,8 +46,49 @@ The `Game` class is the heart of your application. It's the top-level container 
 -   `hovering?: Part`
     (Devmode only) The `Part` that the mouse is currently hovering over.
 
--   `superficialWidth: number` & `superficialHeight: number`
-    For the `Game` class, these properties are derived directly from the `width` and `height` of the canvas itself. They represent the primary dimensions of the game area.
+-   `width: number`
+    The width of the game canvas.
+
+-   `height: number`
+    The height of the game canvas.
+
+-   `isRunning: boolean`
+    Indicates whether the game loop is currently running.
+
+-   `isPaused: boolean`
+    Indicates whether the game loop is currently paused.
+
+## Methods
+
+-   `changeCanvasSize(width: number, height: number)`
+    Changes the size of the game canvas.
+
+-   `addChild(scene: Scene)`
+    Adds a scene to the game. The first scene added will automatically become the `currentScene`.
+
+-   `addChildren(...scenes: Scene[])`
+    Adds multiple scenes to the game.
+
+-   `start(starterScene: Scene | string)`
+    Starts the game loop with the specified scene. Can be a `Scene` object or the name of a scene.
+
+-   `loop()`
+    The main game loop. This method is called automatically by `start()`.
+
+-   `pause()`
+    Pauses the game loop.
+
+-   `resume()`
+    Resumes the game loop.
+
+-   `stop()`
+    Stops the game loop.
+
+-   `act(purposeful?: boolean | number)`
+    Executes one frame of the current scene. This is primarily for internal use or debugging.
+
+-   `setScene(scene: Scene | string)`
+    Sets the current active scene. Can be a `Scene` object or the name/ID of a scene.
 
 ## Examples
 

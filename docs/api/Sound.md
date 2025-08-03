@@ -4,15 +4,9 @@
 
 The `Sound` component allows you to load and play audio files within your game. It wraps the browser's native `HTMLAudioElement`.
 
-## Properties
+## Constructor
 
--   `audio: HTMLAudioElement`
-    The underlying HTML Audio Element. You can access this directly for more advanced control if needed.
-
--   `_isLoaded: boolean`
-    Internal flag indicating if the audio file has successfully loaded and is ready to play.
-
-## Constructor Parameters
+`new Sound({ name, src, volume, loop, webEngine, start })`
 
 -   `name: string`
     The name of the sound part.
@@ -25,6 +19,26 @@ The `Sound` component allows you to load and play audio files within your game. 
 
 -   `loop?: boolean` (default: `false`)
     If `true`, the sound will loop continuously when played.
+
+-   `webEngine?: boolean`
+    This property is used internally by the engine and should not be modified.
+
+-   `start?: boolean` (default `false`)
+    If `true` the sound will start playing when the game starts.
+
+## Properties
+
+-   `audio: HTMLAudioElement`
+    The underlying HTML Audio Element. You can access this directly for more advanced control if needed.
+
+-   `webEngine: boolean`
+    This property is used internally by the engine and should not be modified.
+
+-   `start: boolean`
+    If `true`, the sound will start playing when the game starts.
+
+-   `_isLoaded: boolean`
+    A boolean indicating whether the audio file has been loaded.
 
 ## Methods
 
@@ -60,17 +74,13 @@ backgroundMusic.addChildren(
         name: 'GameMusic',
         src: './assets/audio/bg_music.mp3',
         volume: 0.5,
-        loop: true
+        loop: true,
+        start: true // Start playing when the game starts
     })
 );
 
 // Add the GameObject to a scene (e.g., your main menu scene)
 myMenuScene.addChild(backgroundMusic);
-
-// To start playing the music (e.g., when the scene starts or a button is clicked)
-// You would typically get a reference to the Sound part and call play()
-const musicPart = backgroundMusic.children['GameMusic'] as Sound;
-musicPart.play();
 ```
 
 ### Playing a Sound Effect on an Event

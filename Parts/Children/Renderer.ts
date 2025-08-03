@@ -8,12 +8,12 @@ export class Renderer extends Part {
     facing: Vector = new Vector(1, 1); // Default facing direction
     disableAntiAliasing: boolean = false; // Option to disable anti-aliasing
     constructor({ width, height, disableAntiAliasing }: { width: number, height: number, disableAntiAliasing?: boolean }) {
-        super();
-        this.name = "Renderer";
+        super({ name: "Renderer" });
         this.width = width;
         this.height = height;
         this.disableAntiAliasing = disableAntiAliasing || false; // Default to false if not provided
         this.debugEmoji = "🎨"; // Emoji for debugging Renderer
+        this.type = "Renderer";
     }
 
     face(direction: Vector) {

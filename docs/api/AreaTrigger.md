@@ -4,23 +4,32 @@
 
 The `AreaTrigger` component is used to define a region in the game world that can detect when other colliders enter or exit it, without causing physical interactions. It's ideal for creating trigger zones for events like collecting items, entering new areas, or activating traps.
 
+## Constructor
+
+`new AreaTrigger({ onEnter, onExit })`
+
+-   `onEnter?: (other: Collider) => void`
+    An optional callback function that is executed when another `Collider` enters the `AreaTrigger`'s region. The `other` parameter is the `Collider` that entered the trigger.
+
+-   `onExit?: (other: Collider) => void`
+    An optional callback function that is executed when another `Collider` exits the `AreaTrigger`'s region. The `other` parameter is the `Collider` that exited the trigger.
+
 ## Properties
 
 -   `onEnter?: (other: Collider) => void`
-    An optional callback function that is executed when another `Collider` enters the `AreaTrigger`'s region.
+    An optional callback function that is executed when another `Collider` enters the `AreaTrigger`'s region. The `other` parameter is the `Collider` that entered the trigger.
 
 -   `onExit?: (other: Collider) => void`
-    An optional callback function that is executed when another `Collider` exits the `AreaTrigger`'s region.
+    An optional callback function that is executed when another `Collider` exits the `AreaTrigger`'s region. The `other` parameter is the `Collider` that exited the trigger.
+
+-   `activeCollisions: Set<Collider>`
+    A set of all the colliders that are currently inside the trigger.
 
 ## How it Works
 
 The `AreaTrigger` component requires a `Collider` sibling (e.g., `BoxCollider` or `PolygonCollider`) to define its shape and detect overlaps. It continuously monitors the `collidingWith` property of its `Collider` sibling to determine which other colliders are currently overlapping with it. It then compares this list to the colliders that were overlapping in the previous frame to trigger `onEnter` or `onExit` events.
 
-**Note:** Due to the nature of collision detection and the `collidingWith` property being reset each frame, accurately identifying the `other` collider in the `onExit` callback can be challenging. For simple use cases, `onEnter` is more straightforward.
-
-## Examples
-
-### Creating a Collectible Item
+## Example
 
 This example shows how to use an `AreaTrigger` to make a coin collectible when the player enters its area.
 
@@ -30,10 +39,12 @@ import { Transform } from './Parts/Children/Transform';
 import { SpriteRender } from './Parts/Children/SpriteRender';
 import { BoxCollider } from './Parts/Children/BoxCollider';
 import { AreaTrigger } from './Parts/AreaTrigger';
-import { Vector }./Math/Vector';
+import { Vector } from './Math/Vector';
 
+// Create a new GameObject for the coin
 const coin = new GameObject({ name: 'Coin' });
 
+// Add the necessary components to the coin
 coin.addChildren(
     new Transform({ position: new Vector(500, 400) }),
     new SpriteRender({
@@ -54,5 +65,6 @@ coin.addChildren(
     })
 );
 
+// Add the coin to a layer in your scene
 myLayer.addChild(coin);
 ```

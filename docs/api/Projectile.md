@@ -4,16 +4,29 @@
 
 The `Projectile` component is designed for objects that move in a straight line and can inflict damage upon collision. It's ideal for bullets, arrows, or any other one-shot moving attack.
 
-## Properties
+## Constructor
 
--   `speed: number`
+`new Projectile({ speed, direction, damage })`
+
+-   `speed?: number`
     The speed at which the projectile travels per frame. Defaults to `10`.
 
 -   `direction: Vector`
     A `Vector` representing the normalized direction of the projectile's movement. This vector should typically have a magnitude of 1 (e.g., `new Vector(1, 0)` for right, `new Vector(0, -1)` for up).
 
--   `damage: number`
+-   `damage?: number`
     The amount of damage the projectile will inflict on a `GameObject` that has a `Health` component upon collision. Defaults to `10`.
+
+## Properties
+
+-   `speed: number`
+    The speed at which the projectile travels per frame.
+
+-   `direction: Vector`
+    A `Vector` representing the normalized direction of the projectile's movement.
+
+-   `damage: number`
+    The amount of damage the projectile will inflict on a `GameObject` that has a `Health` component upon collision.
 
 ## How it Works
 

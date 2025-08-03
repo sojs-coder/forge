@@ -7,12 +7,13 @@ export class Timer extends Part {
     private startTime: number = 0;
     private isRunning: boolean = false;
 
-    constructor({ name, duration, onComplete, repeats = false }: { name?: string, duration: number, onComplete: () => void, repeats?: boolean }) {
-        super({ name: name || 'Timer' });
+    constructor({ duration, onComplete, repeats = false }: { duration: number, onComplete: () => void, repeats?: boolean }) {
+        super({ name: 'Timer' });
         this.duration = duration;
         this.onComplete = onComplete;
         this.repeats = repeats;
         this.debugEmoji = "⏱️";
+        this.type = "Timer";
     }
 
     start() {

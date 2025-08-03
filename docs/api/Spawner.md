@@ -4,7 +4,9 @@
 
 The `Spawner` component is used to automatically create and add `GameObject`s to the game world at a specified rate. It's ideal for generating enemies, collectibles, or environmental elements.
 
-## Properties
+## Constructor
+
+`new Spawner({ objectToSpawn, spawnRate, maxSpawns })`
 
 -   `objectToSpawn: () => GameObject`
     A function that returns a new `GameObject` instance to be spawned. This function will be called each time a new object needs to be created.
@@ -12,8 +14,25 @@ The `Spawner` component is used to automatically create and add `GameObject`s to
 -   `spawnRate: number`
     The time in milliseconds between each spawn event. Defaults to `1000` (1 second).
 
+-   `maxSpawns?: number`
+    The maximum number of objects this spawner will create. Set to `Infinity` for continuous spawning. Defaults to `Infinity`.
+
+## Properties
+
+-   `objectToSpawn: () => GameObject`
+    A function that returns a new `GameObject` instance to be spawned.
+
+-   `spawnRate: number`
+    The time in milliseconds between each spawn event.
+
 -   `maxSpawns: number`
-    The maximum number of objects this spawner will create. Set to `Infinity` for continuous spawning. Defaults to `10`.
+    The maximum number of objects this spawner will create.
+
+-   `spawnCount: number`
+    The number of objects that have been spawned by this spawner.
+
+-   `lastSpawnTime: number`
+    The timestamp of the last spawn event.
 
 ## How it Works
 
@@ -25,7 +44,7 @@ The `Spawner` component periodically calls the `objectToSpawn` function and adds
 
 ```javascript
 import { GameObject } from './Parts/GameObject';
-import { Transform } './Parts/Children/Transform';
+import { Transform } from './Parts/Children/Transform';
 import { SpriteRender } from './Parts/Children/SpriteRender';
 import { Spawner } from './Parts/Spawner';
 import { Vector } from './Math/Vector';

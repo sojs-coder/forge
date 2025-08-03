@@ -67,7 +67,11 @@ function renderTree(node: GameNode, parentElement: HTMLElement) {
         const childrenContainer = document.createElement('div');
         childrenContainer.classList.add('node-children');
         nodeElement.appendChild(childrenContainer);
-        node.children.forEach(child => renderTree(child, childrenContainer));
+        node.children.forEach(child => {
+            // Add parent reference to account for old saves
+            child.parent = node.properties.name || node.properties.id; // Ensure parent reference is set
+            renderTree(child, childrenContainer)
+        });
     }
 }
 
@@ -179,7 +183,8 @@ export function setupTreeControls() {
                 id: shuffle((Date.now().toString(36) + Math.random().toString(36).substring(2)).split('')).join(''),
                 type: nodeType,
                 properties: newProperties,
-                children: []
+                children: [],
+                parent: state.selectedNode?.properties.name || state.selectedNode?.id || null // Ensure parent reference is set
             };
             state.selectedNode!.children.push(newNode);
             updateTreeDisplay();
@@ -274,15 +279,7 @@ export function selectNode(node: GameNode) {
         newSelected.classList.add('selected');
     }
 
-    if ((window as any).nodeDefinitions[node.type] && (window as any).nodeDefinitions[node.type].code) {
-        renderProperties(node);
-        switchTab('editor');
-        setTimeout(() => {
-            selectCustomNode(node.type, 'custom');
-        }, 100);
-    } else {
-        renderProperties(node);
-    }
+    renderProperties(node);
 }
 
 export function deleteNode(nodeId: string) {

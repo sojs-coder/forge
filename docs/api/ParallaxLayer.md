@@ -4,10 +4,20 @@
 
 The `ParallaxLayer` is a specialized `Layer` that creates a parallax scrolling effect. Objects on a `ParallaxLayer` will move at a different speed relative to the camera's movement, creating an illusion of depth.
 
+## Constructor
+
+`new ParallaxLayer({ name, parallaxFactor })`
+
+-   `name: string`
+    The name of the parallax layer.
+
+-   `parallaxFactor?: number`
+    A value between `0` and `1` (inclusive) that determines how much the layer moves relative to the camera. Defaults to `0.5`.
+
 ## Properties
 
 -   `parallaxFactor: number`
-    A value between `0` and `1` (inclusive) that determines how much the layer moves relative to the camera. Defaults to `0.5`.
+    A value between `0` and `1` (inclusive) that determines how much the layer moves relative to the camera.
     -   `0`: The layer does not move at all (e.g., distant background elements).
     -   `0.5`: The layer moves at half the camera's speed.
     -   `1`: The layer moves at the same speed as the camera (like a foreground layer).

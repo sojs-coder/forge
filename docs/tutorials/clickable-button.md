@@ -1,6 +1,6 @@
 # Creating a Clickable Button
 
-This tutorial will guide you through creating an interactive button that responds to clicks and hover events using the `Button` and `Clickable` components.
+This tutorial will guide you through creating an interactive button that responds to clicks and hover events using the `Button` component.
 
 ## 1. Set up your Scene and GameObjects
 
@@ -38,23 +38,12 @@ startButton.addChildren(
     new Transform({ position: new Vector(400, 300) }), // Center the button
     new Button({
         label: 'Start Game',
-        onClick: onButtonClick,
-        styles: {
-            default: {
-                width: 200,
-                height: 60,
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                borderRadius: 10,
-                font: '24px Arial'
-            },
-            hover: {
-                backgroundColor: '#45a049'
-            },
-            active: {
-                backgroundColor: '#3e8e41'
-            }
-        }
+        width: 200,
+        height: 60,
+        backgroundColor: '#4CAF50',
+        color: 'white',
+        font: '24px Arial',
+        onClick: onButtonClick
     })
 );
 
@@ -88,8 +77,12 @@ startButton.addChildren(
     new Transform({ position: new Vector(400, 300) }),
     new Button({
         label: 'Start Game',
+        width: 200,
+        height: 60,
+        backgroundColor: '#4CAF50',
+        color: 'white',
+        font: '24px Arial',
         onClick: onButtonClick,
-        styles: { /* ... (same styles as before) ... */ },
         clickSound: clickSound, // Reference the Sound instance
         hoverSound: hoverSound  // Reference the Sound instance
     })

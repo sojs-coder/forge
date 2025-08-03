@@ -6,6 +6,19 @@ The `Transform` is one of the most essential components. It defines the position
 
 Other components, like renderers and colliders, will look for a `Transform` as their sibling to know where to draw or position themselves.
 
+## Constructor
+
+`new Transform({ position, rotation, scale })`
+
+-   `position?: Vector`
+    The initial position of the `GameObject`. Defaults to `new Vector(0, 0)`.
+
+-   `rotation?: number`
+    The initial rotation of the `GameObject` in radians. Defaults to `0`.
+
+-   `scale?: Vector`
+    The initial scale of the `GameObject`. Defaults to `new Vector(1, 1)`.
+
 ## Properties
 
 -   `position: Vector`
@@ -19,6 +32,23 @@ Other components, like renderers and colliders, will look for a `Transform` as t
 
 -   `scale: Vector`
     The scale of the `GameObject`, where `new Vector(1, 1)` is the default, original size. `new Vector(2, 2)` would be double the size.
+
+## Methods
+
+-   `move(delta: Vector)`
+    Moves the `GameObject` by the given `Vector`.
+
+-   `moveTo(position: Vector)`
+    Moves the `GameObject` to the given `Vector`.
+
+-   `rotate(angle: number)`
+    Rotates the `GameObject` by the given angle in radians.
+
+-   `setRotation(rotation: number)`
+    Sets the rotation of the `GameObject` directly in radians.
+
+-   `updateWorldPosition()`
+    Updates the world position of the transform based on its parent's world position.
 
 ## Examples
 
@@ -63,10 +93,10 @@ class Mover extends Part {
 
         if (transform) {
             // Move the object to the right
-            transform.position.x += 1;
+            transform.move(new Vector(1, 0));
 
             // Gently rotate the object
-            transform.rotation += 0.01;
+            transform.setRotation(transform.rotation + 0.01);
         }
     }
 }

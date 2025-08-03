@@ -4,6 +4,13 @@
 
 The `Part` class is the fundamental building block of the entire Forge engine. Every other class, from `Game` and `Scene` to `Transform` and `SpriteRender`, inherits from `Part`. It provides the core functionality for creating a hierarchical scene graph, handling parent-child relationships, and executing per-frame logic.
 
+## Constructor
+
+`new Part({ name })`
+
+-   `name?: string`
+    A human-readable name for the part. Defaults to `"New Object"`.
+
 ## Key Concepts
 
 - **Hierarchy**: Parts can be nested within each other to create complex objects. A `GameObject` might have a `Transform`, a `SpriteRender`, and a `BoxCollider` as its children.
@@ -18,9 +25,6 @@ The `Part` class is the fundamental building block of the entire Forge engine. E
 -   `name: string`
     A human-readable name for the part, used for debugging and for accessing children by name.
 
--   `children: { [id: string]: Part }`
-    An object (dictionary/map) containing all direct children of this part, indexed by their `name`. This allows for quick access to a specific child.
-
 -   `childrenArray: Part[]`
     An array containing all direct children, preserving the order in which they were added. This is used for iterating through children during the update loop.
 
@@ -30,26 +34,103 @@ The `Part` class is the fundamental building block of the entire Forge engine. E
 -   `top?: Game`
     A reference to the top-level `Game` instance. This is automatically propagated down the hierarchy, giving any `Part` access to the global game state, like the rendering `context`.
 
--   `superficialWidth: number` & `superficialHeight: number`
-    These properties represent the general or "superficial" dimensions of a `Part`. Their meaning is context-dependent:
-    - For a `Part` with a `Renderer` child (like `SpriteRender` or `ColorRender`), these dimensions are typically set by that renderer to match the visual size of the object.
-    - For a `Part` with a `Collider` child, the collider might set these dimensions.
-    - For a simple `GameObject` with no renderer or collider, they might remain 0 or be set manually.
-    They are a way for parts to understand the approximate size of their siblings or parents without needing to know the specific type of renderer or collider being used. For example, `EnemyMovement.ts` uses `superficialWidth` to know how far from the edge of the screen to stop, regardless of what the enemy looks like.
+-   `ready: boolean`
+    A boolean indicating whether the part is ready for use.
+
+-   `registrations: { [key: string]: any }`
+    For storing information set by parents or other parts.
+
+-   `flats: { colliders: Collider[] }`
+    Used for storing flat lists of certain types of children, like colliders.
+
+-   `_layoutWidth: number`
+    Used for layout calculations in debugTreeRender.
+
+-   `context?: CanvasRenderingContext2D`
+    Optional context property for rendering. Derived from the top-level parent, not usually defined unless top-level parent is a canvas element.
+
+-   `debugEmoji?: string`
+    Optional emoji for debugging purposes.
+
+-   `hoverbug?: string`
+    Tooltip for debug info, works with debugTreeRender.
+
+-   `_superficialWidth: number`
+    General width of object.
+
+-   `_superficialHeight: number`
+    General height of object.
+
+-   `ties: Set<{ target: Part; localAttribute: string; targetAttribute: string; }>`
+    Ties to other parts, allowing for dynamic attribute linking.
+
+-   `type: string`
+    The type of the part.
 
 ## Methods
+
+-   `tie(target: Part, property: string, localAttribute: string)`
+    Ties a local attribute of this part to a property of a target part.
+
+-   `onclick(event: MouseEvent, clicked: Part)`
+    Optional click handler for the part.
+
+-   `onhover()`
+    Optional hover handler for the part.
+
+-   `onunhover()`
+    Optional unhover handler for the part.
+
+-   `onmousedown(event: MouseEvent)`
+    Optional mousedown handler for the part.
+
+-   `onmouseup(event: MouseEvent)`
+    Optional mouseup handler for the part.
+
+-   `sibling<T extends Part>(name: string): T | undefined`
+    Retrieves a sibling `Part` by its name.
+
+-   `setSuperficialDimensions(width: number, height: number)`
+    Sets the superficial dimensions of the part.
+
+-   `onMount(parent: Part)`
+    Called when the part is mounted to a parent.
+
+-   `onRegister(attribute: string, value: any)`
+    Called when an attribute is registered.
+
+-   `onUnregister(attribute: string, value: any)`
+    Called when an attribute is unregistered.
 
 -   `addChild(child: Part)`
     Adds another `Part` as a child of this one.
 
+-   `addChildren(...children: Part[])`
+    Adds multiple `Part`s as children of this one.
+
+-   `setTop(top: Game)`
+    Sets the top-level `Game` instance for this part and its children.
+
+-   `attr<T>(attribute: string, value?: T): T | undefined`
+    Gets or sets an attribute of the part.
+
+-   `act(delta: number)`
+    The main update method. It's called on every `Part` in the scene graph on every frame of the game loop. You override this method in your custom classes to implement your game logic.
+
+-   `setAll(attribute: string, value: any)`
+    Sets an attribute and propagates it to all children.
+
+-   `calculateLayout(spacing?: { x: number, y: number })`
+    Calculates the layout of the part and its children for debugging purposes.
+
 -   `removeChild(child: Part)`
     Removes a specific child `Part`.
 
--   `sibling<T extends Part>(name:string): T | undefined`
-    Retrieves a sibling `Part` by its name. This is a very common and powerful method.
+-   `debugTreeRender(x: number, y: number, spacing?: { x: number, y: number })`
+    Renders the debug tree for this part and its children.
 
--   `act()`
-    The main update method. It's called on every `Part` in the scene graph on every frame of the game loop. You override this method in your custom classes to implement your game logic.
+-   `child<T extends Part>(name: string): T | undefined`
+    Retrieves a child `Part` by its name or type.
 
 ## Examples
 

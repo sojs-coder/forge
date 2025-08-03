@@ -76,7 +76,7 @@ monster.addChild(
     })
 )
 const PLAYER_START_Y = GAME_HEIGHT - PLATFORM_HEIGHT - (MONSTER_SCALED_HEIGHT / 2);
-(monster.children['Transform'] as Transform).position.y = PLAYER_START_Y;
+(monster.child<Transform>('Transform') as Transform).position.y = PLAYER_START_Y;
 gameLayer.addChild(monster);
 
 // Platform
@@ -113,9 +113,9 @@ class GameLogic extends Part {
     act(delta: number) {
         if (gameOver) return;
 
-        const monsterTransform = monster.children['Transform'] as Transform;
-        const monsterCollider = monster.children['BoxCollider'] as BoxCollider;
-        const animatedSprite = monster.children['AnimatedSprite'] as AnimatedSprite;
+        const monsterTransform = monster.child<Transform>('Transform') as Transform;
+        const monsterCollider = monster.child<BoxCollider>('BoxCollider') as BoxCollider;
+        const animatedSprite = monster.child<AnimatedSprite>('AnimatedSprite') as AnimatedSprite;
 
         // Apply gravity    
         if (this.isJumping) {
@@ -127,7 +127,7 @@ class GameLogic extends Part {
         }
 
         // Check for landing on platform
-        if (monsterCollider.collidingWith.has(platform.children['BoxCollider'] as BoxCollider) && this.velocityY > 0) {
+        if (monsterCollider.collidingWith.has(platform.child<BoxCollider>('BoxCollider') as BoxCollider) && this.velocityY > 0) {
             this.isJumping = false;
             this.velocityY = 0;
             monsterTransform.position.y = PLAYER_START_Y; // Snap to platform level
@@ -136,7 +136,7 @@ class GameLogic extends Part {
         // Go through targets
         for (let i = targets.length - 1; i >= 0; i--) {
             const target = targets[i];
-            const targetCollider = target.children['BoxCollider'] as BoxCollider;
+            const targetCollider = target.child<BoxCollider>('BoxCollider') as BoxCollider;
             if (monsterCollider.collidingWith.has(targetCollider)) {
                 scoreCounter.addScore(10);
                 this.sibling<Sound>('CoinCollect')?.play({ clone: true });
@@ -158,12 +158,10 @@ class GameLogic extends Part {
         var i = 0;
         for (const enemy of enemies) {
             i++;
-            const enemyTransform = enemy.children['Transform'] as Transform;
-            const enemyCollider = enemy.children['BoxCollider'] as BoxCollider;
+            const enemyCollider = enemy.child<BoxCollider>('BoxCollider') as BoxCollider;
             if (monsterCollider.collidingWith.has(enemyCollider)) {
                 this.top?.setScene("Game Over Scene");
                 gameOver = true;
-                console.log("Game Over! You hit an enemy!");
                 return;
             }
         }
@@ -185,12 +183,12 @@ scene1.addChild(new Sound({
     loop: true,
     volume: 0.5,
 }));
-(scene1.children['BackgroundMusic'] as Sound).play({ restart: true });
+(scene1.child<Sound>('BackgroundMusic') as Sound).play({ restart: true });
 
 scene1.addChild(new Input({
     key: (event) => {
-        const monsterTransform = monster.children['Transform'] as Transform;
-        const animatedSprite = monster.children['AnimatedSprite'] as AnimatedSprite;
+        const monsterTransform = monster.child<Transform>('Transform') as Transform;
+        const animatedSprite = monster.child<AnimatedSprite>('AnimatedSprite') as AnimatedSprite;
 
         switch (event.key) {
             case 'ArrowLeft':
@@ -215,7 +213,7 @@ scene1.addChild(new Input({
                 break;
             case ' ': // Spacebar for jump
                 if (!gameLogicInstance.isJumping) {
-                    const jumpSound = monster.children['JumpSound'] as Sound;
+                    const jumpSound = monster.child<Sound>('JumpSound') as Sound;
                     jumpSound.play({ clone: true });
                     gameLogicInstance.isJumping = true;
                     gameLogicInstance.velocityY = -JUMP_FORCE;
@@ -225,7 +223,7 @@ scene1.addChild(new Input({
         }
     },
     keyup: (event) => {
-        const animatedSprite = monster.children['AnimatedSprite'] as AnimatedSprite;
+        const animatedSprite = monster.child<AnimatedSprite>('AnimatedSprite') as AnimatedSprite;
         if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && !gameLogicInstance.isJumping) {
             animatedSprite.setAnimation("idle");
         }
@@ -257,16 +255,16 @@ restartButton.addChildren(
         onClick: () => {
             gameOver = false;
             game.setScene(scene1);
-            (monster.children['Transform'] as Transform).position.x = 10;
-            (monster.children['Transform'] as Transform).position.y = PLAYER_START_Y;
+            (monster.child<Transform>('Transform') as Transform).position.x = 10;
+            (monster.child<Transform>('Transform') as Transform).position.y = PLAYER_START_Y;
             gameLogicInstance.isJumping = true;
             gameLogicInstance.velocityY = 0;
             enemies.forEach((enemy, index) => {
-                const enemyTransform = enemy.children['Transform'] as Transform;
+                const enemyTransform = enemy.child<Transform>('Transform') as Transform;
                 enemyTransform.position.x = GAME_WIDTH / 4 + index * (GAME_WIDTH / 4);
             });
             // Clear any lingering collision states for the monster
-            (monster.children['BoxCollider'] as BoxCollider).collidingWith.clear();
+            (monster.child<BoxCollider>('BoxCollider') as BoxCollider).collidingWith.clear();
             // Reset score and remove targets
             scoreCounter.reset();
             targets.forEach(target => gameLayer.removeChild(target));

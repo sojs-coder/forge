@@ -5,6 +5,7 @@ import { PolygonCollider } from "./Children/PolygonCollider";
 import { PhysicsEngine } from "./PhysicsEngine";
 import { Vector } from "../Math/Vector";
 import { Bodies, Body, World } from "matter-js";
+import type { Scene } from "./Scene";
 
 export class PhysicsBody extends Part {
     body: Body | null = null;
@@ -14,21 +15,22 @@ export class PhysicsBody extends Part {
     restitution: number;
     initialized: boolean;
 
-    constructor({ name, isStatic = false, density = 0.001, friction = 0.1, restitution = 0 }: { name?: string, isStatic?: boolean, density?: number, friction?: number, restitution?: number }) {
-        super({ name: name || 'PhysicsBody' });
+    constructor({ isStatic = false, density = 0.001, friction = 0.1, restitution = 0 }: { isStatic?: boolean, density?: number, friction?: number, restitution?: number }) {
+        super({ name: 'PhysicsBody' });
         this.isStatic = isStatic;
         this.density = density;
         this.friction = friction;
         this.restitution = restitution;
         this.debugEmoji = "🏋️";
         this.initialized = false;
+        this.type = 'PhysicsBody';
     }
     initialize() {
         if (this.initialized) return; // Prevent re-initialization
         this.initialized = true;
         const transform = this.sibling<Transform>("Transform");
         const collider = this.sibling<BoxCollider | PolygonCollider>("BoxCollider") || this.sibling<PolygonCollider>("PolygonCollider");
-        const engine = this.registrations.scene?.children["PhysicsEngine"] as PhysicsEngine | undefined;
+        const engine = (this.registrations.scene as Scene).child<PhysicsEngine>("PhysicsEngine");
 
         if (!transform) {
             console.warn(`PhysicsBody <${this.name}> requires a Transform sibling.`);
@@ -44,7 +46,7 @@ export class PhysicsBody extends Part {
         }
 
         // Create the body based on the collider type
-        this.body = Bodies.fromVertices(
+        this.body = (Bodies.fromVertices as any)(
             transform.worldPosition.x,
             transform.worldPosition.y,
             [collider.vertices.map(v => v.toObject())],
@@ -82,7 +84,6 @@ export class PhysicsBody extends Part {
         if (this.body && !this.isStatic) {
             const transform = this.sibling<Transform>("Transform");
             if (transform) {
-                // console.log(`Updating transform for PhysicsBody <${this.name}>: Position: ${this.body.position.x}, ${this.body.position.y}, Rotation: ${this.body.angle}`);
                 transform.moveTo(new Vector(this.body.position.x, this.body.position.y));
                 transform.setRotation(this.body.angle);
             }

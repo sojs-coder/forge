@@ -31,6 +31,13 @@ export function renderProperties(node: GameNode) {
         const label = document.createElement('label');
         label.textContent = formatPropertyKey(key) + ':';
 
+        if (propDef.description) {
+            left.addEventListener('mouseover', (e) => {
+                showTooltip(e, propDef.description!);
+            });
+            left.addEventListener('mouseout', hideTooltip);
+        }
+
         let input: HTMLElement;
         if (propDef.dontShow) {
             // Skip properties that should not be shown
@@ -152,8 +159,7 @@ export function renderProperties(node: GameNode) {
                 input = textInput;
         }
 
-        input.addEventListener('input', () => updateRender());
-        input.addEventListener('change', () => updateRender());
+        if (propDef.type !== 'color' && propDef.subType !== 'color') input.addEventListener('change', () => updateRender());
 
         left.appendChild(label);
         right.appendChild(input);
@@ -273,7 +279,7 @@ function createColorInput(node: GameNode, key: string, propDef: PropertyDefiniti
     colorInput.type = 'color';
     colorInput.value = node.properties[key] !== undefined ? node.properties[key] : propDef.default;
     colorInput.style.width = '80px'; // Make the input wider
-    colorInput.addEventListener('change', (event) => {
+    colorInput.addEventListener('input', (event) => {
         node.properties[key] = (event.target as HTMLInputElement).value;
         updateRender();
     });
@@ -284,9 +290,28 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
     const listContainer = document.createElement('div');
     listContainer.classList.add('list-container');
 
+    const getDefaultItem = () => {
+        if (Array.isArray(propDef.default) && propDef.default.length > 0) {
+            return propDef.default[0];
+        }
+        if (propDef.subType === 'Vector') return 'new Vector(0,0)';
+        if (propDef.subType === 'number') return 0;
+        return '';
+    };
+
     const renderListItems = () => {
         listContainer.innerHTML = '';
-        const currentList = node.properties[key] || [];
+        let currentList = node.properties[key];
+
+        // If property is undefined, use default if available
+        if (currentList === undefined) {
+            if (Array.isArray(propDef.default)) {
+                currentList = [...propDef.default];
+            } else {
+                currentList = [];
+            }
+            node.properties[key] = currentList;
+        }
 
         currentList.forEach((item: any, index: number) => {
             const itemRow = document.createElement('div');
@@ -294,7 +319,6 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
 
             let itemInput: HTMLElement;
             if (propDef.subType === 'Vector') {
-                // Assuming Vector subType for now, similar to createVectorInput
                 const vectorItemContainer = document.createElement('div');
                 vectorItemContainer.classList.add('vector-item-container');
                 
@@ -330,8 +354,18 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
 
                 vectorItemContainer.append(xLabel, xInput, yLabel, yInput);
                 itemInput = vectorItemContainer;
+            } else if (propDef.subType === 'number') {
+                const numberItemInput = document.createElement('input');
+                numberItemInput.type = 'number';
+                numberItemInput.value = item !== undefined ? item : '';
+                numberItemInput.step = 'any';
+                numberItemInput.addEventListener('change', () => {
+                    currentList[index] = parseFloat(numberItemInput.value) || 0;
+                    node.properties[key] = [...currentList];
+                    updateRender();
+                });
+                itemInput = numberItemInput;
             } else {
-                // Default to text input for other subTypes
                 const textItemInput = document.createElement('input');
                 textItemInput.type = 'text';
                 textItemInput.value = item;
@@ -359,7 +393,12 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
         const addButton = document.createElement('button');
         addButton.textContent = '+';
         addButton.addEventListener('click', () => {
-            const newItemDefault = propDef.subType === 'Vector' ? 'new Vector(0,0)' : '';
+            let newItemDefault: any;
+            if (Array.isArray(propDef.default) && propDef.default.length > currentList.length) {
+                newItemDefault = propDef.default[currentList.length];
+            } else {
+                newItemDefault = getDefaultItem();
+            }
             node.properties[key] = [...(node.properties[key] || []), newItemDefault];
             updateRender();
             renderListItems();
@@ -439,7 +478,7 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
         filteredNodes.forEach((node, index) => {
             const optionDiv = document.createElement('div');
             optionDiv.classList.add('node-option');
-            optionDiv.textContent = `${node.properties.name} (${node.type})`;
+            optionDiv.textContent = `${node.parent ? node.parent + "." : ''}${node.properties.name} (${node.type})`;
             if (index === selectedIndex) {
                 optionDiv.classList.add('selected-option');
             }
@@ -496,4 +535,37 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
     document.body.appendChild(popup);
     searchInput.focus();
     renderOptions('');
+}
+
+let tooltipTimeout: NodeJS.Timeout | null = null;
+const tooltip = document.createElement('div');
+tooltip.id = 'property-tooltip';
+tooltip.style.cssText = `
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+`;
+document.body.appendChild(tooltip);
+
+function showTooltip(event: MouseEvent, text: string) {
+    if (tooltipTimeout) {
+        clearTimeout(tooltipTimeout);
+    }
+    tooltip.textContent = text;
+    tooltip.style.left = `${event.pageX + 10}px`;
+    tooltip.style.top = `${event.pageY + 10}px`;
+    tooltip.style.opacity = '1';
+}
+
+function hideTooltip() {
+    tooltipTimeout = setTimeout(() => {
+        tooltip.style.opacity = '0';
+    }, 100); // Small delay before hiding
 }

@@ -6,8 +6,8 @@ export class Collider extends Part {
     colliding: boolean = false;
     collidingWith: Set<Collider> = new Set(); // List of colliding parts
     constructor() {
-        super();
-        this.name = "Collider";
+        super({ name: "Collider" });
+        this.type = "Collider";
     }
 
     onMount(parent: Part) {

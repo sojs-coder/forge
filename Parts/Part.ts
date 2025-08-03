@@ -5,12 +5,18 @@ import type { Game } from "./Game";
 import type { Collider } from "./Children/Collider";
 import type { Scene } from "./Scene";
 
+type Tie<T extends Part = Part, L extends keyof T = keyof T, R extends keyof Part = keyof Part> = {
+  target: T;
+  localAttribute: R;
+  targetAttribute: L;
+};
+
+
+
 export class Part {
-    [key: string]: any; // Allow string-based property access
 
     id: string;
     name: string;
-    children: { [id: string]: Part } = {}; // Using an object to store children by ID
     childrenArray: Part[] = []; // Array to maintain order of children
     parent?: Part;
     top: Game | undefined; // Reference to the top-level parent, typically a Game instance
@@ -23,34 +29,37 @@ export class Part {
     hoverbug?: string; // Tooltip for debug info, works with debugTreeRender
     _superficialWidth: number = 0; // General width of object
     _superficialHeight: number = 0; // General height of object
-    ties: Set<{
-        target: Part;
-        localAttribute: string;
-        targetAttribute: string;
-    }> = new Set(); // Ties to other parts, allowing for dynamic attribute linking
+    ties: Set<Tie> = new Set(); // Ties to other parts, allowing for dynamic attribute linking
+    type: string;
 
+    private _childrenByName: { [name: string]: Part } = {}; // For quick access to children by name
+    private _childrenByType: { [type: string]: Array<Part> } = {}; // For quick access to children by type
     constructor({ name }: { name?: string } = {}) {
         this.id = generateUID();
         this.name = name || "New Object";
-        this.children = {};
+        this.type = "Part";
         this.childrenArray = [];
         this.parent = undefined;
         this.top = undefined;
         this.ready = true;
         this.debugEmoji = "🧩"; // Default emoji for debugging
     }
-    tie(target: Part, property: string, localAttribute: string) {
-        if (!target || !property) return;
+    tie<T extends Part>(
+        target: T,
+        targetAttribute: keyof T,
+        localAttribute: keyof this
+    ) {
+        if (!target || !targetAttribute) return;
 
-        if (target.hasOwnProperty(property)) {
+        if (target.hasOwnProperty(targetAttribute as string)) {
             this.ties.add({
-                target: target,
-                localAttribute: localAttribute,
-                targetAttribute: property
+                target,
+                localAttribute,
+                targetAttribute
             });
-            
         }
     }
+
     onclick(event: MouseEvent, clicked: Part) {
         this.childrenArray.forEach(child => {
             if (typeof child.onclick === 'function') {
@@ -91,7 +100,7 @@ export class Part {
         if (!this.parent) {
             return undefined;
         }
-        const sibling = this.parent.children[name];
+        const sibling = this.parent._childrenByName[name];
         if (!sibling) {
             return undefined;
         }
@@ -135,13 +144,21 @@ export class Part {
         }
         // This method can be overridden in subclasses to handle unregistration logic
     }
+
+    onUnmount() {
+        // This method can be overridden in subclasses to handle unmounting logic
+    }
     addChild(child: Part) {
-        if (this.children[child.name]) {
+        if (this._childrenByName[child.name]) {
             console.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
             return;
         }
         this.childrenArray.push(child);
-        this.children[child.name] = child; // Store child by name for quick access
+        if (!this._childrenByType[child.type]) {
+            this._childrenByType[child.type] = [];
+        }
+        this._childrenByType[child.type].push(child);
+        this._childrenByName[child.name] = child; // Store child by name for quick access
         if (this.top) {
             child.setTop(this.top); // Set the top-level parent for the child
         }
@@ -158,14 +175,22 @@ export class Part {
             });
         }
     }
+    attr<T>(attribute: string, value?: T): T | undefined {
+        if (!value ) {
+            return (this as any)[attribute] as T;
+        }
+        (this as any)[attribute] = value;
+        return value;
+    }
+
     act(delta: number) {
         if (!this.ready) {
             return;
         }
         this.ties.forEach(tie => {
             if (tie.target && tie.target.hasOwnProperty(tie.targetAttribute)) {
-                const value = this[tie.localAttribute];
-                tie.target[tie.targetAttribute] = value;
+                const value = this.attr(tie.localAttribute);
+                tie.target.attr(tie.targetAttribute, value);
             }
         });
         this.childrenArray.forEach(child => {
@@ -207,8 +232,8 @@ export class Part {
         return totalWidth;
     }
     removeChild(child: Part) {
-        if (this.children[child.name]) {
-            delete this.children[child.name];
+        if (this._childrenByName[child.name]) {
+            delete this._childrenByName[child.name];
             const index = this.childrenArray.indexOf(child);
             if (index !== -1) {
                 this.childrenArray.splice(index, 1);
@@ -218,8 +243,17 @@ export class Part {
             child.ready = false; // Mark as not ready
             child.onUnregister("parent", this); // Notify child of unregistration
             child.onUnregister("top", this.top); // Notify child of unregistration from top
+            child.onUnmount(); // Call onUnmount for the removed child
         } else {
             console.warn(`Child with name <${child.name}> not found in <${this.name}>. Cannot remove. (Child has ID <${child.id}>).`);
+        }
+    }
+
+    destroy() {
+        // This method can be overridden in subclasses to handle destruction logic
+        // For example, removing event listeners, clearing intervals, etc.
+        if (this.parent) {
+            this.parent.removeChild(this);
         }
     }
 
@@ -294,6 +328,16 @@ export class Part {
                 currentX += childWidth + spacing.x;
             });
         }
+    }
+    child<T extends Part>(name: string): T | undefined {
+        if (this.childrenArray.length === 0) {
+            return undefined;
+        }
+        let child = this._childrenByName[name] || (this._childrenByType[name] ? this._childrenByType[name][0] : undefined);
+        if (!child) {
+            return undefined;
+        }
+        return child as T;
     }
     get superficialHeight() {
         return this._superficialHeight || 50;

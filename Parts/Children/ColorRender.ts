@@ -7,7 +7,7 @@ import { Vector } from "../../Math/Vector";
 export class ColorRender extends Renderer {
     color: string;
     vertices: Vector[];
-    constructor({ width, height, color, vertices }: { width: number, height: number, color: string, vertices?: Vector[] }) {
+    constructor({ width, height, color, vertices }: { width?: number, height?: number, color: string, vertices?: Vector[] }) {
         if (!width || !height) {
             if (vertices && vertices.length > 0) {
                 width = Math.max(...vertices.map(v => v.x)) - Math.min(...vertices.map(v => v.x));
@@ -21,6 +21,7 @@ export class ColorRender extends Renderer {
         this.name = "ColorRender";
         this.color = color;
         this.debugEmoji = "🎨";
+        this.type = "ColorRender";
         this.vertices = vertices || [];
         if (this.vertices.length === 0) {
             this.vertices = [
@@ -46,14 +47,14 @@ export class ColorRender extends Renderer {
         super.act(delta);
 
         if (!this.top) {
-            throw new Error(`ColorRender <${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);
+            throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);
         }
         if (!(this.top instanceof Game)) {
-            throw new Error(`ColorRender <${this.name}> is not attached to a Game instance. Ensure it is added to a Game, Scene, or Layer with a game ancestor.`);
+            throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a Game instance. Ensure it is added to a Game, Scene, or Layer with a game ancestor.`);
         }
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
-            console.warn(`ColorRender <${this.name}> does not have a Transform sibling. Skipping rendering.`);
+            console.warn(`ColorRender <${this.parent?.name}.${this.name}> does not have a Transform sibling. Skipping rendering.`);
             return;
         }
         const position = transform.worldPosition;

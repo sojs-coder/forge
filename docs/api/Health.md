@@ -4,16 +4,29 @@
 
 The `Health` component manages the health points of a `GameObject`. It provides methods to take damage, heal, and a callback for when health reaches zero.
 
+## Constructor
+
+`new Health({ maxHealth, onDeath })`
+
+-   `maxHealth?: number`
+    The maximum health points this object can have. Defaults to `100`.
+
+-   `onDeath?: () => void`
+    An optional callback function that is executed when `currentHealth` drops to `0` or below. Defaults to an empty function.
+
 ## Properties
 
 -   `maxHealth: number`
-    The maximum health points this object can have. Defaults to `100`.
+    The maximum health points this object can have.
 
 -   `currentHealth: number`
     The current health points of the object. Initialized to `maxHealth`.
 
 -   `onDeath?: () => void`
     An optional callback function that is executed when `currentHealth` drops to `0` or below.
+
+-   `isDead: boolean`
+    A boolean indicating whether the object's health is 0 or less.
 
 ## Methods
 
@@ -54,7 +67,7 @@ myScene.addChild(enemy);
 import { Projectile } from './Parts/Projectile';
 
 // In a Projectile's act() method or collision handler:
-const targetHealth = other.parent?.sibling<Health>('Health');
+const targetHealth = other.parent?.child<Health>('Health');
 if (targetHealth) {
     targetHealth.takeDamage(this.damage);
 }

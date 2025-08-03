@@ -4,13 +4,29 @@
 
 The `ColorRender` component is a simple renderer that draws a solid-colored rectangle. It's useful for prototyping, creating simple UI elements, or for placeholder graphics.
 
-## Properties
+## Constructor
+
+`new ColorRender({ width, height, color, vertices })`
+
+-   `width?: number`
+    The width of the rectangle. If `vertices` are provided, this can be omitted.
+
+-   `height?: number`
+    The height of the rectangle. If `vertices` are provided, this can be omitted.
 
 -   `color: string`
     The color of the rectangle. This can be any valid CSS color string, such as `"red"`, `"#FF0000"`, or `"rgba(255, 0, 0, 0.5)"`.
 
--   `width: number` & `height: number`
-    The dimensions of the rectangle.
+-   `vertices?: Vector[]`
+    An optional array of `Vector` objects defining the vertices of a polygon to render. If provided, `width` and `height` will be calculated from the bounding box of the vertices.
+
+## Properties
+
+-   `color: string`
+    The color of the rectangle.
+
+-   `vertices: Vector[]`
+    An array of `Vector` objects defining the vertices of the polygon. If not provided in the constructor, it defaults to a rectangle defined by `width` and `height`.
 
 ## Examples
 

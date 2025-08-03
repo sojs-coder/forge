@@ -4,10 +4,17 @@
 
 The `Rotator` component makes a `GameObject` continuously rotate around its origin. It's useful for visual effects, spinning collectibles, or indicating active elements.
 
+## Constructor
+
+`new Rotator({ rotationSpeed })`
+
+-   `rotationSpeed?: number`
+    The speed of rotation in radians per frame. A positive value rotates clockwise, and a negative value rotates counter-clockwise. Defaults to `0.05`.
+
 ## Properties
 
 -   `rotationSpeed: number`
-    The speed of rotation in radians per frame. A positive value rotates clockwise, and a negative value rotates counter-clockwise. Defaults to `0.05`.
+    The speed of rotation in radians per frame.
 
 ## How it Works
 

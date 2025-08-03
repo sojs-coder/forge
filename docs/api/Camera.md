@@ -6,10 +6,28 @@ The `Camera` component controls the viewpoint of the scene. It allows you to pan
 
 When a `Camera` is added to a `Scene`, it automatically becomes the `activeCamera` for that scene. The engine then uses the camera's position and zoom to determine how to render the scene.
 
+## Constructor
+
+`new Camera({ name, zoom })`
+
+-   `name: string`
+    The name of the camera.
+
+-   `zoom?: Vector`
+    The zoom level of the camera. `new Vector(1, 1)` is the default (no zoom). `new Vector(2, 2)` makes everything appear twice as large (zoomed in), and `new Vector(0.5, 0.5)` makes everything appear half as large (zoomed out).
+
 ## Properties
 
 -   `zoom: Vector`
     The zoom level of the camera. `new Vector(1, 1)` is the default (no zoom). `new Vector(2, 2)` makes everything appear twice as large (zoomed in), and `new Vector(0.5, 0.5)` makes everything appear half as large (zoomed out).
+
+## Methods
+
+-   `setActive()`
+    Sets this camera as the active camera for the layer's parent (scene).
+
+-   `getViewMatrix(): { offset: Vector; scale: Vector }`
+    Returns the view matrix of the camera, which can be used in rendering contexts.
 
 ## How it Works
 
@@ -45,39 +63,31 @@ myScene.addChild(mainCamera);
 
 ### Creating a Camera that Follows a Player
 
-This is a very common use case. We create a custom `Part` that continuously updates the camera's `Transform` to match the player's `Transform`.
+This is a very common use case. We use the `Follow` part to make the camera follow the player.
 
 ```javascript
-import { Part } from './Parts/Part';
+import { Scene } from './Parts/Scene';
+import { Camera } from './Parts/Camera';
 import { Transform } from './Parts/Children/Transform';
+import { Follow } from './Parts/Follow';
+import { Vector } from './Math/Vector';
 import { GameObject } from './Parts/GameObject';
 
 // Assume 'player' is a GameObject that exists in the scene
 declare const player: GameObject;
 
-class CameraController extends Part {
-    constructor() {
-        super();
-        this.name = 'CameraController';
-    }
+const myScene = new Scene({ name: 'MyScene' });
 
-    act() {
-        const cameraTransform = this.sibling<Transform>('Transform');
-        const playerTransform = player.children['Transform'] as Transform;
+const mainCamera = new Camera({
+    name: 'MainCamera',
+});
 
-        if (cameraTransform && playerTransform) {
-            // Simply set the camera's position to the player's position
-            cameraTransform.position = playerTransform.worldPosition;
-        }
-    }
-}
-
-// --- In your scene setup ---
-const gameCamera = new Camera({ name: 'GameCamera' });
-gameCamera.addChildren(
-    new Transform(), // The camera's own transform
-    new CameraController() // Our follower script
+// The camera's position is controlled by its Transform child
+mainCamera.addChildren(
+    new Transform(),
+    new Follow({ target: player.child<Transform>('Transform') })
 );
 
-myScene.addChild(gameCamera);
+// Add the camera anywhere in the scene hierarchy
+myScene.addChild(mainCamera);
 ```

@@ -69,7 +69,6 @@
             const nGon = new GameObject({
                 name: `nGon${i}`
             });
-            console.log(x, y)
             const points = randomPolygonPoints(sides, radius);
             nGon.addChildren(
                 new Transform({
@@ -98,7 +97,7 @@
         });
         ground.addChildren(
             new Transform({
-                position: new Vector(game.width/2, game.height - 25)
+                position: new Vector(game.width / 2, game.height - 25)
             }),
             new BoxCollider({
                 width: game.width - 60,
@@ -117,6 +116,7 @@
         layer.addChild(ground);
 
         game.start();
+
 
     </script>
 </body>

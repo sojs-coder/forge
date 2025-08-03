@@ -10,11 +10,11 @@ export class Rotator extends Part {
         this.debugEmoji = "🔄";
     }
 
-    act() {
-        super.act();
+    act(delta: number) {
+        super.act(delta);
         const transform = this.sibling<Transform>("Transform");
         if (transform) {
-            transform.rotation += this.rotationSpeed;
+            transform.rotation += this.rotationSpeed * delta;
         }
     }
 }

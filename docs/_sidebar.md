@@ -47,10 +47,9 @@
     - [Vector](api/Vector.md)
 - [Engine Internals](engine-internals.md)
 - **Tutorials**
-  - [Using the Physics Engine](tutorials/physics-engine.md)
+  - [Setting up the Physics Engine](tutorials/physics-engine.md)
   - [Integrating Physics with PhysicsBody](tutorials/physics-body.md)
   - [Creating a Clickable Button](tutorials/clickable-button.md)
-  - [Making Objects Draggable](tutorials/draggable-objects.md)
   - [Making Objects Rotate](tutorials/rotating-objects.md)
   - [Making Objects Scale](tutorials/scaling-objects.md)
   - [Creating and Firing Projectiles](tutorials/projectiles.md)
