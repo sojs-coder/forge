@@ -7,11 +7,18 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css">
   <link rel="stylesheet" href="style.css">
+  <script src="https://accounts.google.com/gsi/client" async></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
 </head>
 
 <body>
+  <div id="logged-in"></div>
+  <div id="g_id_onload" data-client_id="455969549454-lb62buojirkq08rm6k9b9p789ubepmop.apps.googleusercontent.com"
+    data-context="signin" data-ux_mode="popup" data-callback="handleLoginWithGoogle" data-auto_select="true"
+    data-itp_support="true">
+  </div>
+  <div class="notification-container"></div>
   <div id="top-panel">
     <button id="play-button">Play</button>
     <button id="pause-button" disabled>Pause</button>
@@ -23,7 +30,10 @@
     <div id="left-panel">
       <div id="tree-view" tabindex="0"></div>
       <div id="custom-nodes-list">
-        <h3>Custom Nodes</h3>
+        <div id="node-library-container">
+          <h3>Part Library</h3>
+          <button id="open-library-button">Open Library</button>
+        </div>
         <div id="custom-nodes-container"></div>
       </div>
       <button id="add-node-button">Add Node</button>
@@ -32,7 +42,7 @@
     <div id="center-panel">
       <div id="center-tabs">
         <button id="game-tab" class="tab-button active">Game</button>
-        <button id="editor-tab" class="tab-button">Node Editor</button>
+        <button id="editor-tab" class="tab-button">Part Editor</button>
       </div>
       <div id="game-container" class="tab-content active">
         <canvas id="gamecanvas"></canvas>
@@ -40,13 +50,14 @@
       <div id="node-editor-container" class="tab-content">
         <div id="node-editor-header">
           <div>
-            <h3 id="node-editor-title">Custom Node Editor</h3> <a href="../docs/index.html" target="_blank">Read the API
+            <h3 id="node-editor-title">Custom Part Editor</h3> <a href="../docs/index.html" target="_blank">Read the API
               Docs</a>
           </div>
           <div id="node-editor-controls">
             <button id="expand-editor-button">&#x25B2;</button>
-            <button id="save-node-button">Save Node</button>
-            <button id="new-node-button">New Node</button>
+            <button id="save-node-button">Save Part</button>
+            <button id="share-node-button">Share Part</button>
+            <button id="new-node-button">New Part</button>
           </div>
         </div>
         <div id="node-code-editor"></div>
@@ -61,20 +72,47 @@
   </div>
   <!-- Custom Alert HTML -->
   <div id="custom-alert">
-            <div id="custom-alert-content">
-                <p id="custom-alert-message"></p>
-                <button id="custom-alert-close">Close</button>
-            </div>
-        </div>
-        <div id="custom-prompt">
-            <div id="custom-prompt-content">
-                <p id="custom-prompt-message"></p>
-                <input type="text" id="custom-prompt-input">
-                <button id="custom-prompt-ok">OK</button>
-                <button id="custom-prompt-cancel">Cancel</button>
-            </div>
-        </div>
+    <div id="custom-alert-content">
+      <p id="custom-alert-message"></p>
+      <button id="custom-alert-close">Close</button>
     </div>
+  </div>
+  <div id="custom-prompt">
+    <div id="custom-prompt-content">
+      <p id="custom-prompt-message"></p>
+      <input type="text" id="custom-prompt-input">
+      <button id="custom-prompt-ok">OK</button>
+      <button id="custom-prompt-cancel">Cancel</button>
+    </div>
+  </div>
+  <div id="node-library">
+    <div class="node-library-inner">
+      <h3>Node Library</h3>
+      <div class="node-library-search">
+        <input type="text" id="node-library-search" placeholder="Search for nodes...">
+      </div>
+      <div id="node-library-results"></div>
+      <button id="close-library-button">Close Library</button>
+    </div>
+  </div>
+  <div id="share-node-modal" class="modal">
+    <div class="modal-content">
+      <h3>Share Custom Part</h3>
+      <label for="share-node-name">Part Name</label>
+      <input type="text" id="share-node-name" disabled>
+      <label for="share-node-description">Description</label>
+      <textarea id="share-node-description" rows="4"></textarea>
+      <label for="share-node-showcase">Showcase Files (up to 5)</label>
+      <input type="file" id="share-node-showcase" multiple accept="image/*,video/*">
+      <label for="share-node-documentation">Documentation (.md)</label>
+      <input type="file" id="share-node-documentation" accept=".md">
+      <div class="modal-buttons">
+        <button id="share-node-submit">Share</button>
+        <button id="share-node-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+  </div>
   <script src="editor.js" type="module"></script>
 
 

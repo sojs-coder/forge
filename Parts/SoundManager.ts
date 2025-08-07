@@ -22,7 +22,16 @@ class SoundManagerController {
     }
 
     public unregisterSound(sound: Sound): void {
+        sound.stop(); // Stop the sound before unregistering
         this.sounds = this.sounds.filter(s => s !== sound);
+    }
+    public pauseGame(): void {
+        this.isGameRunning = false;
+        this.sounds.forEach(sound => sound.pause());
+    }
+    public resumeGame(): void {
+        this.isGameRunning = true;
+        this.sounds.forEach(sound => sound.play({ restart: true }));
     }
 
     public startGame(): void {
@@ -33,10 +42,17 @@ class SoundManagerController {
             }
         });
     }
-
+    public unregisterAllSounds(): void {
+        this.sounds.forEach(sound => sound.stop());
+        this.sounds = [];
+    }
     public stopGame(): void {
         this.isGameRunning = false;
         this.sounds.forEach(sound => sound.stop());
+        // Dump sounds from memory
+        SoundManager.unregisterAllSounds();
+
+        // 
     }
 
     public getIsGameRunning(): boolean {

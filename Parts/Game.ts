@@ -1,3 +1,4 @@
+import { Sound } from "../engine/bundle";
 import { getDebugInfo } from "../helpers";
 import { Part } from "./Part";
 import { Scene } from "./Scene";
@@ -168,10 +169,13 @@ export class Game extends Part {
 
     pause() {
         this._isPaused = true;
+        SoundManager.pauseGame();
+
     }
 
     resume() {
         this._isPaused = false;
+        SoundManager.resumeGame();
     }
 
     stop() {
@@ -182,6 +186,11 @@ export class Game extends Part {
             this._animationFrameId = undefined;
         }
         SoundManager.stopGame();
+
+        // Dump everything from memory
+        this.childrenArray.forEach(scene => {
+            scene.destroy();
+        });
     }
 
     get isRunning(): boolean {

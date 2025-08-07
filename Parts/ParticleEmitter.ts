@@ -22,6 +22,11 @@ class Particle extends Part {
         }));
         this.addChild(new ColorRender({ width: size, height: size, color }));
     }
+    destroy(): void {
+        super.destroy();
+        this.velocity = Vector.From(0); // Reset velocity
+        this.lifetime = 0;
+    }
 
     act(delta: number) {
         super.act(delta);
@@ -79,6 +84,13 @@ export class ParticleEmitter extends Part {
         super.onMount(parent);
         if (this.top?.devmode) parent.addChild(new ColorRender({ width: 100, height: 100, color: "rgba(255, 255, 255, 0.5)" }));
     }
+    destroy(): void {
+        super.destroy();
+        // Clean up particles
+        this.particles = [];
+        this.lastEmissionTime = 0;
+        this.emittedCount = 0;
+    }
     act(delta: number) {
         super.act(delta);
         const now = Date.now();
@@ -95,7 +107,6 @@ export class ParticleEmitter extends Part {
                     lifetime: this.particleLifetime
                 });
                 this.addChild(particle);
-                console.log(this);
                 particle.child<Transform>("Transform")!.position = transform.position.clone(); // Start at emitter's position
                 this.emittedCount++;
                 this.lastEmissionTime = now;

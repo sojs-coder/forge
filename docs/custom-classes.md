@@ -21,6 +21,10 @@ export class MyCustomClass extends Part {
         this.name = "MyCustomClass";
         // Initialize your properties here
     }
+    static singular = true; // There should only every exist one of this node per parent
+    static properties = {
+        // ...list of properties accessible in the web editor..
+    }
 
     // Called once when the part is added to a parent
     onMount(parent: Part) {
@@ -34,6 +38,54 @@ export class MyCustomClass extends Part {
     }
 }
 ```
+
+### Accessing Properties from the editor
+
+When building a custom Part within the web editor, you should define the Part's static attribute "properties" to tell the editor which attributes to put into the editor. The format is as follows:
+
+```ts
+export interface PropertyDefinition {
+    type: 'text' | 'number' | 'boolean' | 'Vector' | 'color' | 'Part' | 'list' | 'file' | 'enum';
+    default?: any; // This should follow the type- with some exceptions. See below
+    description?: string; // Describe the property and how it is used.
+    subType?: string; // For Part and list types. Eg: Part type with subtype Input will only allow parts of Type input.
+    fileType?: 'image' | 'audio' | 'video' | 'json'; // For the 'file' type
+    options?: string[]; // For enum type. Enum only accepts string as subtype
+    dontShow?: boolean; // If true, this property will not show up in the editor. 
+}
+```
+
+#### Setting `default`
+
+As a general rule, follow the type of your property. Eg:
+```js
+{ type: "number", default: 50 },
+{ type: "boolean", default: false },
+{ type: "list", subType: "number", default: [0, 10, 20]}
+```
+
+**For Vector types**
+To define a default vector, write the vector as code:
+```js
+{ type: "Vector", default: "new Vector(0, 50)" }
+{ type: "list", subType: ["new Vector(0,0)", "new Vector(100,0)", "new Vector(100,100)", "new Vector(0,100)"] }
+```
+
+**For color types**
+You can set the default as either hex (`#XXXXXX`), rgb (`rgb(XXX,XXX,XXX)`), or CSS color names (`green`). As a rule default to hex, then color names, then rgb. Not for any particular reason.
+Note: Avoid using alpha parameters (Eg: additional bits in hex, or rgba). As of the [HTML Standard](https://html.spec.whatwg.org/multipage/input.html#color-state-(type=color)), the alpha parameter for HTML inputs in the color state should allow for choosing alpha values. However, [per MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/color#browser_compatibility), most browsers do not fully support this. The browsers that do will be able to adjust this value. Since the majority do not, please avoid using alpha channels in default values.
+
+**For File types**
+Default should always just be an empty string when using the file type.
+
+
+#### Using `dontShow?`
+
+`dontShow` is useful when you wish to define a property that sends information about the current running context.
+If someone is just importing the Forge library and coding, they can manually set any property that they want. However, in the web editor, dontShow properties are immutable (unless you explicitly change them within another custom node). This means that you can create a property like `runningInWebEditor` and set it to false by default within your constructor definition. You can then define a property called `runningInWebEditor` and set both `default` and `dontShow` to true. This will then be passed to your Part's constructor. `AnimatedSprite` uses this to change where it sources the spritesheet based on whether it is being ran within the engine (where it should expect to be passed the spritesheet image) or a code context (where the spritesheet image path is defined in the spritesheet json file)
+
+
+#### Example property definition
 
 ## 2. Example: `EnemyMovement.ts`
 
@@ -59,7 +111,10 @@ export class EnemyMovement extends Part {
         this.direction = 1; // 1 for right, -1 for left
         this.nextFlip = Date.now() + 1000 + (Math.random() - 0.5) * 500;
     }
-
+    static properties = {
+        gameWidth: { type: "number", default: 100, description: "Defines when the enemy will reverse its direction" },
+        speed: { type: "number", default: 2, description: "How fast the enemy moves"}
+    }
     onMount(parent: Part) {
         super.onMount(parent);
         this.minX = 0;

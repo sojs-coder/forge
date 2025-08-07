@@ -20,7 +20,14 @@ export class PhysicsEngine extends Part {
         this.debugEmoji = "⚛️";
         this.type = "PhysicsEngine";
     }
-
+    destroy(): void {
+        super.destroy();
+        // Clean up the physics engine
+        if (this.world) {
+            World.clear(this.world, false); // Clear the world without resetting the engine
+            this.engine = Engine.create(); // Reset the engine
+        }
+    }
     onMount(parent: Part) {
         super.onMount(parent);
     }

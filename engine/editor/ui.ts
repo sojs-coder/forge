@@ -3,6 +3,7 @@ import { nodeDefinitions } from "./definitions.ts";
 import { exportSaveFile, importSaveFile } from "./exporter.ts";
 import { state } from "./state.ts";
 import { updateTreeDisplay } from "./tree.ts";
+import { initializePartLibrary } from './partLibrary.ts';
 
 const gameTab = document.getElementById('game-tab')!;
 const editorTab = document.getElementById('editor-tab')!;
@@ -22,6 +23,7 @@ const expandEditorButton = document.getElementById('expand-editor-button')! as H
 let isEditorExpanded = false;
 
 export function setupUI(editor: any) {
+    initializePartLibrary();
     gameTab.addEventListener('click', () => switchTab('game', editor));
     editorTab.addEventListener('click', () => switchTab('editor', editor));
     expandEditorButton.addEventListener('click', () => toggleEditorExpansion());

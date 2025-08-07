@@ -229,13 +229,13 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     "ParticleEmitter": {
         properties: {
             name: { type: "text", default: "ParticleEmitter", description: "The name of the particle emitter." },
-            particleColor: { type: "color", default: "#FFFFFF", description: "Color of the particles." },
+            particleColor: { type: "color", default: "rgba(255,255,255)", description: "Color of the particles." },
             particleSize: { type: "number", default: 5, description: "Size of the particles." },
             particleSpeed: { type: "number", default: 2, description: "Speed of the particles." },
             particleLifetime: { type: "number", default: 60, description: "Lifetime of the particles in frames." },
             emissionRate: { type: "number", default: 100, description: "Delay in milliseconds between emissions." },
             maxParticles: { type: "number", default: 100, description: "Maximum number of particles." },
-            range: { type: "list", subType: "number", default: ["0", "6.283185307179586"], description: "Range in radians for emission direction." }
+            range: { type: "list", subType: "number", default: [0, 6.283185307179586], description: "Range in radians for emission direction." }
         },
         singular: true
     },

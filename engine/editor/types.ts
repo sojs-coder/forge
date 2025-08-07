@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Part } from "../../Parts/Part";
 
 export interface GameNode {
@@ -37,4 +38,30 @@ export interface EditorState {
     selectedCustomNode: { type: string, category: string } | null;
     gameTree: GameNode;
     customNodeEditTimes: Record<string, number>;
+}
+
+
+export interface CustomNodeRow {
+    id?: string;
+    created_at?: string;
+    owner?: string;
+    code: string;
+    name: string;
+    description: string;
+    upvotes: 0;
+    anon: boolean;
+    singular: boolean;
+    properties: NodeDefinition["properties"]
+    documentation_file?: string;
+    featured_image?: string;
+    showcase_files?: string[];
+}
+
+export interface UserProfile {
+    id: string;
+    display_name?: string;
+}
+
+export interface PartLibrarySearchResult extends CustomNodeRow {
+    u_profiles: { display_name: string };
 }

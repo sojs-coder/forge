@@ -273,16 +273,20 @@ function createVectorInput(node: GameNode, key: string, propDef: PropertyDefinit
     vectorContainer.append(xLabel, xInput, yLabel, yInput);
     return vectorContainer;
 }
-
+interface HTMLInputElementWithAlpha extends HTMLInputElement {
+    alpha?: boolean; // Custom property to indicate if alpha channel is allowed
+    colorspace?: 'srgb' | 'display-p3'; // Custom property for colorspace
+}
 function createColorInput(node: GameNode, key: string, propDef: PropertyDefinition): HTMLElement {
-    const colorInput = document.createElement('input');
+    const colorInput = document.createElement('input') as HTMLInputElementWithAlpha;
     colorInput.type = 'color';
+    colorInput.alpha = true; // Allow alpha channel
     colorInput.value = node.properties[key] !== undefined ? node.properties[key] : propDef.default;
     colorInput.style.width = '80px'; // Make the input wider
     colorInput.addEventListener('input', (event) => {
         node.properties[key] = (event.target as HTMLInputElement).value;
         updateRender();
-    });
+    });     
     return colorInput;
 }
 

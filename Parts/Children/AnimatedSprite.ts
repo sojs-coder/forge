@@ -33,7 +33,18 @@ export class AnimatedSprite extends Renderer {
         this.webEngine = webEngine; // Set the web engine flag
         this.type = "AnimatedSprite";
     }
-
+    destroy() {
+        super.destroy();
+        // Clean up the loaded spritesheet image
+        if (this.loadedSheet) {
+            this.loadedSheet.src = ""; // Release the image source
+            this.loadedSheet = undefined;
+        }
+        // Clear the frames
+        this.frames = {};
+        this.spritesheetData = undefined; // Clear the spritesheet data
+        this.spritesheet = ""; // Clear the spritesheet path
+    }
     async onMount(parent: Part) {
         super.onMount(parent);
         parent.setSuperficialDimensions(this.width, this.height); // Set dimensions for the parent part

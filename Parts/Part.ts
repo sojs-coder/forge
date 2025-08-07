@@ -6,9 +6,9 @@ import type { Collider } from "./Children/Collider";
 import type { Scene } from "./Scene";
 
 type Tie<T extends Part = Part, L extends keyof T = keyof T, R extends keyof Part = keyof Part> = {
-  target: T;
-  localAttribute: R;
-  targetAttribute: L;
+    target: T;
+    localAttribute: R;
+    targetAttribute: L;
 };
 
 
@@ -42,6 +42,7 @@ export class Part {
         this.parent = undefined;
         this.top = undefined;
         this.ready = true;
+        this.type = this.constructor.name || "Part"; // Default type is the class name
         this.debugEmoji = "🧩"; // Default emoji for debugging
     }
     tie<T extends Part>(
@@ -54,7 +55,9 @@ export class Part {
         if (target.hasOwnProperty(targetAttribute as string)) {
             this.ties.add({
                 target,
+                // @ts-ignore - Intentionally allowing flexible typing for ties
                 localAttribute,
+                // @ts-ignore - Intentionally allowing flexible typing for ties
                 targetAttribute
             });
         }
@@ -128,13 +131,15 @@ export class Part {
         switch (attribute) {
             case "parent":
                 this.parent = undefined; // Clear parent reference
-                this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c: Collider) => c as any !== this as any);
+                if (this.registrations.layer && this.registrations.layer.flats) {
+                    this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c: Collider) => c as any !== this as any);
+                }
                 break;
             case "top":
                 this.top = undefined; // Clear top reference
                 break;
             case "layer":
-                if (this.registrations.layer) {
+                if (this.registrations.layer && this.registrations.layer.flats) {
                     this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c: Collider) => c as any !== this as any);
                 }
                 break;
@@ -176,7 +181,7 @@ export class Part {
         }
     }
     attr<T>(attribute: string, value?: T): T | undefined {
-        if (!value ) {
+        if (!value) {
             return (this as any)[attribute] as T;
         }
         (this as any)[attribute] = value;

@@ -1,10 +1,13 @@
 import { state } from "./state.ts";
 import { nodeDefinitions } from "./definitions.ts";
-import type { GameNode } from "./types.ts";
+import type { CustomNodeRow, GameNode, NodeDefinition } from "./types.ts";
+import { pleaseLogin, prompt, showNotification } from "./notification.ts";
+import { supabase } from "./supabase.ts";
 
 const customNodesContainer = document.getElementById('custom-nodes-container')!;
 const saveNodeButton = document.getElementById('save-node-button')! as HTMLButtonElement;
 const newNodeButton = document.getElementById('new-node-button')! as HTMLButtonElement;
+const shareNodeButton = document.getElementById('share-node-button')! as HTMLButtonElement;
 const nodeEditorTitle = document.getElementById('node-editor-title')!;
 
 let centerEditor: any; // CodeMirror instance
@@ -16,39 +19,7 @@ export function setEditor(editor: any) {
 export function setupCustomNodes() {
     updateCustomNodesList();
 
-    saveNodeButton.addEventListener('click', () => {
-        if (!state.selectedCustomNode) {
-            alert('Please select a node to edit first.');
-            return;
-        }
-        const code = centerEditor.getValue();
-        const nameMatch = code.match(/class\s+(\w+)\s+extends\s+\w+/);
-        if (!nameMatch) {
-            alert('Invalid custom node format.');
-            return;
-        }
-        const customNodeName = nameMatch[1];
-        try {
-            const propertiesExtract = `class Part { constructor() {}} class GameObject extends Part {} class Transform extends Part {} class Renderer extends Part {} class Collider extends Part {}\n\n${code}\n\n${customNodeName}.properties`;
-            const customProperties = eval(propertiesExtract);
-
-            state.customNodeEditTimes[customNodeName] = Date.now();
-
-            nodeDefinitions[customNodeName] = {
-                properties: customProperties,
-                code: code,
-                children: []
-            };
-            alert(`Custom node '${customNodeName}' saved!`);
-            updateCustomNodesList();
-
-            if (customNodeName !== state.selectedCustomNode.type) {
-                setTimeout(() => selectCustomNode(customNodeName, 'custom'), 100);
-            }
-        } catch (error: any) {
-            alert(`Error parsing node properties: ${error.message}`);
-        }
-    });
+    saveNodeButton.addEventListener('click', saveCustomNode)
 
     newNodeButton.addEventListener('click', () => {
         const newNodeName = 'NewCustomNode';
@@ -105,8 +76,8 @@ export function selectCustomNode(nodeType: string, category: 'custom' | 'builtin
     nodeEditorTitle.textContent = `Editing: ${nodeType}`;
 
     if (centerEditor) {
-        const code = (category === 'custom' && nodeDefinitions[nodeType]?.code) 
-            ? nodeDefinitions[nodeType].code 
+        const code = (category === 'custom' && nodeDefinitions[nodeType]?.code)
+            ? nodeDefinitions[nodeType].code
             : generateNodeTemplate(nodeType, category);
         centerEditor.setValue(code);
     }
@@ -119,7 +90,7 @@ function generateNodeTemplate(nodeType: string, category: string): string {
     super({ name: name || "${nodeType}", ...props });
     // Add custom properties here
   }
-
+  static singular = true; // Indicates this node should only have one instance per parent
   static properties = {
     name: { type: "text", default: "${nodeType}" },
     // Add more properties here
@@ -131,3 +102,204 @@ function generateNodeTemplate(nodeType: string, category: string): string {
   }
 }`;
 }
+
+function saveCustomNode(): NodeDefinition | undefined {
+    if (!state.selectedCustomNode) {
+        showNotification('Please select a node to edit first.', 'error');
+        return;
+    }
+    const code = centerEditor.getValue();
+    const nameMatch = code.match(/class\s+(\w+)\s+extends\s+\w+/);
+    if (!nameMatch) {
+        showNotification('Invalid custom node format.', 'error');
+        return;
+    }
+    const customNodeName = nameMatch[1];
+    try {
+        const propertiesExtract = `class Part { constructor() {}} class GameObject extends Part {} class Transform extends Part {} class Renderer extends Part {} class Collider extends Part {}\n\n${code}\n\n${customNodeName}.properties`;
+        const singularExtract = `class Part { constructor() {}} class GameObject extends Part {} class Transform extends Part {} class Renderer extends Part {} class Collider extends Part {}\n\n${code}\n\n${customNodeName}.singular`;
+        const customProperties = eval(propertiesExtract);
+        const isSingular = eval(singularExtract);
+
+        state.customNodeEditTimes[customNodeName] = Date.now();
+
+        nodeDefinitions[customNodeName] = {
+            properties: customProperties,
+            code: code,
+            children: [],
+            singular: isSingular
+        };
+        showNotification(`Custom node '${customNodeName}' saved!`, 'success');
+        updateCustomNodesList();
+
+        if (customNodeName !== state.selectedCustomNode.type) {
+            setTimeout(() => selectCustomNode(customNodeName, 'custom'), 100);
+        }
+
+        return nodeDefinitions[customNodeName];
+    } catch (error: any) {
+        showNotification(`Error parsing node properties: ${error.message}`, 'error');
+    }
+}
+async function shareCustomNode() {
+    const gameNode = saveCustomNode();
+    if (!gameNode) {
+        showNotification('No custom node to share.', 'error');
+        return;
+    }
+    if (!gameNode.code) {
+        showNotification('Custom node code is empty. Please save it first.', 'error');
+        return;
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+        pleaseLogin();
+        showNotification('You must be logged in to share custom nodes.', 'info');
+        return;
+    }
+
+    const modal = document.getElementById('share-node-modal')!;
+    const nameInput = document.getElementById('share-node-name')! as HTMLInputElement;
+    const descriptionInput = document.getElementById('share-node-description')! as HTMLTextAreaElement;
+    const showcaseInput = document.getElementById('share-node-showcase')! as HTMLInputElement;
+    const documentationInput = document.getElementById('share-node-documentation')! as HTMLInputElement;
+    const submitButton = document.getElementById('share-node-submit')!;
+    const cancelButton = document.getElementById('share-node-cancel')!;
+
+    const nameMatch = gameNode.code.match(/class\s+(\w+)\s+extends/);
+    const nodeName = nameMatch ? nameMatch[1] : 'UnknownPart';
+    nameInput.value = nodeName;
+
+    modal.style.display = 'block';
+
+    const closeAndCleanup = () => {
+        modal.style.display = 'none';
+        descriptionInput.value = '';
+        showcaseInput.value = '';
+        documentationInput.value = '';
+        submitButton.onclick = null;
+        cancelButton.onclick = null;
+    };
+
+    cancelButton.onclick = closeAndCleanup;
+
+    submitButton.onclick = async () => {
+        const description = descriptionInput.value;
+        const showcaseFiles = showcaseInput.files;
+        const documentationFile = documentationInput.files?.[0];
+
+        if (!description) {
+            showNotification('Please enter a description.', 'error');
+            return;
+        }
+        if (showcaseFiles && showcaseFiles.length > 5) {
+            showNotification('You can upload a maximum of 5 showcase files.', 'error');
+            return;
+        }
+
+        showNotification('Sharing custom node...', 'info');
+
+        const userId = user.id;
+        const partPath = `${userId}/${nodeName}`;
+
+        let featured_image: string | undefined;
+        const showcase_files: string[] = [];
+
+        if (showcaseFiles) {
+            for (const file of Array.from(showcaseFiles)) {
+                const url = await uploadFile(file, `${partPath}/showcase/${new Date().getTime()}-${Math.random().toString(36).substring(2, 15)}-${file.name}`);
+                if (url) {
+                    showcase_files.push(url);
+                    if (!featured_image) {
+                        featured_image = url;
+                    }
+                }
+            }
+        }
+
+        let documentation_file: string | undefined;
+        if (documentationFile) {
+            documentation_file = await uploadFile(documentationFile, `${partPath}/documentation.md`);
+        }
+
+        const shareData: CustomNodeRow = {
+            code: gameNode.code!,
+            name: nodeName,
+            description: description,
+            upvotes: 0,
+            anon: false,
+            singular: gameNode.singular || false,
+            properties: gameNode.properties,
+            featured_image,
+            showcase_files,
+            documentation_file,
+            owner: userId
+        };
+
+        const { data: existing, error: existingError } = await supabase
+            .from('custom_nodes')
+            .select('id, upvotes')
+            .eq('owner', userId)
+            .eq('name', nodeName)
+            .single();
+
+        if (existingError && existingError.code !== 'PGRST116') { // Ignore 'not found' error
+            console.error('Error checking for existing node:', existingError);
+            showNotification('Failed to share custom node. Please try again.', 'error');
+            return;
+        }
+
+        if (existing) {
+            // Update existing node
+            const { data, error: updateError } = await supabase
+                .from('custom_nodes')
+                .update({ ...shareData, upvotes: existing.upvotes })
+                .eq('id', existing.id)
+                .select()
+                .single();
+            if (updateError) {
+                console.error('Error updating custom node:', updateError);
+                showNotification('Failed to update custom node. Please try again.', 'error');
+            } else {
+                showNotification(`Custom node '${data.name}' updated successfully!`, 'success');
+                updateCustomNodesList();
+            }
+        } else {
+            // Insert new node
+            const { data, error: insertError } = await supabase
+                .from('custom_nodes')
+                .insert([shareData])
+                .select()
+                .single();
+            if (insertError) {
+                console.error('Error sharing custom node:', insertError);
+                showNotification('Failed to share custom node. Please try again.', 'error');
+            } else {
+                showNotification(`Custom node '${data.name}' shared successfully!`, 'success');
+                updateCustomNodesList();
+            }
+        }
+
+        closeAndCleanup();
+    };
+}
+
+async function uploadFile(file: File, path: string): Promise<string | undefined> {
+    const { data, error } = await supabase.storage
+        .from('part-files')
+        .upload(path, file, { upsert: true });
+
+    if (error) {
+        console.error('Error uploading file:', error);
+        showNotification(`Failed to upload file: ${file.name}`, 'error');
+        return undefined;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from('part-files').getPublicUrl(path);
+    return publicUrl;
+}
+
+
+
+shareNodeButton.addEventListener('click', shareCustomNode);

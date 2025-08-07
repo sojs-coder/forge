@@ -30,9 +30,7 @@ export function setupGameControls() {
         try {
             if (state.currentGameInstance) {
                 // If there's an existing game instance, stop it before starting a new one
-                (state.currentGameInstance as Game).stop();
-                // Dump the instance from memory
-                state.currentGameInstance = null;
+                stopGame();
             }
             const gameFunction = getGameFunction(gameCode);
             state.currentGameInstance = gameFunction();
@@ -91,7 +89,6 @@ function stopGame() {
         pauseButton.textContent = 'Pause';
         stopButton.disabled = true;
         gameContainer.classList.remove('game-active');
-        const canvas = document.getElementById('gamecanvas');
     }
 }
 

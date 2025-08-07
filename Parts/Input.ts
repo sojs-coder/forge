@@ -15,6 +15,13 @@ export class Input extends Part {
     currentMousePos: { x: number, y: number } = { x: 0, y: 0 };
     lastClickPos: { x: number, y: number } | null = null;
     initialized: boolean; // Have the event listeners been initialized?
+    private mousemoveDef?: (event: MouseEvent) => void; // Store the mousemove event handler (definite)
+    private clickDef?: (event: MouseEvent) => void; // Store the click event handler (definite)
+    private mousedownDef?: (event: MouseEvent) => void;
+    private mouseupDef?: (event: MouseEvent) => void;
+    private keydownDef?: (event: KeyboardEvent) => void;
+    private keyupDef?: (event: KeyboardEvent) => void;
+
     constructor({
         key,
         keyup,
@@ -36,7 +43,7 @@ export class Input extends Part {
         this.type = "Input";
     }
     initialize(canvas: HTMLCanvasElement) {
-        canvas.addEventListener("mousemove", (event) => {
+        this.mousemoveDef = (event: MouseEvent) => {
             const game = this.top as Game;
             if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
                 return;
@@ -66,9 +73,8 @@ export class Input extends Part {
 
 
             this.currentMousePos = { x: finalX, y: finalY };
-        });
-
-        canvas.addEventListener("click", (event) => {
+        }
+        this.clickDef =  (event) => {
            const game = this.top as Game;
             if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
                 return;
@@ -98,33 +104,51 @@ export class Input extends Part {
 
 
             this.lastClickPos = { x: finalX, y: finalY };
-        });
-        canvas.addEventListener("mousedown", (event) => {
+        }
+        this.mousedownDef = (event) => {
             const game = this.top as Game;
             if (game.hovering) {
                 game.hovering.onmousedown(event);
             }
-        });
-        canvas.addEventListener("mouseup", (event) => {
+        }
+        this.mouseupDef = (event) => {
             const game = this.top as Game;
             if (game.hovering) {
                 game.hovering.onmouseup(event);
             }
-        });
-
-        document.addEventListener("keydown", (event) => {
+        }
+        this.keydownDef = (event) => {
             this.downkeys.add(event.key);
-        });
-        document.addEventListener("keyup", (event) => {
+        }
+        this.keyupDef = (event) => {
             this.downkeys.delete(event.key);
             if (typeof this.keyup == "function") {
                 this.keyup(event);
             }
-        });
+        }
+        canvas.addEventListener("mousemove", this.mousemoveDef);
+        canvas.addEventListener("click",this.clickDef);
+        canvas.addEventListener("mousedown", this.mousedownDef);
+        canvas.addEventListener("mouseup", this.mouseupDef);
+
+        document.addEventListener("keydown", this.keydownDef);
+        document.addEventListener("keyup", this.keyupDef);
         this.initialized = true; // Mark as initialized after setting up listeners
     }
 
-
+    destroy(): void {
+        super.destroy();
+        const canvas = this.top?.canvas;
+        if (canvas) {
+            // Remove all event listeners
+            canvas.removeEventListener("mousemove", this.mousemoveDef!);
+            canvas.removeEventListener("click", this.clickDef!);
+            canvas.removeEventListener("mousedown", this.mousedownDef!);
+            canvas.removeEventListener("mouseup", this.mouseupDef!);
+            document.removeEventListener("keydown", this.keydownDef!);
+            document.removeEventListener("keyup", this.keyupDef!);
+        }
+    }
     act(delta: number) {
         super.act(delta);
         if (!this.initialized) {
