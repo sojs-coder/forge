@@ -21,7 +21,7 @@ export class Scene extends Part {
     }
     act(delta: number) {
         if (!this.top) {
-            console.warn(`Act called on Scene <${this.name}> without a top-level parent. Ensure this scene is added to a Game instance before calling act().`);
+            this.top?.warn(`Act called on Scene <${this.name}> without a top-level parent. Ensure this scene is added to a Game instance before calling act().`);
         }
 
         if (!this.top || !(this.top instanceof Game)) {

@@ -58,6 +58,9 @@ The `Game` class is the heart of your application. It's the top-level container 
 -   `isPaused: boolean`
     Indicates whether the game loop is currently paused.
 
+-   `messageHook: (type: "warn" | "error" | "debug", ...args: any[]) => void`
+    Trap logging to route to a different spot than console.
+
 ## Methods
 
 -   `changeCanvasSize(width: number, height: number)`

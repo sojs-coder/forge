@@ -13,7 +13,7 @@ export class Collider extends Part {
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
-            console.warn(
+            this.top?.warn(
                 `Collider <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component before adding a Collider. It will not technically effect functionality, but it is good practice.`
             );
             return;

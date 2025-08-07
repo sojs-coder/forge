@@ -18,7 +18,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             name: { type: "text", default: "NewScene", description: "The name of the scene." },
             backgroundColor: { type: "color", default: "#000000", description: "Background color of the scene." }
         },
-        children: ["Layer", "GameObject", "Camera", "Input", "ParallaxLayer", "Sound", "PhysicsEngine"]
+        children: ["Layer", "Camera", "Input", "ParallaxLayer", "Sound", "PhysicsEngine"]
     },
     "Layer": {
         properties: {

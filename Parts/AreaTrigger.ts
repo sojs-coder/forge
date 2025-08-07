@@ -18,7 +18,7 @@ export class AreaTrigger extends Part {
         super.act(delta);
         const collider = this.sibling<Collider>("Collider");
         if (!collider) {
-            console.warn(`AreaTrigger <${this.name}> requires a Collider sibling.`);
+            this.top?.warn(`AreaTrigger <${this.name}> requires a Collider sibling.`);
             return;
         }
 

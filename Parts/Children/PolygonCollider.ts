@@ -25,7 +25,7 @@ export class PolygonCollider extends Collider {
         super.onMount(parent);
 
         if (!this.sibling("Transform")) {
-            console.warn(
+            this.top?.warn(
                 `PolygonCollider <${this.name}> (${this.id}) is not attached to a parent with a Transform component. Please ensure it is mounted to a GameObject with a Transform`
             );
             return;
@@ -39,7 +39,7 @@ export class PolygonCollider extends Collider {
         super.act(delta);
 
         if (!this.sibling("Transform")) {
-            console.warn(
+            this.top?.warn(
                 `PolygonCollider <${this.name}> (${this.id}) is not attached to a parent with a Transform component. Skipping`
             );
             return;
@@ -121,7 +121,7 @@ export class PolygonCollider extends Collider {
         } else if (other instanceof PolygonCollider) {
             return this.checkPolygonVsPolygon(this, other);
         }
-        console.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
+        this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
         return false;
     }
 

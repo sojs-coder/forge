@@ -64,7 +64,7 @@ export class Input extends Part {
                 const view = camera.getViewMatrix();
                 const transform = camera.child<Transform>("Transform");
                 if (!transform) {
-                    console.warn("Camera does not have a Transform child.");
+                    this.top?.warn("Camera does not have a Transform child.");
                     return;
                 }
                 finalX = (mouseX - game.canvas.width / 2) / view.scale.x + transform.worldPosition.x;
@@ -95,7 +95,7 @@ export class Input extends Part {
                 const view = camera.getViewMatrix();
                 const transform = camera.child<Transform>("Transform");
                 if (!transform) {
-                    console.warn("Camera does not have a Transform child.");
+                    this.top?.warn("Camera does not have a Transform child.");
                     return;
                 }
                 finalX = (mouseX - game.canvas.width / 2) / view.scale.x + transform.worldPosition.x;

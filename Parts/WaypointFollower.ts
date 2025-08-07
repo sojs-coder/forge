@@ -20,7 +20,7 @@ export class WaypointFollower extends Part {
 
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
-            console.warn(`WaypointFollower <${this.name}> requires a Transform sibling.`);
+            this.top?.warn(`WaypointFollower <${this.name}> requires a Transform sibling.`);
             return;
         }
 

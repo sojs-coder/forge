@@ -25,7 +25,7 @@ export class BoxCollider extends Collider {
         super.onMount(parent);
         const transform = this.sibling<Transform>("Transform")
         if (!transform) {
-            console.warn(
+            this.top?.warn(
                 `BoxCollider <${this.name}> (${this.id}) does not have Transform sibling. Skipping`
             );
             return;
@@ -92,7 +92,7 @@ export class BoxCollider extends Collider {
             // Delegate to PolygonCollider's checkCollision method
             return other.checkCollision(this);
         }
-        console.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
+        this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
         return false;
     }
     get vertices(): Vector[] {

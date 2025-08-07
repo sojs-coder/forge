@@ -33,15 +33,15 @@ export class PhysicsBody extends Part {
         const engine = (this.registrations.scene as Scene).child<PhysicsEngine>("PhysicsEngine");
 
         if (!transform) {
-            console.warn(`PhysicsBody <${this.name}> requires a Transform sibling.`);
+            this.top?.warn(`PhysicsBody <${this.name}> requires a Transform sibling.`);
             return;
         }
         if (!collider) {
-            console.warn(`PhysicsBody <${this.name}> requires a BoxCollider or PolygonCollider sibling.`);
+            this.top?.warn(`PhysicsBody <${this.name}> requires a BoxCollider or PolygonCollider sibling.`);
             return;
         }
         if (!engine) {
-            console.warn(`PhysicsBody <${this.name}> requires a PhysicsEngine in the current scene.`);
+            this.top?.warn(`PhysicsBody <${this.name}> requires a PhysicsEngine in the current scene.`);
             return;
         }
 
@@ -63,7 +63,7 @@ export class PhysicsBody extends Part {
             this.body.label = this.name; // Set label for easier debugging
             World.add(engine.world, this.body);
         } else {
-            console.warn(`Failed to create body for PhysicsBody <${this.name}>. Ensure the collider is properly defined.`);
+            this.top?.warn(`Failed to create body for PhysicsBody <${this.name}>. Ensure the collider is properly defined.`);
         }
 
     }
@@ -78,7 +78,7 @@ export class PhysicsBody extends Part {
             this.initialize();
         }
         if (!this.body) {
-            console.warn(`PhysicsBody <${this.name}> has no body initialized. Ensure it is mounted with a Transform and Collider.`);
+            this.top?.warn(`PhysicsBody <${this.name}> has no body initialized. Ensure it is mounted with a Transform and Collider.`);
             return;
         }
         if (this.body && !this.isStatic) {

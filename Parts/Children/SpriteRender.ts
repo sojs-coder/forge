@@ -19,7 +19,7 @@ export class SpriteRender extends Renderer {
             this.ready = true;
         };
         this.image.onerror = (err: any) => {
-            console.error(`Failed to load image <${this.imageSource}>:`, err);
+            this.top?.error(`Failed to load image <${this.imageSource}>:`, err);
         };
         this.image.src = imageSource;
 
@@ -29,7 +29,7 @@ export class SpriteRender extends Renderer {
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
-            console.warn(`SpriteRender <${this.name}> requires a Transform component to be mounted to a parent GameObject.`);
+            this.top?.warn(`SpriteRender <${this.name}> requires a Transform component to be mounted to a parent GameObject.`);
         }
         this.parent?.setSuperficialDimensions(this.width, this.height);
     }

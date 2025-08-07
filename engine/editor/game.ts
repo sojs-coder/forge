@@ -1,5 +1,5 @@
-import type { Game } from "../engine-core.ts";
-import { state } from "./state.ts";
+import { Part, type Game } from "../engine-core.ts";
+import { findNodeById, state } from "./state.ts";
 import type { GameNode } from "./types.ts";
 
 
@@ -10,8 +10,15 @@ const stopButton = document.getElementById('stop-button')! as HTMLButtonElement;
 
 export function setupGameControls() {
     playButton.addEventListener('click', async () => {
+        console.log(state.gameTree);
         const gameCode = generateGameCode(state.gameTree, true);
-        console.log(gameCode);
+        // copy game code to clipboard
+        try {
+            await navigator.clipboard.writeText(gameCode);
+            console.log('Game code copied to clipboard');
+        } catch (err) {
+            console.error('Failed to copy game code:', err);
+        }
         gameContainer.innerHTML = ''; // Clear existing content, including old error messages
         const existingCanvas = document.getElementById('gamecanvas');
         if (existingCanvas) existingCanvas.style.display = 'none';
@@ -34,18 +41,27 @@ export function setupGameControls() {
             }
             const gameFunction = getGameFunction(gameCode);
             state.currentGameInstance = gameFunction();
+            if (state.currentGameInstance) {
+                (state.currentGameInstance as Game).messageHook = (type: "warn" | "error" | "debug", ...args: any[]) => {
+                    const logsDiv = document.getElementById('logs');
+                    if (logsDiv) {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = `log-entry ${type}`;
+                        logEntry.textContent = `[${new Date().toISOString()}][${type.toUpperCase()}] ${args.join(' ')}`;
+                        logsDiv.appendChild(logEntry);
+                    }
+                };
+            }
             state.isGamePaused = false;
             pauseButton.disabled = false;
             pauseButton.textContent = 'Pause';
             stopButton.disabled = false;
         } catch (error: any) {
-            console.error('Error starting game:', error);
             const errorDiv = document.createElement('div');
-            errorDiv.style.color = 'red';
-            errorDiv.style.padding = '20px';
+            errorDiv.className = `log-entry error`;
             errorDiv.textContent = `Error: ${error.message}`;
-            gameContainer.appendChild(errorDiv);
-            if (canvas) canvas.style.display = 'none';
+            document.getElementById('logs')?.appendChild(errorDiv);
+            // if (canvas) canvas.style.display = 'none';
         }
     });
 
@@ -89,6 +105,7 @@ function stopGame() {
         pauseButton.textContent = 'Pause';
         stopButton.disabled = true;
         gameContainer.classList.remove('game-active');
+        document.getElementById('logs')!.innerHTML = ''; // Clear logs
     }
 }
 
@@ -133,14 +150,20 @@ function getDependencies(node: GameNode): GameNode[] {
     for (const key in props) {
         const value = props[key];
         const def = propDefs[key];
-        if (def?.type === 'Part' && value?.id) {
-            deps.push(value); // value is another node
+        if (def?.type === 'Part' && value) {
+            const depNode = (value.length == 2 && value[1]) ? findNodeById(state.gameTree, value[1]) : value.id ? value : null;
+            if (depNode) {
+                deps.push(depNode);
+            } else {
+                console.warn(`Dependency node with ID ${value[1]} not found for property ${key} in node ${node.id}`);
+            }
         }
     }
     return deps;
 }
 
 function topologicalSort(root: GameNode): GameNode[] {
+    console.log(root);
     const visited = new Set<string>();
     const temp = new Set<string>();
     const result: GameNode[] = [];
@@ -148,8 +171,8 @@ function topologicalSort(root: GameNode): GameNode[] {
     function visit(node: GameNode) {
         if (visited.has(node.id)) return;
         if (temp.has(node.id)) throw new Error(`Cyclic dependency involving ${node.properties.name || node.id}`);
-
         temp.add(node.id);
+        console.log(`Visiting node ${node.id} (${node.properties.name || 'Unnamed'})`);
 
         // Visit any Part-type property references
         for (const dep of getDependencies(node)) {
@@ -186,18 +209,23 @@ function generateNodeCode(node: GameNode): string {
     for (const key in node.properties) {
         const propDef = nodeDefs[node.type]?.properties[key];
         let value = node.properties[key];
-        if (propDef?.type === 'Part' && value?.id) {
-            props += `${key}: ${getVarName(value)},`;
+        if (propDef?.type === 'Part' && value) {
+            if (value.length === 2 && value[1]) {
+                console.log(`Using ID ${value[1]} for property ${key} in node ${node.id}`);
+                props += `${key}: ${getVarNameById(value[1])},`;
+            } else if (value.id) {
+                props += `${key}: ${getVarName(value)},`;
+            }
         } else if (propDef?.type === 'list' && Array.isArray(value)) {
             // Handle lists of Parts or primitives
             if (propDef.subtype === 'Part') {
-            const varNames = value.map((v: any) => v?.id ? getVarName(v) : 'null');
-            props += `${key}: [${varNames.join(', ')}],`;
+                const varNames = value.map((v: any) => (v.length == 2 && v[1]) ? getVarNameById(v[1]) : getVarName(v));
+                props += `${key}: [${varNames.join(', ')}],`;
             } else if (propDef.subtype === 'string') {
-            const strList = value.map((v: any) => `"${v}"`);
-            props += `${key}: [${strList.join(', ')}],`;
+                const strList = value.map((v: any) => `"${v}"`);
+                props += `${key}: [${strList.join(', ')}],`;
             } else {
-            props += `${key}: [${value.join(', ')}],`;
+                props += `${key}: [${value.join(', ')}],`;
             }
         } else if (typeof value === 'string' && !isCode(value, propDef)) {
             props += `${key}: "${value}",`;
@@ -243,11 +271,13 @@ function generateGameCode(rootNode: GameNode, start = true): string {
     return code;
 }
 
-
+function getVarNameById(id: string): string {
+    return `n${id.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+}
 
 function getVarName(node: GameNode): string {
     if (!node || !node.id) return '';
-    return `n${node.id.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+    return getVarNameById(node.id);
 }
 
 function isCode(value: string, propDef: any): boolean {

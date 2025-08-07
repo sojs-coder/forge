@@ -155,7 +155,7 @@ export class Part {
     }
     addChild(child: Part) {
         if (this._childrenByName[child.name]) {
-            console.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
+            this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
             return;
         }
         this.childrenArray.push(child);
@@ -250,7 +250,7 @@ export class Part {
             child.onUnregister("top", this.top); // Notify child of unregistration from top
             child.onUnmount(); // Call onUnmount for the removed child
         } else {
-            console.warn(`Child with name <${child.name}> not found in <${this.name}>. Cannot remove. (Child has ID <${child.id}>).`);
+            this.top?.warn(`Child with name <${child.name}> not found in <${this.name}>. Cannot remove. (Child has ID <${child.id}>).`);
         }
     }
 

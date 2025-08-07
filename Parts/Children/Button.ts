@@ -24,9 +24,11 @@ export class Button extends Renderer {
         this.clickSound = clickSound;
         this.hoverSound = hoverSound;
         this.activeSound = activeSound;
+        console.log(clickSound, hoverSound, activeSound);
         this.type = "Button";
 
         this.onclick = (event: MouseEvent, input: any) => {
+            console.log(`Button <${this.name}> clicked!`);
             if (this.onClickHandler) {
                 this.onClickHandler();
             }
@@ -39,7 +41,9 @@ export class Button extends Renderer {
 
         this.onhover = () => {
             this.isHovered = true;
+            console.log('hovered', this.hoverSound);
             if (this.hoverSound) {
+    
                 this.hoverSound.play({ clone: true });
             }
         };
@@ -64,22 +68,27 @@ export class Button extends Renderer {
             }
         };
     }
+    onRegister(attribute: string, value: any): void {
+        super.onRegister(attribute, value);
+        if (attribute == "scene") {
+            const scene = value as Scene;
+            if (!scene.child<Input>("Input")) {
+                const input = new Input({
+                    key: () => {},
+                    keyup: () => {},
+                    mousemove: () => {},
+                    click: () => {}
+                });
+                scene.addChild(input);
+            }
+        }
+    }
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
-            console.warn(
+            this.top?.warn(
                 `Button <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component before adding a Button.`
             );
-        }
-
-        // Ensure an Input instance is attached to the scene
-        if (this.parent instanceof Scene && !this.parent.sibling("Input")) {
-            this.parent.addChild(new Input({
-                key: () => { },
-                keyup: () => { },
-                mousemove: () => { },
-                click: () => { },
-            }));
         }
 
         // Set superficial dimensions based on default styles
@@ -87,7 +96,9 @@ export class Button extends Renderer {
         this.superficialWidth = defaultStyle?.width ?? 100;
         this.superficialHeight = defaultStyle?.height ?? 50;
     }
-
+    setOnClick(onClick: () => void) {
+        this.onClickHandler = onClick;
+    }
     act(delta: number) {
         super.act(delta);
 

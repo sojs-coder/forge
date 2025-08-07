@@ -17,6 +17,7 @@ export class Game extends Part {
     lastMousePosition: { x: number, y: number } = { x: 0, y: 0 };
     scaleFactor: number = 1;
     canvasOffset: { x: number, y: number } = { x: 0, y: 0 };
+    messageHook?: (type: "warn" | "error" | "debug", ...args: any[]) => void;
     private _isRunning: boolean = false;
     private _width: number = 800;
     private _height: number = 600;
@@ -125,7 +126,7 @@ export class Game extends Part {
         } else if (starterScene instanceof Scene) {
             this.currentScene = starterScene;
         } else {
-            console.warn("No valid scene provided to start the. Using the first scene found.");
+            this.warn("No valid scene provided to start the game. Using the first scene found.");
             this.currentScene = this.childrenArray[0];
             if (!this.currentScene) {
                 throw new Error("No scenes available to start the game.");
@@ -203,13 +204,13 @@ export class Game extends Part {
 
     act(purposeful: boolean | number = false) {
         if (!this.hasWarnedActUsage && !purposeful) {
-            console.warn(`Act called on Game <${this.name}>. Use start() to begin the game loop. Calling act() directly will run 1 frame of the current scene. This message will appear only once.`);
+            this.warn(`Act called on Game <${this.name}>. Use start() to begin the game loop. Calling act() directly will run 1 frame of the current scene. This message will appear only once.`);
             this.hasWarnedActUsage = true;
         }
         if (this.currentScene) {
             this.currentScene.act(0);
         } else {
-            console.warn(`No current scene set in <${this.name}>, and no available scenes to run as the current scene in game <${this.name}>. Please ensure you have added scenes and/or set a current scene before calling act().`);
+            this.warn(`No current scene set in <${this.name}>, and no available scenes to run as the current scene in game <${this.name}>. Please ensure you have added scenes and/or set a current scene before calling act().`);
         }
     }
 
@@ -225,11 +226,31 @@ export class Game extends Part {
             this.currentScene = scene;
         }
     }
-
+    warn (...args: any[]) {
+        if (this.messageHook && typeof this.messageHook === "function") {
+            this.messageHook("warn", ...args);
+        } else {
+            console.warn(`[${this.name}] - WARN`, ...args);
+        }
+    }
+    error (...args: any[]) {
+        if (this.messageHook && typeof this.messageHook === "function") {
+            this.messageHook("error", ...args);
+        } else {
+            console.error(`[${this.name}] - ERROR`, ...args);
+        }
+    }
+    debug (...args: any[]) {
+        if (this.messageHook && typeof this.messageHook === "function") {
+            this.messageHook("debug", ...args);
+        } else {
+            console.debug(`[${this.name}]`, ...args);
+        }
+    }
     updateDebugToolTip() {
         const tooltip = document.getElementById("debug-tooltip");
         if (!tooltip) {
-            console.warn("Debug tooltip not found. Ensure it is created in devmode.");
+            this.warn("Debug tooltip not found. Ensure it is created in devmode.");
             return;
         }
         if (this.hovering) {

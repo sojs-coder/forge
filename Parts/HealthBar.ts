@@ -25,7 +25,7 @@ export class HealthBar extends Part {
         super.onMount(parent);
         this.targetHealth = this.sibling<Health>("Health");
         if (!this.targetHealth) {
-            console.warn(`HealthBar <${this.name}> requires a Health sibling.`);
+            this.top?.warn(`HealthBar <${this.name}> requires a Health sibling.`);
         }
     }
 

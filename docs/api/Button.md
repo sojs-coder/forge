@@ -46,6 +46,10 @@ The `Button` component creates a clickable UI button with different visual state
 -   `activeSound?: Sound`
     A `Sound` to play when the button is pressed.
 
+## Methods
+-   `setOnClick(() => void)`
+    Configure the event handler.
+    
 ## Examples
 
 ### Creating a "Start Game" Button

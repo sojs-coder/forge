@@ -42,7 +42,7 @@ export class TextRender extends Renderer {
         super.act(delta);
         const transform = this.sibling<Transform>('Transform');
         if (!transform) {
-            console.warn(`Text <${this.name}> (${this.id}) does not have a Transform sibling. Skipping rendering.`);
+            this.top?.warn(`Text <${this.name}> (${this.id}) does not have a Transform sibling. Skipping rendering.`);
             return;
         }
 

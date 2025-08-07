@@ -40,7 +40,7 @@ export class Camera extends Part {
         // Could be used in rendering context
         const transform = this.child<Transform>("Transform")
         if (!transform) {
-            console.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. View matrix will not be calculated.`);
+            this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. View matrix will not be calculated.`);
             return { offset: Vector.From(0), scale: this.zoom };
         }
         return {
@@ -55,7 +55,7 @@ export class Camera extends Part {
         if (transform) {
             this.zoom = transform.scale;
         } else {
-            console.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. Camera zoom will not be updated.`);
+            this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. Camera zoom will not be updated.`);
         }
     }
 

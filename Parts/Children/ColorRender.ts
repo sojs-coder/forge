@@ -36,7 +36,7 @@ export class ColorRender extends Renderer {
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
-            console.warn(`ColorRender <${this.name}> does not have a Transform sibling. Please ensure you add a Transform component before adding others.`);
+            this.top?.warn(`ColorRender <${this.name}> does not have a Transform sibling. Please ensure you add a Transform component before adding others.`);
             return;
         }
 
@@ -54,7 +54,7 @@ export class ColorRender extends Renderer {
         }
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
-            console.warn(`ColorRender <${this.parent?.name}.${this.name}> does not have a Transform sibling. Skipping rendering.`);
+            this.top?.warn(`ColorRender <${this.parent?.name}.${this.name}> does not have a Transform sibling. Skipping rendering.`);
             return;
         }
         const position = transform.worldPosition;

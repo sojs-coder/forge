@@ -88,7 +88,7 @@ export class AnimatedSprite extends Renderer {
         }
 
         image.onerror = (err) => {
-            console.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
+            this.top?.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
             this.ready = false;
         };
         this.spritesheetData = spritesheetData; // Store the parsed spritesheet data
@@ -99,7 +99,7 @@ export class AnimatedSprite extends Renderer {
                 resolve();
             };
             image.onerror = (err) => {
-                console.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
+                this.top?.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
                 this.ready = false;
                 reject(err);
             };
@@ -120,7 +120,7 @@ export class AnimatedSprite extends Renderer {
                             resolve();
                         };
                         frame.onerror = (err) => {
-                            console.error(`Failed to load frame at index ${i} for animated sprite <${this.name}>:`, err);
+                            this.top?.error(`Failed to load frame at index ${i} for animated sprite <${this.name}>:`, err);
                             reject(err);
                         };
                     }));
@@ -141,12 +141,12 @@ export class AnimatedSprite extends Renderer {
     }
     frame(index: number): HTMLImageElement | null {
         if (!this.loadedSheet || !this.spritesheetData) {
-            console.warn("AnimatedSprite is not ready or spritesheet data is missing.");
+            this.top?.warn("AnimatedSprite is not ready or spritesheet data is missing.");
             return null;
         }
         const frameData = this.spritesheetData.frames[index];
         if (!frameData) {
-            console.warn(`${this.name} attached to ${this.parent?.name} frame at index ${index} was indexed but does not exist in spritesheet`);
+            this.top?.warn(`${this.name} attached to ${this.parent?.name} frame at index ${index} was indexed but does not exist in spritesheet`);
             return null;
         }
         const { x, y, w, h } = frameData.frame;
@@ -159,7 +159,7 @@ export class AnimatedSprite extends Renderer {
         canvas.height = sourceSize!.h;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-            console.error("Failed to get canvas context.");
+            this.top?.error("Failed to get canvas context.");
             return null;
         }
 
@@ -193,7 +193,7 @@ export class AnimatedSprite extends Renderer {
                 this.spritesheetData.meta.animations[this.currentAnimation].loop = loop;
             }
         } else {
-            console.warn(`Animation '${animationName}' does not exist in spritesheet for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
+            this.top?.warn(`Animation '${animationName}' does not exist in spritesheet for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
         }
     }
     act(delta: number) {
@@ -241,7 +241,7 @@ export class AnimatedSprite extends Renderer {
             const transform = this.sibling<Transform>("Transform");
             if (!transform) {
                 if (!this.hasWarnedAboutTransform) {
-                    console.warn(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a Transform component. Skipping rendering. This will only show once.`);
+                    this.top?.warn(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a Transform component. Skipping rendering. This will only show once.`);
                     this.hasWarnedAboutTransform = true;
                 }
                 return;
@@ -262,7 +262,7 @@ export class AnimatedSprite extends Renderer {
                     this.top.context.drawImage(frame, -this.width / 2, -this.height / 2, this.width, this.height);
                     this.top.context.restore();
                 } else {
-                    console.warn(`Frame (${this.currentAnimation}) index ${this.currentFrameIndex} does not exist for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
+                    this.top?.warn(`Frame (${this.currentAnimation}) index ${this.currentFrameIndex} does not exist for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
                 }
             } else {
                 throw new Error(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a context to render to. Ensure it is added to a Game, Scene, or Layer with a game ancestor.`);

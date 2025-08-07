@@ -63,12 +63,19 @@ export function renderProperties(node: GameNode) {
             case 'Part':
                 const partContainer = document.createElement('div');
                 partContainer.classList.add('part-property-container');
-
-                const currentPart = node.properties[key];
+                let name = '(none)', id = null;
+                if (node.properties[key]) {
+                    try {
+                        [name, id] = node.properties[key];
+                    } catch (error) {
+                        name = 'DEP+'+node.properties[key].properties.name;
+                        id = node.properties[key].id;
+                    }
+                }
 
                 const partDisplay = document.createElement('span');
                 partDisplay.classList.add('part-name-display');
-                partDisplay.textContent = currentPart ? currentPart.properties.name : '(None)';
+                partDisplay.textContent = name ? name : '(None)';   
                 partDisplay.draggable = true; // Make it draggable
                 partDisplay.dataset.partPropertyKey = key; // Store the key for drop target
 
@@ -88,14 +95,14 @@ export function renderProperties(node: GameNode) {
                         if (droppedNode) {
                             // If the subType is 'Part', allow any node to be assigned
                             if (propDef.subType === 'Part') {
-                                node.properties[key] = droppedNode;
+                                node.properties[key] = [droppedNode.properties.name, droppedNode.id];
                                 updateTreeDisplay();
                                 renderProperties(node); // Re-render to update display
                             } else {
                                 // Check if the dropped node is compatible with the subType
                                 const allowedTypes = getAllowedSubtypes(propDef.subType!);
                                 if (allowedTypes.includes(droppedNode.type)) {
-                                    node.properties[key] = droppedNode;
+                                    node.properties[key] = [droppedNode.properties.name, droppedNode.id];
                                     updateTreeDisplay();
                                     renderProperties(node); // Re-render to update display
                                 } else {
@@ -159,7 +166,7 @@ export function renderProperties(node: GameNode) {
                 input = textInput;
         }
 
-        if (propDef.type !== 'color' && propDef.subType !== 'color') input.addEventListener('change', () => updateRender());
+        input.addEventListener('change', () => updateRender());
 
         left.appendChild(label);
         right.appendChild(input);
@@ -285,8 +292,7 @@ function createColorInput(node: GameNode, key: string, propDef: PropertyDefiniti
     colorInput.style.width = '80px'; // Make the input wider
     colorInput.addEventListener('input', (event) => {
         node.properties[key] = (event.target as HTMLInputElement).value;
-        updateRender();
-    });     
+    });
     return colorInput;
 }
 
@@ -487,7 +493,7 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
                 optionDiv.classList.add('selected-option');
             }
             optionDiv.addEventListener('click', () => {
-                targetNode.properties[targetKey] = node;
+                targetNode.properties[targetKey] = [node.properties.name, node.id];
                 document.body.removeChild(popup);
                 updateTreeDisplay();
                 renderProperties(targetNode);
@@ -517,7 +523,7 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
         } else if (event.key === 'Enter') {
             event.preventDefault();
             if (selectedIndex !== -1) {
-                targetNode.properties[targetKey] = filteredNodes[selectedIndex];
+                targetNode.properties[targetKey] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
                 document.body.removeChild(popup);
                 updateTreeDisplay();
                 renderProperties(targetNode);

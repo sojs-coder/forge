@@ -31,16 +31,17 @@ class SoundManagerController {
     }
     public resumeGame(): void {
         this.isGameRunning = true;
-        this.sounds.forEach(sound => sound.play({ restart: true }));
+        this.sounds.forEach(sound => sound.play({ restart: false }));
     }
 
     public startGame(): void {
+        console.log("Starting game with sounds...");
         this.isGameRunning = true;
-        this.sounds.forEach(sound => {
-            if (sound.start) {
-                sound.play();
-            }
-        });
+        // this.sounds.forEach(sound => {
+        //     if (sound.start) {
+        //         sound.play({ restart: true });
+        //     }
+        // });
     }
     public unregisterAllSounds(): void {
         this.sounds.forEach(sound => sound.stop());
@@ -51,8 +52,6 @@ class SoundManagerController {
         this.sounds.forEach(sound => sound.stop());
         // Dump sounds from memory
         SoundManager.unregisterAllSounds();
-
-        // 
     }
 
     public getIsGameRunning(): boolean {
