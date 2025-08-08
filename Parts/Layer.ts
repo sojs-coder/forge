@@ -1,6 +1,7 @@
 import { GameObject } from "./GameObject";
 import { generateUID } from "../helpers";
 import { Part } from "./Part";
+import type { Game } from "./Game";
 
 export class Layer extends Part {
     constructor({ name }: { name: string }) {

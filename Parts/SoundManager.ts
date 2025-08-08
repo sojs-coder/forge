@@ -31,17 +31,11 @@ class SoundManagerController {
     }
     public resumeGame(): void {
         this.isGameRunning = true;
-        this.sounds.forEach(sound => sound.play({ restart: false }));
+        this.sounds.forEach(sound => sound.resume());
     }
 
     public startGame(): void {
-        console.log("Starting game with sounds...");
         this.isGameRunning = true;
-        // this.sounds.forEach(sound => {
-        //     if (sound.start) {
-        //         sound.play({ restart: true });
-        //     }
-        // });
     }
     public unregisterAllSounds(): void {
         this.sounds.forEach(sound => sound.stop());

@@ -9,7 +9,6 @@ export class AnimatedSprite extends Renderer {
     loadedSheet?: HTMLImageElement; // Loaded image for the spritesheet
     frames: Record<string, HTMLImageElement[]> = {}; // Object to hold individual frame images for each animation
     currentFrameIndex: number = 0; // Index of the current frame being displayed
-    hasWarnedAboutTransform: boolean = false; // Flag to prevent multiple warnings about missing Transform part
     width: number; // Width of the animated sprite
     height: number; // Height of the animated sprite
     bouncing: boolean = false; // Flag to indicate if the sprite animation is in reverse (bouncing)
@@ -240,9 +239,9 @@ export class AnimatedSprite extends Renderer {
             }
             const transform = this.sibling<Transform>("Transform");
             if (!transform) {
-                if (!this.hasWarnedAboutTransform) {
-                    this.top?.warn(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a Transform component. Skipping rendering. This will only show once.`);
-                    this.hasWarnedAboutTransform = true;
+                if (!this.warned.has("TransformMissing")) {
+                    const seen = this.top?.warn(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a Transform component. Skipping rendering. This will only show once.`);
+                    if (seen) this.warned.add("TransformMissing");
                 }
                 return;
             }

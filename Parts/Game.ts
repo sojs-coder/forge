@@ -8,7 +8,6 @@ export class Game extends Part {
     canvas: HTMLCanvasElement;
     currentScene?: Scene;
     childrenArray: Scene[];
-    hasWarnedActUsage: boolean = false;
     devmode: boolean;
     context: CanvasRenderingContext2D;
     showtoolTips: boolean = false;
@@ -38,6 +37,7 @@ export class Game extends Part {
         this.context.imageSmoothingEnabled = !disableAntiAliasing;
         this.debugEmoji = "🎮";
         this.tooltipLocked = false;
+        this.top = this;
         if (this.devmode) {
             let tooltip = document.getElementById("debug-tooltip");
             if (!tooltip) {
@@ -170,11 +170,12 @@ export class Game extends Part {
 
     pause() {
         this._isPaused = true;
+        this.debug("Game paused");
         SoundManager.pauseGame();
-
     }
 
     resume() {
+        this.debug("Game resumed");
         this._isPaused = false;
         SoundManager.resumeGame();
     }
@@ -203,9 +204,9 @@ export class Game extends Part {
     }
 
     act(purposeful: boolean | number = false) {
-        if (!this.hasWarnedActUsage && !purposeful) {
-            this.warn(`Act called on Game <${this.name}>. Use start() to begin the game loop. Calling act() directly will run 1 frame of the current scene. This message will appear only once.`);
-            this.hasWarnedActUsage = true;
+        if (!this.warned.has("ActUsage") && !purposeful) {
+            const seen = this.warn(`Act called on Game <${this.name}>. Use start() to begin the game loop. Calling act() directly will run 1 frame of the current scene. This message will appear only once.`);
+            if (seen) this.warned.add("ActUsage");
         }
         if (this.currentScene) {
             this.currentScene.act(0);
@@ -229,22 +230,28 @@ export class Game extends Part {
     warn (...args: any[]) {
         if (this.messageHook && typeof this.messageHook === "function") {
             this.messageHook("warn", ...args);
+            return true;
         } else {
             console.warn(`[${this.name}] - WARN`, ...args);
+            return false;
         }
     }
     error (...args: any[]) {
         if (this.messageHook && typeof this.messageHook === "function") {
             this.messageHook("error", ...args);
+            return true;
         } else {
             console.error(`[${this.name}] - ERROR`, ...args);
+            return false;
         }
     }
     debug (...args: any[]) {
         if (this.messageHook && typeof this.messageHook === "function") {
             this.messageHook("debug", ...args);
+            return true;
         } else {
             console.debug(`[${this.name}]`, ...args);
+            return false;
         }
     }
     updateDebugToolTip() {

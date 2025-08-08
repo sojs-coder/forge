@@ -15,13 +15,14 @@ export class Scene extends Part {
     addChild(part: Part) {
         part.setAll("scene", this);
         super.addChild(part);
+
     }
     addChildren(...parts: Part[]) {
         parts.forEach((part) => this.addChild(part));
     }
     act(delta: number) {
         if (!this.top) {
-            this.top?.warn(`Act called on Scene <${this.name}> without a top-level parent. Ensure this scene is added to a Game instance before calling act().`);
+            throw new Error(`Act called on Scene <${this.name}> without a top-level parent. Ensure this scene is added to a Game instance before calling act().`);
         }
 
         if (!this.top || !(this.top instanceof Game)) {

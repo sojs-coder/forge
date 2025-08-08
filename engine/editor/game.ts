@@ -10,15 +10,13 @@ const stopButton = document.getElementById('stop-button')! as HTMLButtonElement;
 
 export function setupGameControls() {
     playButton.addEventListener('click', async () => {
-        console.log(state.gameTree);
         const gameCode = generateGameCode(state.gameTree, true);
         // copy game code to clipboard
-        try {
-            await navigator.clipboard.writeText(gameCode);
-            console.log('Game code copied to clipboard');
-        } catch (err) {
-            console.error('Failed to copy game code:', err);
-        }
+        // try {
+        //     await navigator.clipboard.writeText(gameCode);
+        // } catch (err) {
+        //     console.error('Failed to copy game code:', err);
+        // }
         gameContainer.innerHTML = ''; // Clear existing content, including old error messages
         const existingCanvas = document.getElementById('gamecanvas');
         if (existingCanvas) existingCanvas.style.display = 'none';
@@ -49,6 +47,7 @@ export function setupGameControls() {
                         logEntry.className = `log-entry ${type}`;
                         logEntry.textContent = `[${new Date().toISOString()}][${type.toUpperCase()}] ${args.join(' ')}`;
                         logsDiv.appendChild(logEntry);
+                        logsDiv.scrollTop = logsDiv.scrollHeight; // Scroll to the bottom
                     }
                 };
             }
@@ -163,7 +162,6 @@ function getDependencies(node: GameNode): GameNode[] {
 }
 
 function topologicalSort(root: GameNode): GameNode[] {
-    console.log(root);
     const visited = new Set<string>();
     const temp = new Set<string>();
     const result: GameNode[] = [];
@@ -172,7 +170,6 @@ function topologicalSort(root: GameNode): GameNode[] {
         if (visited.has(node.id)) return;
         if (temp.has(node.id)) throw new Error(`Cyclic dependency involving ${node.properties.name || node.id}`);
         temp.add(node.id);
-        console.log(`Visiting node ${node.id} (${node.properties.name || 'Unnamed'})`);
 
         // Visit any Part-type property references
         for (const dep of getDependencies(node)) {
@@ -211,7 +208,6 @@ function generateNodeCode(node: GameNode): string {
         let value = node.properties[key];
         if (propDef?.type === 'Part' && value) {
             if (value.length === 2 && value[1]) {
-                console.log(`Using ID ${value[1]} for property ${key} in node ${node.id}`);
                 props += `${key}: ${getVarNameById(value[1])},`;
             } else if (value.id) {
                 props += `${key}: ${getVarName(value)},`;

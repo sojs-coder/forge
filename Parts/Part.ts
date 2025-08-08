@@ -31,7 +31,7 @@ export class Part {
     _superficialHeight: number = 0; // General height of object
     ties: Set<Tie> = new Set(); // Ties to other parts, allowing for dynamic attribute linking
     type: string;
-
+    warned: Set<string> = new Set(); // Set to track warnings for this part, preventing duplicate warnings
     private _childrenByName: { [name: string]: Part } = {}; // For quick access to children by name
     private _childrenByType: { [type: string]: Array<Part> } = {}; // For quick access to children by type
     constructor({ name }: { name?: string } = {}) {
@@ -120,9 +120,6 @@ export class Part {
     }
     onMount(parent: Part) {
         this.parent = parent;
-        for (const [k, v] of Object.entries(parent.registrations)) {
-            this.setAll(k, v);
-        }
     }
     onRegister(attribute: string, value: any) {
         // This method can be overridden in subclasses to handle registration logic
@@ -166,6 +163,9 @@ export class Part {
         this._childrenByName[child.name] = child; // Store child by name for quick access
         if (this.top) {
             child.setTop(this.top); // Set the top-level parent for the child
+        }
+        for (const [k, v] of Object.entries(this.registrations)) {
+            child.setAll(k, v);
         }
         child.onMount(this);
     }

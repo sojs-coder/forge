@@ -40,7 +40,11 @@ export class Camera extends Part {
         // Could be used in rendering context
         const transform = this.child<Transform>("Transform")
         if (!transform) {
-            this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. View matrix will not be calculated.`);
+            if (!this.warned.has("TransformMissing")) {
+                // Warn only once about missing Transform component
+                const seen = this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. View matrix will not be calculated.`);
+                if (seen) this.warned.add("TransformMissing");
+            }
             return { offset: Vector.From(0), scale: this.zoom };
         }
         return {
@@ -55,7 +59,9 @@ export class Camera extends Part {
         if (transform) {
             this.zoom = transform.scale;
         } else {
-            this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. Camera zoom will not be updated.`);
+            if (!this.warned.has("TransformMissing")) {
+                this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. Camera zoom will not be updated.`) ? this.warned.add("TransformMissing") : null;
+            }
         }
     }
 

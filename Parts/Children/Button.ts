@@ -6,6 +6,7 @@ import { Scene } from "../Scene";
 import { Renderer } from "./Renderer";
 import { Sound } from "../Sound";
 import { isNamedTupleMember } from "typescript";
+import type { Camera } from "../Camera";
 
 export class Button extends Renderer {
     styles?: ButtonStyles;
@@ -24,11 +25,9 @@ export class Button extends Renderer {
         this.clickSound = clickSound;
         this.hoverSound = hoverSound;
         this.activeSound = activeSound;
-        console.log(clickSound, hoverSound, activeSound);
         this.type = "Button";
 
         this.onclick = (event: MouseEvent, input: any) => {
-            console.log(`Button <${this.name}> clicked!`);
             if (this.onClickHandler) {
                 this.onClickHandler();
             }
@@ -41,9 +40,8 @@ export class Button extends Renderer {
 
         this.onhover = () => {
             this.isHovered = true;
-            console.log('hovered', this.hoverSound);
             if (this.hoverSound) {
-    
+
                 this.hoverSound.play({ clone: true });
             }
         };
@@ -68,21 +66,6 @@ export class Button extends Renderer {
             }
         };
     }
-    onRegister(attribute: string, value: any): void {
-        super.onRegister(attribute, value);
-        if (attribute == "scene") {
-            const scene = value as Scene;
-            if (!scene.child<Input>("Input")) {
-                const input = new Input({
-                    key: () => {},
-                    keyup: () => {},
-                    mousemove: () => {},
-                    click: () => {}
-                });
-                scene.addChild(input);
-            }
-        }
-    }
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {
@@ -90,7 +73,6 @@ export class Button extends Renderer {
                 `Button <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component before adding a Button.`
             );
         }
-
         // Set superficial dimensions based on default styles
         const defaultStyle = this.styles?.default;
         this.superficialWidth = defaultStyle?.width ?? 100;
@@ -109,7 +91,24 @@ export class Button extends Renderer {
         if (!transform) {
             throw new Error(`Button <${this.name}> does not have a Transform sibling. Ensure it is mounted to a GameObject with a Transform component.`);
         }
-
+        const scene = this.registrations["scene"] as Scene | undefined;
+        if (scene) {
+            if (!scene.child<Input>("Input")) {
+                const input = new Input({
+                    key: () => { },
+                    keyup: () => { },
+                    mousemove: () => { },
+                    click: () => { }
+                });
+                scene.addChild(input);
+            }
+            if (!scene.child<Camera>("Camera") && !this.warned.has("Camera")) {
+                const seen = this.top?.error(`Button <${this.name}> requires a Camera to function properly. Please add a Camera to the Scene.`);
+                if (seen) {
+                    this.warned.add("Camera");
+                }
+            }
+        }
         const position = transform.worldPosition;
         const rotation = transform.rotation;
         const scale = transform.scale;
