@@ -86,20 +86,20 @@ export function selectCustomNode(nodeType: string, category: 'custom' | 'builtin
 function generateNodeTemplate(nodeType: string, category: string): string {
     const parentClass = category === 'builtin' ? nodeType : 'Part';
     return `class ${nodeType} extends ${parentClass} {
-  constructor({ name, ...props }) {
-    super({ name: name || "${nodeType}", ...props });
-    // Add custom properties here
-  }
-  static singular = true; // Indicates this node should only have one instance per parent
-  static properties = {
-    name: { type: "text", default: "${nodeType}" },
-    // Add more properties here
-  };
+    constructor({ name, ...props }) {
+        super({ name: name || "${nodeType}", ...props });
+        // Add custom properties here
+    }
+    static singular = true; // Indicates this node should only have one instance per parent
+    static properties = {
+        name: { type: "text", default: "${nodeType}" },
+        // Add more properties here
+    };
 
-  act() {
-    super.act();
-    // Your custom logic here
-  }
+    act() {
+        super.act();
+        // Your custom logic here
+    }
 }`;
 }
 

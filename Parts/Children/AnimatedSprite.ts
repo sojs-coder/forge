@@ -17,7 +17,10 @@ export class AnimatedSprite extends Renderer {
     webEngine: boolean = false; // Flag to indicate if this is running in a web engine context
     onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void; // Callback for when an animation completes
     spritesheetImage?: string; // Optional image for the spritesheet
-    constructor({ spritesheet, spritesheetImage, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete, webEngine = false }: { spritesheet: string, spritesheetImage?: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void, webEngine?: boolean }) {
+    startLoop: boolean; // Override spritesheet data and loop immediately
+    startBouncing: boolean; // override spritesheet data and loop immediately
+    lastFrameTime: number = performance.now(); // Timestamp of the last frame update
+    constructor({ spritesheet, spritesheetImage, width, height, startingAnimation, disableAntiAliasing = false, onAnimationComplete, webEngine = false, bounce = false, loop = true }: { spritesheet: string, spritesheetImage?: string, width: number, height: number, startingAnimation?: string, disableAntiAliasing?: boolean, onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void, webEngine?: boolean, loop: boolean, bounce: boolean }) {
         super({ width, height }); // Call the parent constructor with empty imageSource
         this.name = "AnimatedSprite";
         this.debugEmoji = "🎞️"; // Default emoji for debugging the animated sprite
@@ -25,7 +28,9 @@ export class AnimatedSprite extends Renderer {
         this.width = width;
         this.height = height;
         this.ready = false;
-        
+        this.startLoop = loop;
+        this.startBouncing = bounce;
+        this.spritesheetImage = spritesheetImage; // Optional image for the spritesheet
         this.currentAnimation = startingAnimation || "default";
         this.disableAntiAliasing = disableAntiAliasing;
         this.onAnimationComplete = onAnimationComplete; // Set the callback for animation completion
@@ -73,7 +78,6 @@ export class AnimatedSprite extends Renderer {
         if (!spritesheetData.meta.animations || typeof spritesheetData.meta.animations !== "object") {
             throw new Error("Invalid spritesheet format: 'meta.animations' is missing or not an object.");
         }
-
         const image = new Image();
         // If spritesheetImage is provided, use it directly. Otherwise, try to resolve from spritesheet data.
         if (this.spritesheetImage) {
@@ -86,8 +90,10 @@ export class AnimatedSprite extends Renderer {
             }
         }
 
+
         image.onerror = (err) => {
             this.top?.error(`Failed to load spritesheet image <${spritesheetData.meta.image}>:`, err);
+            console.error('Failed to load spritesheet image', err);
             this.ready = false;
         };
         this.spritesheetData = spritesheetData; // Store the parsed spritesheet data
@@ -129,13 +135,14 @@ export class AnimatedSprite extends Renderer {
             }
 
         }
-
         if (this.currentAnimation === "default" && this.spritesheetData.meta.startingAnimation) {
             this.currentAnimation = this.spritesheetData.meta.startingAnimation;
+            this.setAnimation(this.currentAnimation, { loop: this.startLoop, bounce: this.startBouncing });
         } else if (this.currentAnimation === "default" && Object.keys(this.spritesheetData.meta.animations).length > 0) {
             this.currentAnimation = Object.keys(this.spritesheetData.meta.animations)[0];
-        }
+            this.setAnimation(this.currentAnimation, { loop: this.startLoop, bounce: this.startBouncing });
 
+        }
         this.ready = true;
     }
     frame(index: number): HTMLImageElement | null {
@@ -195,14 +202,17 @@ export class AnimatedSprite extends Renderer {
             this.top?.warn(`Animation '${animationName}' does not exist in spritesheet for animated sprite <${this.name}> attached to ${this.parent?.name}.`);
         }
     }
-    act(delta: number) {
-        super.act(delta);
+    act(deltaTime: number) {
+        super.act(deltaTime);
         if (!this.ready) {
             return;
         }
-        const duration = (this.spritesheetData?.frames[this.currentFrameIndex].duration || 100)
+        const duration = (this.spritesheetData?.frames[this.currentFrameIndex].duration || 100);
+        const now = performance.now();
+        const between = now - this.lastFrameTime;
         if (this.ready && this.spritesheetData) {
-            if (delta > duration) {
+            if (between > duration) {
+                this.lastFrameTime = now;
                 if (this.spritesheetData.meta.animations[this.currentAnimation].bounce) {
                     let direction = this.bouncing ? -1 : 1; // Determine direction based on bouncing flag
                     const animFrames = this.spritesheetData.meta.animations[this.currentAnimation].frames.length;
@@ -240,8 +250,7 @@ export class AnimatedSprite extends Renderer {
             const transform = this.sibling<Transform>("Transform");
             if (!transform) {
                 if (!this.warned.has("TransformMissing")) {
-                    const seen = this.top?.warn(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a Transform component. Skipping rendering. This will only show once.`);
-                    if (seen) this.warned.add("TransformMissing");
+                    this.top?.warn(`AnimatedSprite <${this.name}> attached to ${this.parent?.name} does not have a Transform component. Skipping rendering. This will only show once.`) ? this.warned.add("TransformMissing") : null;
                 }
                 return;
             }
@@ -271,7 +280,7 @@ export class AnimatedSprite extends Renderer {
         // Create a neat little vertical progress bar for the current animation using an embedded HTML div
         const barHeight = 15; // px
         const barWidth = 6; // px
-        const progress = delta / duration;
+        const progress = this.lastFrameTime / duration;
         this.hoverbug = // use a different loop emoji for loop and bounce
             `${this.ready ? "✅" : "❌"} ${this.spritesheetData?.meta.animations[this.currentAnimation].loop ? "🔁" : ""}` +
             `<div style="display:inline-block; width:${barWidth}px; height:${barHeight}px; background:linear-gradient(to top, dodgerblue ${progress * 100}%, #ccc ${progress * 100}%); border-radius:3px; border:1px solid #888; vertical-align:middle;border-radius:0px"></div> ` +

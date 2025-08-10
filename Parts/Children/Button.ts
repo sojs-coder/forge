@@ -7,6 +7,8 @@ import { Renderer } from "./Renderer";
 import { Sound } from "../Sound";
 import { isNamedTupleMember } from "typescript";
 import type { Camera } from "../Camera";
+import type { BoxCollider } from "./BoxCollider";
+import { PolygonCollider } from "./PolygonCollider";
 
 export class Button extends Renderer {
     styles?: ButtonStyles;
@@ -17,11 +19,32 @@ export class Button extends Renderer {
     hoverSound?: Sound;
     activeSound?: Sound;
 
-    constructor({ label, onClick, styles, clickSound, hoverSound, activeSound }: { label: string; onClick: () => void; styles?: ButtonStyles, clickSound?: Sound, hoverSound?: Sound, activeSound?: Sound }) {
-        super({ width: styles?.default?.width ?? 100, height: styles?.default?.height ?? 50, disableAntiAliasing: true });
+    constructor({ label, onClick, styles, clickSound, hoverSound, activeSound, width, height, backgroundColor, color, font, borderRadius, borderWidth, borderColor, hoverBackground, hoverColor, activeBackground, activeColor }: { label: string; onClick: () => void; styles?: ButtonStyles, clickSound?: Sound, hoverSound?: Sound, activeSound?: Sound, width?: number, height?: number, backgroundColor?: string, color?: string, font?: string, borderRadius?: number, borderWidth?: number, borderColor?: string, hoverBackground?: string, hoverColor?: string, activeBackground?: string, activeColor?: string }) {
+        super({ width: styles?.default?.width || width || 100, height: styles?.default?.height || height || 50, disableAntiAliasing: true });
         this.name = label;
         this.onClickHandler = onClick;
-        this.styles = styles;
+        this.styles = styles || {};
+        this.styles.default = {
+            width,
+            height,
+            backgroundColor,
+            color,
+            font,
+            borderWidth,
+            borderRadius,
+            borderColor,
+            ...this.styles.default
+        }
+        this.styles.hover = {
+            backgroundColor: hoverBackground,
+            color: hoverColor,
+            ...this.styles.hover
+        };
+        this.styles.active = {
+            backgroundColor: activeBackground,
+            color: activeColor,
+            ...this.styles.active
+        };
         this.clickSound = clickSound;
         this.hoverSound = hoverSound;
         this.activeSound = activeSound;
@@ -73,10 +96,8 @@ export class Button extends Renderer {
                 `Button <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component before adding a Button.`
             );
         }
-        // Set superficial dimensions based on default styles
-        const defaultStyle = this.styles?.default;
-        this.superficialWidth = defaultStyle?.width ?? 100;
-        this.superficialHeight = defaultStyle?.height ?? 50;
+        this.superficialWidth = this.width ?? 100;
+        this.superficialHeight = this.height ?? 50;
     }
     setOnClick(onClick: () => void) {
         this.onClickHandler = onClick;
@@ -90,6 +111,10 @@ export class Button extends Renderer {
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
             throw new Error(`Button <${this.name}> does not have a Transform sibling. Ensure it is mounted to a GameObject with a Transform component.`);
+        }
+        const boxCollider = this.sibling<BoxCollider>("BoxCollider") || this.sibling<PolygonCollider>("PolygonCollider");
+        if (!boxCollider && !this.warned.has("MissingBoxCollider")){
+            this.top?.warn(`Button <${this.name}> (${this.id}) does not have a Collider sibling. It may not function correctly without a collider for input detection.`) ? this.warned.add("MissingBoxCollider") : undefined;
         }
         const scene = this.registrations["scene"] as Scene | undefined;
         if (scene) {

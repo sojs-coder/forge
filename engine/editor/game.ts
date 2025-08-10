@@ -48,6 +48,9 @@ export function setupGameControls() {
                         logEntry.textContent = `[${new Date().toISOString()}][${type.toUpperCase()}] ${args.join(' ')}`;
                         logsDiv.appendChild(logEntry);
                         logsDiv.scrollTop = logsDiv.scrollHeight; // Scroll to the bottom
+                        if(logsDiv.children.length > 100) {
+                            logsDiv.removeChild(logsDiv.children[0]);
+                        }
                     }
                 };
             }
@@ -115,7 +118,7 @@ export function updateRender() {
         throw new Error('Game canvas not found');
     }
     canvas.style.display = '';
-    const code = generateGameCode(state.gameTree, false);
+    const code = generateGameCode(state.gameTree, false, state.gameTree?.properties?.starterScene);
     const func = getGameFunction(code);
     const instance = func();
     try {
@@ -246,7 +249,7 @@ function generateChildAppendCode(node: GameNode): string {
     return code;
 }
 
-function generateGameCode(rootNode: GameNode, start = true): string {
+function generateGameCode(rootNode: GameNode, start = true, starterScene?: string): string {
     const sortedNodes = topologicalSort(rootNode);
     let code = '';
     for (const node of sortedNodes) {
@@ -258,10 +261,16 @@ function generateGameCode(rootNode: GameNode, start = true): string {
     }
 
     if (rootNode.type === 'Game' && start) {
-        const starter = rootNode.properties.starterScene
-            ? getVarName(rootNode.properties.starterScene)
+        const starter = Array.isArray(rootNode.properties.starterScene)
+            ? getVarNameById(rootNode.properties.starterScene[1])
             : '';
         code += `${getVarName(rootNode)}.start(${starter});`;
+    } else if (starterScene) {
+        const starter = Array.isArray(starterScene)
+            ? getVarNameById(starterScene[1])
+            : '';
+        const rootVarName = getVarName(rootNode);
+        code += `${rootVarName}.setScene(${starter});`;
     }
 
     return code;

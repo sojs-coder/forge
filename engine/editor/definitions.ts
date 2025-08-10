@@ -38,7 +38,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             position: { type: "Vector", default: "new Vector(0, 0)", description: "Position of the camera in the scene." },
             zoom: { type: "Vector", default: "new Vector(1, 1)", description: "Zoom level of the camera." },
         },
-        children: ["Transform","Follow"],
+        children: ["Transform", "Follow"],
         singular: true
     },
     "Input": {
@@ -116,13 +116,20 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     },
     "Button": {
         properties: {
-            name: { type: "text", default: "Button", description: "The name of the button." },
+            name: { type: "text", default: "Button", description: "The name of the button.", dontShow: true },
             label: { type: "text", default: "Button", description: "The label displayed on the button." },
             width: { type: "number", default: 100, description: "Width of the button." },
             height: { type: "number", default: 50, description: "Height of the button." },
             backgroundColor: { type: "color", default: "#CCCCCC", description: "Background color of the button." },
             color: { type: "color", default: "#000000", description: "Text color of the button." },
             font: { type: "text", default: "16px Arial", description: "Font style for the button label." },
+            borderRadius: { type: "number", default: 5, description: "Border radius of the button." },
+            borderWidth: { type: "number", default: 2, description: "Border width of the button." },
+            borderColor: { type: "color", default: "#000000", description: "Border color of the button." },
+            hoverBackground: { type: "color", default: "#AAAAAA", description: "Background color when hovered." },
+            hoverColor: { type: "color", default: "#000000", description: "Text color when hovered." },
+            activeBackground: { type: "color", default: "#888888", description: "Background color when active." },
+            activeColor: { type: "color", default: "#000000", description: "Text color when active." },
             clickSound: { type: "Part", subType: "Sound", description: "Sound to play on click." },
             hoverSound: { type: "Part", subType: "Sound", description: "Sound to play on hover." },
             activeSound: { type: "Part", subType: "Sound", description: "Sound to play on active." }

@@ -64,7 +64,6 @@ export class PolygonCollider extends Collider {
             if (ctx) {
                 ctx.save();
                 ctx.strokeStyle = this.colliding ? "rgba(255, 0, 100, 0.8)" : "rgba(0, 255, 100, 0.8)";
-                ctx.fillStyle = this.colliding ? "rgba(255, 0, 100, 0.5)" : "rgba(0, 255, 0, 0.5)";
                 ctx.lineWidth = 1;
 
                 ctx.beginPath();
@@ -73,7 +72,6 @@ export class PolygonCollider extends Collider {
                     ctx.lineTo(this.worldVertices[i].x, this.worldVertices[i].y);
                 }
                 ctx.closePath();
-                ctx.fill();
                 ctx.stroke();
                 ctx.restore();
             }

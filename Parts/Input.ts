@@ -187,7 +187,6 @@ export class Input extends Part {
                 }
                 return false;
             });
-
             if (game.hovering && game.hovering !== hovered) {
                 game.hovering.onunhover();
                 game.hovering = undefined;

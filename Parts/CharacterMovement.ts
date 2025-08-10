@@ -18,6 +18,7 @@ export class CharacterMovement extends Part {
 
     act(_delta: number): void {
         if (!this.input) {
+            if (!this.warned.has("MissingInput")) this.top?.warn(`CharacterMovement <${this.name}> (${this.id}) is missing an input property. Please create an input on the scene and pass it.`) ? this.warned.add("MissingInput") : null;
             return;
         }
 

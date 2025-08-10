@@ -2,6 +2,7 @@ import type { Vector } from "./Math/Vector";
 import type { Camera } from "./Parts/Camera";
 import { BoxCollider } from "./Parts/Children/BoxCollider";
 import type { PolygonCollider } from "./Parts/Children/PolygonCollider";
+import type { Renderer } from "./Parts/Children/Renderer";
 import { Transform } from "./Parts/Children/Transform";
 import type { Part } from "./Parts/Part";
 import type { SpriteSheetData } from "./types";
@@ -147,11 +148,11 @@ export function isPointInObject(mouseX: number, mouseY: number, child: Part): bo
         if (transform.rotation !== 0) {
             return isPointInPolygon(mouseX, mouseY, polygonCollider.worldVertices);
         }
-    } else if ((child as any).width && (child as any).height) {
+    } else if ((child as Renderer).width && (child as Renderer).height) {
         // Check for width/height properties (e.g., AnimatedSprite, SpriteRender)
         // These are rendered centered at position + width/2, height/2
-        width = (child as any).width * transform.scale.x;
-        height = (child as any).height * transform.scale.y;
+        width = (child as Renderer).width * transform.scale.x;
+        height = (child as Renderer).height * transform.scale.y;
         centerX = position.x;
         centerY = position.y;
     } else {
@@ -161,7 +162,9 @@ export function isPointInObject(mouseX: number, mouseY: number, child: Part): bo
         centerX = position.x;
         centerY = position.y;
     }
-
+    if (child.type == "Button") {
+        console.log("BUTTON WH", width, height)
+    }
     if (transform.rotation === 0) {
         const left = centerX - width / 2;
         const top = centerY - height / 2;

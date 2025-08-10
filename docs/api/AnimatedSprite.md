@@ -21,7 +21,7 @@ The `AnimatedSprite` component renders an animated sprite from a spritesheet. It
     The height of the sprite.
 
 -   `startingAnimation?: string`
-    The name of the animation to play when the sprite is created.
+    The name of the animation to play when the sprite is created. (Or "default" to preserve spritesheet data's starting animation but force the `bounce` and `loop` properties)
 
 -   `disableAntiAliasing?: boolean`
     If `true`, disables anti-aliasing for this sprite. Defaults to `false`.
@@ -31,6 +31,10 @@ The `AnimatedSprite` component renders an animated sprite from a spritesheet. It
 
 -   `webEngine?: boolean`
     This property is used internally by the engine and should not be modified.
+
+-   `loop?: boolean`
+-   `bounce?: boolean`
+    Override spritesheet data when the `startingAnimation` is played
 
 ## Properties
 
@@ -63,6 +67,9 @@ The `AnimatedSprite` component renders an animated sprite from a spritesheet. It
 
 -   `onAnimationComplete?: (animationName: string, sprite: AnimatedSprite) => void`
     A callback function that is called when an animation completes.
+
+-   `lastFrameTime`
+    Timestamp of the last frame update (as performance.now(), not Date.now())
 
 ## Methods
 

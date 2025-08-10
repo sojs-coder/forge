@@ -34,6 +34,6 @@ export class PhysicsEngine extends Part {
 
     act(delta: number) {
         super.act(delta);
-        Engine.update(this.engine, delta);
+        Engine.update(this.engine, Math.min(delta, 1000 / 30));
     }
 }

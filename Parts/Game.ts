@@ -126,7 +126,7 @@ export class Game extends Part {
         } else if (starterScene instanceof Scene) {
             this.currentScene = starterScene;
         } else {
-            this.warn("No valid scene provided to start the game. Using the first scene found.");
+            this.warn("No valid scene provided to start the game. Using the first scene found. Check console for more details");
             this.currentScene = this.childrenArray[0];
             if (!this.currentScene) {
                 throw new Error("No scenes available to start the game.");
@@ -145,7 +145,7 @@ export class Game extends Part {
         }
         if (!this._isPaused && this.currentScene) {
             const now = performance.now();
-            const delta = Math.min((now - this._lastUpdateTime), 1000 / 60);
+            const delta = (now - this._lastUpdateTime)
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             if (this.devmode) {
                 this.currentScene.calculateLayout();
@@ -225,6 +225,16 @@ export class Game extends Part {
             }
         } else if (scene instanceof Scene) {
             this.currentScene = scene;
+        } else {
+            console.error('Set unknown scene type- neither string nor Scene instance');
+            console.log(scene);
+            let json;
+            try {
+                json = JSON.stringify(scene);
+            } catch (error: any) {
+                json = `<Error Parsing JSON: ${error?.message || 'Error'}>`;
+            }
+            this.debug(`Trying to set scene to unknown type- neither string nor Scene instance. Got ${typeof scene} - ${json}`);
         }
     }
     warn (...args: any[]) {
