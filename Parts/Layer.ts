@@ -18,4 +18,18 @@ export class Layer extends Part {
     addChildren(...parts: Part[]) {
         parts.forEach((part) => this.addChild(part));
     }
+    act(delta: number) {
+        if (!this.ready) {
+            return;
+        }
+        this.ties.forEach(tie => {
+            if (tie.target && tie.target.hasOwnProperty(tie.targetAttribute)) {
+                const value = this.attr(tie.localAttribute);
+                tie.target.attr(tie.targetAttribute, value);
+            }
+        });
+        this.childrenArray.forEach(child => {
+            child.act(delta);
+        });
+    }
 }

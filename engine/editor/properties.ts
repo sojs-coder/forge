@@ -1,8 +1,9 @@
-import { state, findNodeById } from "./state.ts";
+import { state, findNodeById, blur, focus } from "./state.ts";
 import { deleteNode } from "./tree.ts";
 import { updateRender } from "./game.ts";
 import { updateTreeDisplay } from "./tree.ts";
 import type { GameNode, PropertyDefinition } from "./types.ts";
+import type { EventHandler } from "react";
 
 const propertyEditor = document.getElementById('property-editor')!;
 export function renderProperties(node: GameNode) {
@@ -68,14 +69,14 @@ export function renderProperties(node: GameNode) {
                     try {
                         [name, id] = node.properties[key];
                     } catch (error) {
-                        name = 'DEP+'+node.properties[key].properties.name;
+                        name = 'DEP+' + node.properties[key].properties.name;
                         id = node.properties[key].id;
                     }
                 }
 
                 const partDisplay = document.createElement('span');
                 partDisplay.classList.add('part-name-display');
-                partDisplay.textContent = name ? name : '(None)';   
+                partDisplay.textContent = name ? name : '(None)';
                 partDisplay.draggable = true; // Make it draggable
                 partDisplay.dataset.partPropertyKey = key; // Store the key for drop target
 
@@ -331,14 +332,14 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
             if (propDef.subType === 'Vector') {
                 const vectorItemContainer = document.createElement('div');
                 vectorItemContainer.classList.add('vector-item-container');
-                
+
                 const xMatch = item.match(/new\s+Vector\s*\(\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*\)/);
                 let xValue = xMatch ? parseFloat(xMatch[1]) : 0;
                 let yValue = xMatch ? parseFloat(xMatch[2]) : 0;
 
                 const xLabel = document.createElement('span');
                 xLabel.textContent = 'X:';
-                
+
                 const xInput = document.createElement('input');
                 xInput.type = 'number';
                 xInput.value = xValue.toString();
@@ -351,7 +352,7 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
 
                 const yLabel = document.createElement('span');
                 yLabel.textContent = 'Y:';
-                
+
                 const yInput = document.createElement('input');
                 yInput.type = 'number';
                 yInput.value = yValue.toString();
@@ -497,17 +498,16 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
                 document.body.removeChild(popup);
                 updateTreeDisplay();
                 renderProperties(targetNode);
+                removeListeners();
             });
             optionsContainer.appendChild(optionDiv);
         });
     };
-
-    searchInput.addEventListener('input', (event) => {
+    const handleInput = (event: Event) => {
         selectedIndex = -1;
         renderOptions((event.target as HTMLInputElement).value);
-    });
-
-    searchInput.addEventListener('keydown', (event) => {
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
         if (filteredNodes.length === 0) return;
 
         if (event.key === 'ArrowDown') {
@@ -525,15 +525,26 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
             if (selectedIndex !== -1) {
                 targetNode.properties[targetKey] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
                 document.body.removeChild(popup);
+                removeListeners();
                 updateTreeDisplay();
                 renderProperties(targetNode);
             }
         } else if (event.key === 'Escape') {
             event.preventDefault();
+            removeListeners();
             document.body.removeChild(popup);
         }
-    });
-
+    }
+    searchInput.addEventListener('keydown', handleKeyDown);
+    searchInput.addEventListener('input', handleInput);
+    searchInput.addEventListener('blur', blur);
+    searchInput.addEventListener('focus', focus);
+    function removeListeners() {
+        searchInput.removeEventListener('keydown', handleKeyDown);
+        searchInput.removeEventListener('input', handleInput);
+        searchInput.removeEventListener('blur', blur);
+        searchInput.removeEventListener('focus', focus);
+    }
     const cancelButton = document.createElement('button');
     cancelButton.textContent = 'Cancel';
     cancelButton.classList.add('cancel-button');

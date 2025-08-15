@@ -21,6 +21,7 @@ export const state: EditorState = {
         },
         children: []
     },
+    inputFocused: false,
     customNodeEditTimes: {},
 };
 
@@ -52,4 +53,13 @@ export function findParentNode(parentNode: GameNode, targetId: string): GameNode
         }
     }
     return null;
+}
+
+export function focus() {
+    state.inputFocused = true;
+    return true;
+}
+export function blur() {
+    state.inputFocused = false;
+    return false;
 }

@@ -15,6 +15,27 @@ export class Health extends Part {
         this.type = "Health";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedHealth = new Health({
+            maxHealth: this.maxHealth,
+            onDeath: this.onDeath
+        });
+
+        memo.set(this, clonedHealth);
+
+        this._cloneProperties(clonedHealth, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedHealth.isDead = false;
+        clonedHealth.currentHealth = clonedHealth.maxHealth;
+
+        return clonedHealth as this;
+    }
+
     takeDamage(amount: number) {
         this.currentHealth -= amount;
         if (this.currentHealth <= 0) {

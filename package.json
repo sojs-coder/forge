@@ -11,19 +11,24 @@
   },
   "type": "module",
   "scripts": {
-    "build:engine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --minify",
-    "build:editor": "bun build ./engine/editor/editor.ts --outfile ./engine/editor.js --minify",
-    "build:all": "bun run build:engine && bun run build:editor",
-    "watch:engine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --watch --minify",
-    "watch:editor": "bun build ./engine/editor/editor.ts --outfile ./engine/editor.js --watch --minify",
-    "watch:all": "bun run watch:engine & bun run watch:editor"
+    "build:engine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js",
+    "build:editor": "bun build ./engine/editor/editor.ts --outfile ./engine/editor.js",
+    "build:spriteEditor": "bun build ./engine/editor/spriteBuilder.ts --outfile ./engine/spriteEditor.js",
+    "build:all": "bun run build:engine && bun run build:editor && bun run build:spriteEditor",
+    "watch:engine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --watch",
+    "watch:editor": "bun build ./engine/editor/editor.ts --outfile ./engine/editor.js --watch",
+    "watch:spriteEditor": "bun build ./engine/editor/spriteBuilder.ts --outfile ./engine/spriteEditor.js --watch",
+    "watch:all": "bun run watch:engine & bun run watch:editor & bun run watch:spriteEditor",
+    "build:nominengine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --watch"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.53.0",
     "@types/google-one-tap": "^1.2.6",
     "@types/node": "^24.1.0",
     "@types/showdown": "^2.0.6",
+    "jszip": "^3.10.1",
     "matter-js": "^0.20.0",
+    "rfdc": "^1.4.1",
     "showdown": "^2.1.0",
     "terser": "^5.43.1"
   }

@@ -42,7 +42,24 @@ export class ColorRender extends Renderer {
 
         parent.setSuperficialDimensions(this.width, this.height);
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
 
+        const clonedColor = new ColorRender({
+            width: this.width,
+            height: this.height,
+            color: this.color,
+            vertices: this.vertices.map(v => v.clone())
+        });
+
+        memo.set(this, clonedColor);
+
+        this._cloneProperties(clonedColor, memo);
+
+        return clonedColor as this;
+    }
     act(delta: number) {
         super.act(delta);
 

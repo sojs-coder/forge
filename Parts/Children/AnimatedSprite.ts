@@ -37,6 +37,38 @@ export class AnimatedSprite extends Renderer {
         this.webEngine = webEngine; // Set the web engine flag
         this.type = "AnimatedSprite";
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedSprite = new AnimatedSprite({
+            spritesheet: this.spritesheet,
+            spritesheetImage: this.spritesheetImage,
+            width: this.width,
+            height: this.height,
+            startingAnimation: this.currentAnimation,
+            disableAntiAliasing: this.disableAntiAliasing,
+            onAnimationComplete: this.onAnimationComplete,
+            webEngine: this.webEngine,
+            bounce: this.startBouncing,
+            loop: this.startLoop
+        });
+
+        memo.set(this, clonedSprite);
+
+        this._cloneProperties(clonedSprite, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedSprite.ready = false;
+        clonedSprite.currentFrameIndex = 0;
+        clonedSprite.loadedSheet = undefined;
+        clonedSprite.frames = {};
+        clonedSprite.spritesheetData = undefined;
+        clonedSprite.lastFrameTime = performance.now(); // Reset last frame time
+
+        return clonedSprite as this;
+    }
     destroy() {
         super.destroy();
         // Clean up the loaded spritesheet image
@@ -135,6 +167,7 @@ export class AnimatedSprite extends Renderer {
             }
 
         }
+        await Promise.all(frameLoadPromises);
         if (this.currentAnimation === "default" && this.spritesheetData.meta.startingAnimation) {
             this.currentAnimation = this.spritesheetData.meta.startingAnimation;
             this.setAnimation(this.currentAnimation, { loop: this.startLoop, bounce: this.startBouncing });

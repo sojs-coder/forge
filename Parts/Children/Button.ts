@@ -89,6 +89,71 @@ export class Button extends Renderer {
             }
         };
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedButton = new Button({
+            label: this.name,
+            onClick: this.onClickHandler,
+            styles: this.styles,
+            clickSound: this.clickSound,
+            hoverSound: this.hoverSound,
+            activeSound: this.activeSound,
+            width: this.width,
+            height: this.height,
+        });
+
+        memo.set(this, clonedButton);
+
+        this._cloneProperties(clonedButton, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedButton.isHovered = false;
+        clonedButton.isActive = false;
+
+        // Re-assign event handlers to ensure they are bound to the cloned instance
+        clonedButton.onclick = (event: MouseEvent, input: any) => {
+            if (clonedButton.onClickHandler) {
+                clonedButton.onClickHandler();
+            }
+            if (clonedButton.clickSound) {
+                clonedButton.clickSound.play({ clone: true });
+            }
+            event.stopPropagation();
+            event.preventDefault();
+        };
+
+        clonedButton.onhover = () => {
+            clonedButton.isHovered = true;
+            if (clonedButton.hoverSound) {
+                clonedButton.hoverSound.play({ clone: true });
+            }
+        };
+
+        clonedButton.onunhover = () => {
+            clonedButton.isHovered = false;
+            clonedButton.isActive = false;
+        };
+
+        clonedButton.onmousedown = (event: MouseEvent) => {
+            if (event.button === 0) {
+                clonedButton.isActive = true;
+                if (clonedButton.activeSound) {
+                    clonedButton.activeSound.play({ clone: true });
+                }
+            }
+        };
+
+        clonedButton.onmouseup = (event: MouseEvent) => {
+            if (event.button === 0) {
+                clonedButton.isActive = false;
+            }
+        };
+
+        return clonedButton as this;
+    }
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {

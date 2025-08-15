@@ -80,6 +80,32 @@ export class ParticleEmitter extends Part {
         this.debugEmoji = "💨";
         this.type = 'ParticleEmitter';
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedEmitter = new ParticleEmitter({
+            range: this.range,
+            particleColor: this.particleColor,
+            particleSize: this.particleSize,
+            particleSpeed: this.particleSpeed,
+            particleLifetime: this.particleLifetime,
+            emissionRate: this.emissionRate,
+            maxParticles: this.maxParticles
+        });
+
+        memo.set(this, clonedEmitter);
+
+        this._cloneProperties(clonedEmitter, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedEmitter.lastEmissionTime = 0;
+        clonedEmitter.emittedCount = 0;
+        clonedEmitter.particles = []; // Clear particles, they will be re-emitted
+
+        return clonedEmitter as this;
+    }
     onMount(parent: Part) {
         super.onMount(parent);
         if (this.top?.devmode) parent.addChild(new ColorRender({ width: 100, height: 100, color: "rgba(255, 255, 255, 0.5)" }));

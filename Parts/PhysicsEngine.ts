@@ -20,6 +20,23 @@ export class PhysicsEngine extends Part {
         this.debugEmoji = "⚛️";
         this.type = "PhysicsEngine";
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedEngine = new PhysicsEngine({
+            gravity: this.engine.gravity // Pass original gravity settings to constructor
+        });
+
+        memo.set(this, clonedEngine);
+
+        this._cloneProperties(clonedEngine, memo);
+
+        // No additional resets needed, as the constructor already creates a fresh engine/world
+
+        return clonedEngine as this;
+    }
     destroy(): void {
         super.destroy();
         // Clean up the physics engine

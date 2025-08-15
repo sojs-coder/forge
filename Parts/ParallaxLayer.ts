@@ -12,6 +12,27 @@ export class ParallaxLayer extends Layer {
         this.parallaxFactor = parallaxFactor;
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedLayer = new ParallaxLayer({
+            name: this.name,
+            parallaxFactor: this.parallaxFactor
+        });
+
+        memo.set(this, clonedLayer);
+
+        this._cloneProperties(clonedLayer, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedLayer.initialized = false;
+        clonedLayer.originalPositions = new Map(); // Will be re-populated by initialize()
+
+        return clonedLayer as this;
+    }
+
     initialize() {
         // Store original positions when the layer starts
         this.childrenArray.forEach(child => {

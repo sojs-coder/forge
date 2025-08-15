@@ -14,6 +14,26 @@ export class WaypointFollower extends Part {
         this.debugEmoji = "📍";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedFollower = new WaypointFollower({
+            waypoints: this.waypoints.map(wp => wp.clone()), // Deep clone waypoints
+            speed: this.speed
+        });
+
+        memo.set(this, clonedFollower);
+
+        this._cloneProperties(clonedFollower, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedFollower.currentWaypointIndex = 0;
+
+        return clonedFollower as this;
+    }
+
     act(delta: number) {
         super.act(delta);
         if (this.waypoints.length === 0) return;

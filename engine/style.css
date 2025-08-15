@@ -1,36 +1,96 @@
 *:focus {
-  outline: 4px solid rgba(97, 175, 239, 0.5); /* Focus ring */
+  outline: 4px solid rgba(97, 175, 239, 0.5);
+  /* Focus ring */
 }
+
 body {
   display: flex;
   flex-direction: column;
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  background-color: #282c34; /* Dark background */
-  color: #abb2bf; /* Light text color */
+  background-color: #282c34;
+  /* Dark background */
+  color: #abb2bf;
+  /* Light text color */
   font-family: Arial, sans-serif;
 }
+
 button {
   cursor: pointer;
-  background-color: #3e4451; /* Darker button background */
-  color: #abb2bf; /* Light text color */
+  background-color: #3e4451;
+  /* Darker button background */
+  color: #abb2bf;
+  /* Light text color */
   border: none;
   border-radius: 3px;
   padding: 6px 12px;
-  font-size: 0.9em; /* Slightly smaller font size */
-}
-button:hover {
-  background-color: #4b5263; /* Lighter on hover */
+  font-size: 0.9em;
+  /* Slightly smaller font size */
 }
 
+button:hover {
+  background-color: #4b5263;
+  /* Lighter on hover */
+}
+
+#drawing-tools button.selected {
+  background-color: #044b77;
+}
+
+.frame.selected {
+  border: 2px solid #044b77;
+}
+
+#frames-list {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.frame {
+  border: 1px solid #3e4451;
+  border-radius: 3px;
+  padding: 5px;
+  margin-bottom: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+}
+
+.frame img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #3e4451;
+}
+
+.frame-name {
+  text-align: center;
+  font-size: 12px;
+}
+
+.frame button {
+  border: none;
+  color: #abb2bf;
+  cursor: pointer;
+  width: 100%;
+}
+
+.frame button:hover {
+  color: #61afef;
+}
 
 .property-group {
-  margin-bottom: 8px; /* More compact spacing */
+  margin-bottom: 8px;
+  /* More compact spacing */
   padding: 5px;
   border-radius: 3px;
   display: flex;
-  flex-direction: column; /* Changed to column to accommodate drawer */
+  flex-direction: column;
+  /* Changed to column to accommodate drawer */
   background-color: #2c323c;
 }
 
@@ -50,8 +110,10 @@ button:hover {
 .property-group input[type="text"],
 #property-editor input[type="number"],
 #property-editor input[type="color"] {
-  width: 100%; /* Adjust for padding */
-  padding: 4px; /* More compact */
+  width: 100%;
+  /* Adjust for padding */
+  padding: 4px;
+  /* More compact */
   border: 1px solid #3e4451;
   border-radius: 3px;
   background-color: #343a45;
@@ -86,8 +148,10 @@ button:hover {
 }
 
 #top-panel {
-  height: 40px; /* Slightly more compact */
-  background-color: #21252b; /* Darker background */
+  height: 40px;
+  /* Slightly more compact */
+  background-color: #21252b;
+  /* Darker background */
   border-bottom: 1px solid #3e4451;
   display: flex;
   align-items: center;
@@ -95,8 +159,11 @@ button:hover {
   padding: 0 10px;
 }
 
-#play-button, #save-button, #load-button {
-  background-color: #61afef; /* Accent color */
+#play-button,
+#save-button,
+#load-button {
+  background-color: #61afef;
+  /* Accent color */
   color: white;
   padding: 5px 10px;
   border: none;
@@ -105,12 +172,15 @@ button:hover {
   font-size: 0.9em;
 }
 
-#play-button:hover, #save-button:hover, #load-button:hover {
+#play-button:hover,
+#save-button:hover,
+#load-button:hover {
   background-color: #529dcc;
 }
 
 #pause-button {
-  background-color: #e06c75; /* Red color for pause */
+  background-color: #e06c75;
+  /* Red color for pause */
   color: white;
   padding: 5px 10px;
   border: none;
@@ -129,7 +199,8 @@ button:hover {
 }
 
 #stop-button {
-  background-color: #e5c07b; /* Yellow/orange color for stop */
+  background-color: #e5c07b;
+  /* Yellow/orange color for stop */
   color: white;
   padding: 5px 10px;
   border: none;
@@ -161,7 +232,8 @@ button:hover {
 #main-content {
   display: flex;
   flex-grow: 1;
-  overflow: hidden; /* Prevent content from overflowing during resize */
+  overflow: hidden;
+  /* Prevent content from overflowing during resize */
 }
 
 #left-panel {
@@ -176,7 +248,8 @@ button:hover {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Crucial for canvas scaling */
+  overflow: hidden;
+  /* Crucial for canvas scaling */
 }
 
 #game-container {
@@ -184,20 +257,26 @@ button:hover {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* Hide overflow if canvas is larger than container */
-  border: 2px solid grey; /* Default grey border */
-  box-sizing: border-box; /* Add this line */
+  overflow: hidden;
+  /* Hide overflow if canvas is larger than container */
+  border: 2px solid grey;
+  /* Default grey border */
+  box-sizing: border-box;
+  /* Add this line */
 }
 
 #game-container.game-active {
-  border: 2px solid white; /* White border when game is active */
+  border: 2px solid white;
+  /* White border when game is active */
 }
 
 #gamecanvas {
   max-width: 100%;
   max-height: 100%;
-  display: block; /* Remove extra space below canvas */
-  object-fit: contain; /* Scale down to fit, maintain aspect ratio */
+  display: block;
+  /* Remove extra space below canvas */
+  object-fit: contain;
+  /* Scale down to fit, maintain aspect ratio */
 }
 
 #right-panel {
@@ -218,7 +297,8 @@ button:hover {
 #property-editor button {
   background-color: #61afef;
   color: white;
-  padding: 6px 10px; /* More compact */
+  padding: 6px 10px;
+  /* More compact */
   border: none;
   border-radius: 3px;
   cursor: pointer;
@@ -230,12 +310,14 @@ button:hover {
 }
 
 .node-item {
-  padding: 0; /* Remove padding from node-item itself */
+  padding: 0;
+  /* Remove padding from node-item itself */
   cursor: pointer;
   border-bottom: none;
   font-size: 0.95em;
   display: flex;
-  flex-direction: column; /* Make it stack vertically */
+  flex-direction: column;
+  /* Make it stack vertically */
   position: relative;
   transition: background-color 0.1s ease;
 }
@@ -254,9 +336,11 @@ button:hover {
 }
 
 .node-header {
-  display: flex; /* Keep header elements in a row */
+  display: flex;
+  /* Keep header elements in a row */
   align-items: center;
-  padding: 5px 8px; /* Apply padding here */
+  padding: 5px 8px;
+  /* Apply padding here */
 }
 
 .node-toggle {
@@ -269,9 +353,12 @@ button:hover {
 }
 
 .node-children {
-  margin-left: 18px; /* Increased indentation */
-  border-left: 1px solid #3e4451; /* Vertical line for hierarchy */
-  padding-left: 5px; /* Space between line and children */
+  margin-left: 18px;
+  /* Increased indentation */
+  border-left: 1px solid #3e4451;
+  /* Vertical line for hierarchy */
+  padding-left: 5px;
+  /* Space between line and children */
 }
 
 /* Drag and Drop Indicators */
@@ -282,7 +369,8 @@ button:hover {
   left: 0;
   right: 0;
   height: 2px;
-  background-color: #61afef; /* Accent color */
+  background-color: #61afef;
+  /* Accent color */
 }
 
 .drag-over-above::before {
@@ -294,7 +382,8 @@ button:hover {
 }
 
 .drag-over-child {
-  background-color: #3e4451; /* Highlight background for child drop */
+  background-color: #3e4451;
+  /* Highlight background for child drop */
   border: 1px dashed #61afef;
 }
 
@@ -307,7 +396,8 @@ button:hover {
 .CodeMirror {
   flex-grow: 1;
   height: auto;
-  font-size: 0.9em; /* Compact font size for editor */
+  font-size: 0.9em;
+  /* Compact font size for editor */
 }
 
 .CodeMirror-scroll {
@@ -331,11 +421,13 @@ button:hover {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 300px; /* Fixed width for consistency */
+  width: 300px;
+  /* Fixed width for consistency */
 }
 
 .node-search-input {
-  width: calc(100% - 10px); /* Adjust for padding */
+  width: calc(100% - 10px);
+  /* Adjust for padding */
   padding: 8px;
   border: 1px solid #3e4451;
   border-radius: 3px;
@@ -350,7 +442,8 @@ button:hover {
 }
 
 .node-options-container {
-  max-height: 200px; /* Limit height for scrollability */
+  max-height: 200px;
+  /* Limit height for scrollability */
   overflow-y: auto;
   border: 1px solid #3e4451;
   border-radius: 3px;
@@ -363,7 +456,8 @@ button:hover {
   font-size: 0.95em;
 }
 
-.node-option:hover, .node-option.selected-option {
+.node-option:hover,
+.node-option.selected-option {
   background-color: #3e4451;
   color: #61afef;
 }
@@ -376,7 +470,8 @@ button:hover {
   border-radius: 3px;
   cursor: pointer;
   font-size: 1em;
-  margin-left: 0; /* Reset margin */
+  margin-left: 0;
+  /* Reset margin */
 }
 
 .node-select-container button:hover {
@@ -391,14 +486,17 @@ button:hover {
   background-color: #d45d68;
 }
 
-.left, .right {
+.left,
+.right {
   max-width: 50%;
 }
+
 .right {
   display: flex;
   justify-content: flex-end;
 
 }
+
 /* List Editor Drawer Styles */
 
 .list-editor-drawer {
@@ -468,7 +566,8 @@ button:hover {
   border-color: #61afef;
 }
 
-.add-button, .save-button {
+.add-button,
+.save-button {
   background-color: #61afef;
   color: white;
   border: none;
@@ -478,7 +577,8 @@ button:hover {
   font-size: 0.9em;
 }
 
-.add-button:hover, .save-button:hover {
+.add-button:hover,
+.save-button:hover {
   background-color: #529dcc;
 }
 
@@ -592,7 +692,8 @@ button:hover {
 .tab-content {
   display: none;
   flex: 1;
-  height: calc(100% - 45px); /* Subtract tab height */
+  height: calc(100% - 45px);
+  /* Subtract tab height */
 }
 
 .tab-content.active {
@@ -604,6 +705,7 @@ button:hover {
 #node-editor-container {
   background-color: #282c34;
   color: #abb2bf;
+  max-height: 50%;
 }
 
 #node-editor-header {
@@ -643,8 +745,10 @@ button:hover {
 #node-code-editor {
   flex: 1;
   position: relative;
-  height: 100%; /* Ensure it takes available height */
-  overflow-y: auto; /* Enable vertical scrolling */
+  height: 100%;
+  /* Ensure it takes available height */
+  overflow-y: auto;
+  /* Enable vertical scrolling */
 }
 
 #node-code-editor .CodeMirror {
@@ -655,6 +759,7 @@ button:hover {
 #node-editor-container.expanded {
   flex-grow: 1;
   height: 100%;
+  max-height: 100%;
 }
 
 /* Custom Nodes List Styles */
@@ -705,6 +810,7 @@ button:hover {
   color: #5c6370;
   margin-top: 2px;
 }
+
 a {
   color: #61afef;
   text-decoration: none;
@@ -737,7 +843,8 @@ a {
 }
 
 .clear-part-button {
-  background-color: #e06c75; /* Red for clear */
+  background-color: #e06c75;
+  /* Red for clear */
   color: white;
   padding: 4px 8px;
   border: none;
@@ -763,7 +870,8 @@ a {
   left: 50%;
   transform: translate(-50%, -50%);
   padding: 15px;
-  z-index: 2000; /* Higher z-index than node-select-container */
+  z-index: 2000;
+  /* Higher z-index than node-select-container */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -772,7 +880,8 @@ a {
 }
 
 .node-selection-popup .node-search-input {
-  width: calc(100% - 16px); /* Adjust for padding */
+  width: calc(100% - 16px);
+  /* Adjust for padding */
 }
 
 .node-selection-popup .node-options-container {
@@ -786,7 +895,8 @@ a {
   font-size: 0.95em;
 }
 
-.node-selection-popup .node-option:hover, .node-selection-popup .node-option.selected-option {
+.node-selection-popup .node-option:hover,
+.node-selection-popup .node-option.selected-option {
   background-color: #3e4451;
   color: #61afef;
 }
@@ -813,6 +923,7 @@ a {
 .node-selection-popup button.cancel-button:hover {
   background-color: #d45d68;
 }
+
 #custom-nodes-list h3 {
   margin: 0 0 10px 0;
   padding: 10px 12px;
@@ -854,7 +965,8 @@ a {
   display: none !important;
 }
 
-#custom-alert, #custom-prompt {
+#custom-alert,
+#custom-prompt {
   display: none;
   position: fixed;
   z-index: 2000;
@@ -862,16 +974,18 @@ a {
   top: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(40, 44, 52, 0.85); /* Match dark overlay */
+  background-color: rgba(40, 44, 52, 0.85);
+  /* Match dark overlay */
   justify-content: center;
   align-items: center;
 }
 
-#custom-alert-content, #custom-prompt-content {
+#custom-alert-content,
+#custom-prompt-content {
   background-color: #21252b;
   padding: 24px 28px;
   border-radius: 5px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   text-align: center;
   color: #abb2bf;
   border: 1px solid #3e4451;
@@ -897,13 +1011,16 @@ a {
 }
 
 #custom-prompt-buttons {
-  margin-top: 28px; /* Increased margin to separate from content */
+  margin-top: 28px;
+  /* Increased margin to separate from content */
   display: flex;
-  justify-content: flex-end; /* Right-align the buttons */
+  justify-content: flex-end;
+  /* Right-align the buttons */
   gap: 10px;
 }
 
-#custom-prompt-ok, #custom-prompt-cancel {
+#custom-prompt-ok,
+#custom-prompt-cancel {
   padding: 8px 18px;
   border: none;
   border-radius: 3px;
@@ -941,6 +1058,7 @@ a {
   max-width: 300px;
   z-index: 3000;
 }
+
 .notification {
   background-color: #21252b;
   color: #abb2bf;
@@ -952,14 +1070,20 @@ a {
 }
 
 .notification.info {
-  border-left: 4px solid #61afef; /* Blue for info */
+  border-left: 4px solid #61afef;
+  /* Blue for info */
 }
+
 .notification.error {
-  border-left: 4px solid #e06c75; /* Red for error */
+  border-left: 4px solid #e06c75;
+  /* Red for error */
 }
+
 .notification.success {
-  border-left: 4px solid #98c379; /* Green for success */
+  border-left: 4px solid #98c379;
+  /* Green for success */
 }
+
 .notification.fade-out {
   transition: opacity 500ms ease;
   opacity: 0;
@@ -984,6 +1108,7 @@ a {
   margin-bottom: 20px;
   font-size: 1em;
 }
+
 .prompt-container input[type="text"] {
   width: 100%;
   padding: 8px;
@@ -995,10 +1120,12 @@ a {
   box-sizing: border-box;
   margin: 8px 0px;
 }
+
 .prompt-container input[type="text"]:focus {
   outline: none;
   border-color: #61afef;
 }
+
 .prompt-container .prompt-button {
   padding: 8px 18px;
   border: none;
@@ -1032,14 +1159,16 @@ a {
   height: 100%;
   top: 0;
   left: 0;
-  display: none; /* Hidden by default */
+  display: none;
+  /* Hidden by default */
   flex-direction: column;
   background-color: rgba(40, 44, 52, 0.85);
   z-index: 2000;
   justify-content: center;
   align-items: center;
 }
-#node-library.open{
+
+#node-library.open {
   display: flex;
 }
 
@@ -1050,13 +1179,15 @@ a {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   color: #abb2bf;
   max-width: 90vw;
-  width: 600px; /* Fixed width for consistency */
+  width: 600px;
+  /* Fixed width for consistency */
   display: flex;
   flex-direction: column;
   gap: 16px;
   justify-content: center;
   align-items: center;
 }
+
 .node-library-inner input[type="text"] {
   width: 100%;
   padding: 8px;
@@ -1067,6 +1198,7 @@ a {
   font-size: 1em;
   box-sizing: border-box;
 }
+
 .node-library-inner input[type="text"]:focus {
   outline: none;
   border-color: #61afef;
@@ -1074,160 +1206,169 @@ a {
 
 .upvote-container {
   cursor: pointer;
-  color: #87898b; /* Default color */
+  color: #87898b;
+  /* Default color */
   /* make it impossible to highlight */
   user-select: none;
 }
 
 .upvoted {
   /*brighten color a little from #abb2bf*/
-  color: #CCC; /* Lighter shade for upvoted state */
+  color: #CCC;
+  /* Lighter shade for upvoted state */
 }
+
 .part-item {
-    padding: 10px;
-    margin: 5px 0;
-    background-color: #2c323c;
-    border-radius: 3px;
-    display: flex;
-    flex-direction: column; /* Changed to column */
-    gap: 10px; /* Increased gap */
-    cursor: pointer;
-    transition: background-color 0.2s;
-    width: 200px;
+  padding: 10px;
+  margin: 5px 0;
+  background-color: #2c323c;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  /* Changed to column */
+  gap: 10px;
+  /* Increased gap */
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 200px;
 }
 
 .part-item:hover {
-    background-color: #3e4451;
+  background-color: #3e4451;
 }
 
 .part-item img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 3px;
-    object-fit: cover;
+  max-width: 100%;
+  height: auto;
+  border-radius: 3px;
+  object-fit: cover;
 }
 
 .part-item-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    padding: 40px;
-    box-sizing: border-box;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.7);
-    justify-content: center;
-    align-items: center;
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  box-sizing: border-box;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
 }
 
 .modal-content {
-    background-color: #282c34;
-    color: #abb2bf;
-    margin: auto;
-    padding: 20px;
-    border: 1px solid #3e4451;
-    border-radius: 5px;
-    width: 80%;
-    max-width: 600px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+  background-color: #282c34;
+  color: #abb2bf;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #3e4451;
+  border-radius: 5px;
+  width: 80%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.modal-content h3, .modal-content h2 {
-    color: #e5c07b;
-    margin-top: 0;
+.modal-content h3,
+.modal-content h2 {
+  color: #e5c07b;
+  margin-top: 0;
 }
 
 .modal-content label {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .modal-content input[type="text"],
 .modal-content textarea,
 .modal-content input[type="file"] {
-    width: 100%;
-    padding: 8px;
-    background-color: #21252b;
-    border: 1px solid #3e4451;
-    border-radius: 3px;
-    color: #abb2bf;
+  width: 100%;
+  padding: 8px;
+  background-color: #21252b;
+  border: 1px solid #3e4451;
+  border-radius: 3px;
+  color: #abb2bf;
 }
 
 .modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .slideshow-container {
-    position: relative;
-    margin: auto;
-    max-width: 100%;
-    height: 400px;
-    overflow: hidden;
+  position: relative;
+  margin: auto;
+  max-width: 100%;
+  height: 400px;
+  overflow: hidden;
 }
 
 .slide {
-    display: none;
-    width: 100%;
-    height: auto;
-    object-fit: cover;
+  display: none;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
 }
 
 .slide.active {
-    display: block;
+  display: block;
 }
 
-.prev, .next {
-    cursor: pointer;
-    position: absolute;
-    top: 50%;
-    width: auto;
-    padding: 16px;
-    margin-top: -22px;
-    color: white;
-    font-weight: bold;
-    font-size: 18px;
-    transition: 0.6s ease;
-    border-radius: 0 3px 3px 0;
-    user-select: none;
-    background-color: rgba(0, 0, 0, 0.5);
+.prev,
+.next {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  width: auto;
+  padding: 16px;
+  margin-top: -22px;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  transition: 0.6s ease;
+  border-radius: 0 3px 3px 0;
+  user-select: none;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .next {
-    right: 0;
-    border-radius: 3px 0 0 3px;
+  right: 0;
+  border-radius: 3px 0 0 3px;
 }
 
-.prev:hover, .next:hover {
-    background-color: rgba(0, 0, 0, 0.8);
+.prev:hover,
+.next:hover {
+  background-color: rgba(0, 0, 0, 0.8);
 }
 
 .documentation-content {
-    margin-top: 20px;
-    padding-top: 10px;
-    border-top: 1px solid #3e4451;
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #3e4451;
 }
 
 .close-button {
-    color: white;
-    border: none;
-    border-radius: 3px;
-    padding: 8px 16px;
-    cursor: pointer;
-    font-size: 0.9em;
-    display: inline-block;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.9em;
+  display: inline-block;
 }
+
 .inline {
   display: inline;
 }
@@ -1236,6 +1377,7 @@ a {
   display: inline-block;
   margin: 0 5px;
 }
+
 #logs {
   background-color: #2c323c;
   color: #abb2bf;
@@ -1245,21 +1387,71 @@ a {
   overflow-y: auto;
   font-family: monospace;
 }
+
 #logs .log-entry:nth-child(odd) {
-  background-color: #323844; /* Slightly lighter for odd log entries */
+  background-color: #323844;
+  /* Slightly lighter for odd log entries */
 }
+
 #logs .log-entry {
   padding: 5px;
 }
+
 #logs .log-entry:hover {
-  background-color: #3e4451; /* Highlight on hover */
+  background-color: #3e4451;
+  /* Highlight on hover */
 }
+
 #logs .log-entry.debug {
   color: #61afef;
 }
+
 #logs .log-entry.error {
   color: #e06c75;
 }
+
+.frame-gutter {
+  border-top: 1px solid #3e4451;
+  background-color: #21252b;
+  padding: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  height: 150px;
+}
+
+.animation h3 {
+  padding: 5px 0;
+}
+
 #logs .log-entry.warn {
   color: #e5c07b;
+}
+
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #21252b;
+    color: #abb2bf;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    z-index: 10;
+    margin-bottom: 5px;
+    border: 1px solid #3e4451;
+}
+
+.frame.drag-over-above {
+  border-top: 2px solid #61afef;
+}
+
+.frame.drag-over-below {
+  border-bottom: 2px solid #61afef;
 }

@@ -17,6 +17,28 @@ export class Spawner extends Part {
         this.type = "Spawner";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedSpawner = new Spawner({
+            objectToSpawn: this.objectToSpawn,
+            spawnRate: this.spawnRate,
+            maxSpawns: this.maxSpawns
+        });
+
+        memo.set(this, clonedSpawner);
+
+        this._cloneProperties(clonedSpawner, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedSpawner.spawnCount = 0;
+        clonedSpawner.lastSpawnTime = 0;
+
+        return clonedSpawner as this;
+    }
+
     act(delta: number) {
         super.act(delta);
         const now = Date.now();

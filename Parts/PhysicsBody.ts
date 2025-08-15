@@ -25,6 +25,29 @@ export class PhysicsBody extends Part {
         this.initialized = false;
         this.type = 'PhysicsBody';
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedBody = new PhysicsBody({
+            isStatic: this.isStatic,
+            density: this.density,
+            friction: this.friction,
+            restitution: this.restitution
+        });
+
+        memo.set(this, clonedBody);
+
+        this._cloneProperties(clonedBody, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedBody.body = null; // Will be re-initialized in initialize()
+        clonedBody.initialized = false;
+
+        return clonedBody as this;
+    }
+
     initialize() {
         if (this.initialized) return; // Prevent re-initialization
         this.initialized = true;

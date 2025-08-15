@@ -21,6 +21,29 @@ export class HealthBar extends Part {
         this.type = "HealthBar";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedHealthBar = new HealthBar({
+            width: this.width,
+            height: this.height,
+            color: this.color,
+            backgroundColor: this.backgroundColor,
+            offsetHeight: this.offsetHeight
+        });
+
+        memo.set(this, clonedHealthBar);
+
+        this._cloneProperties(clonedHealthBar, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedHealthBar.targetHealth = undefined; // Will be re-assigned in onMount
+
+        return clonedHealthBar as this;
+    }
+
     onMount(parent: Part) {
         super.onMount(parent);
         this.targetHealth = this.sibling<Health>("Health");

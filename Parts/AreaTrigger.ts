@@ -14,6 +14,26 @@ export class AreaTrigger extends Part {
         this.type = "AreaTrigger";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedTrigger = new AreaTrigger({
+            onEnter: this.onEnter,
+            onExit: this.onExit
+        });
+
+        memo.set(this, clonedTrigger);
+
+        this._cloneProperties(clonedTrigger, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedTrigger.activeCollisions = new Set<Collider>(); // Reset active collisions
+
+        return clonedTrigger as this;
+    }
+
     act(delta: number) {
         super.act(delta);
         const collider = this.sibling<Collider>("Collider");

@@ -35,4 +35,4 @@ export * from '../Parts/PhysicsBody';
 export * from '../Math/Vector';
 export * from '../helpers';
 export * from '../types';
-export * from 'terser'
+export * from 'terser';

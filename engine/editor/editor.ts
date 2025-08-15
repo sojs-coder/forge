@@ -1,4 +1,4 @@
-import { state } from "./state.ts";
+import { blur, focus, state } from "./state.ts";
 import { updateTreeDisplay, selectNode, setupTreeControls } from "./tree.ts";
 import { setupGameControls } from "./game.ts";
 import { setupCustomNodes, setEditor } from "./customNodes.ts";
@@ -202,6 +202,14 @@ function resizeCanvas() {
 // Initial resize and resize on window resize
 window.addEventListener('resize', resizeCanvas);
 
+window.addEventListener('load', () => {
+    const inputs = document.querySelectorAll("input[type='text']");
+    inputs.forEach(input => {
+        input.addEventListener('focus', focus);
+        input.addEventListener('blur', blur);
+    });
+});
+
 import("../bundle.js").then(engineModule => {
     Object.assign(window, engineModule);
     state.ready = true;
@@ -212,9 +220,13 @@ import("../bundle.js").then(engineModule => {
         lineNumbers: true,
         mode: "javascript",
         theme: "dracula",
-        value: `// Select or create a custom node to start editing`
+        indentUnit: 4,
+        lineWrapping: true,
+        value: `// Select or create a custom node to start editing`,
+        indentWithTabs: true
     });
-
+    centerEditor.on('focus', focus);
+    centerEditor.on('blur', blur);
     setEditor(centerEditor);
     setupUI(centerEditor);
     setupCustomNodes();

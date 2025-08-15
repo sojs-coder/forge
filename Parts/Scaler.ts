@@ -16,6 +16,28 @@ export class Scaler extends Part {
         this.debugEmoji = "📈";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedScaler = new Scaler({
+            name: this.name,
+            scaleSpeed: this.scaleSpeed.clone(),
+            minScale: this.minScale.clone(),
+            maxScale: this.maxScale.clone()
+        });
+
+        memo.set(this, clonedScaler);
+
+        this._cloneProperties(clonedScaler, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedScaler.scalingUp = true;
+
+        return clonedScaler as this;
+    }
+
     act(delta: number) {
         super.act(delta);
         const transform = this.sibling<Transform>("Transform");

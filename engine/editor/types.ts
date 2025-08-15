@@ -37,6 +37,7 @@ export interface EditorState {
     currentTab: 'game' | 'editor';
     selectedCustomNode: { type: string, category: string } | null;
     gameTree: GameNode;
+    inputFocused: boolean;
     customNodeEditTimes: Record<string, number>;
 }
 

@@ -3,7 +3,7 @@ import type { SpriteRender } from "./Children/SpriteRender";
 import type { AnimatedSprite } from "./Children/AnimatedSprite";
 import type { Game } from "./Game";
 import type { Collider } from "./Children/Collider";
-import type { Scene } from "./Scene";
+import { Vector } from "../Math/Vector";
 
 type Tie<T extends Part = Part, L extends keyof T = keyof T, R extends keyof Part = keyof Part> = {
     target: T;
@@ -239,6 +239,7 @@ export class Part {
     removeChild(child: Part) {
         if (this._childrenByName[child.name]) {
             delete this._childrenByName[child.name];
+            this._childrenByType[child.type] = this._childrenByType[child.type]?.filter(c => c.id != child.id) || [];
             const index = this.childrenArray.indexOf(child);
             if (index !== -1) {
                 this.childrenArray.splice(index, 1);
@@ -366,5 +367,87 @@ export class Part {
             }
         });
     }
+    emptyChildren() {
+        this.childrenArray = [];
+        this._childrenByName = {};
+        this._childrenByType = {};
+    }
+    protected _cloneAndAddChildren(clone: Part, memo: Map<any, any>) {
+        this.childrenArray.forEach(child => {
+            const clonedChild = child.clone(memo);
+            clone.addChild(clonedChild);
+        });
+    }
 
+    protected _cloneProperties(clone: Part, memo: Map<any, any>): Part {
+        memo.set(this, clone);
+        clone.parent = undefined;
+        clone.top = undefined;
+        clone._childrenByName = {};
+        clone._childrenByType = {};
+        clone.childrenArray = []
+        // Deep clone children
+        this._cloneAndAddChildren(clone, memo);
+
+        // Deep clone ties, registrations, flats
+        // Ties
+        const clonedTies = new Set<Tie>();
+        this.ties.forEach(tie => {
+            const clonedTarget = memo.get(tie.target) || tie.target; // Get cloned target if available, else use original
+            clonedTies.add({
+                target: clonedTarget,
+                localAttribute: tie.localAttribute,
+                targetAttribute: tie.targetAttribute
+            });
+        });
+        clone.ties = clonedTies;
+
+        // Registrations
+        const clonedRegistrations: { [key: string]: any } = {};
+        for (const regKey in this.registrations) {
+            const regValue = this.registrations[regKey];
+            if (regValue instanceof Part) {
+                clonedRegistrations[regKey] = regValue.clone(memo);
+            } else if (regValue instanceof Vector) {
+                clonedRegistrations[regKey] = regValue.clone();
+            } else if (typeof regValue === 'object' && regValue !== null) {
+                clonedRegistrations[regKey] = { ...regValue }; // Shallow copy for now, can be made deeper if needed
+            } else {
+                clonedRegistrations[regKey] = regValue;
+            }
+        }
+        clone.registrations = clonedRegistrations;
+
+        // Flats
+        const clonedFlats = { colliders: [] as Collider[] };
+        if (this.flats.colliders) {
+            clonedFlats.colliders = this.flats.colliders.map((collider: Collider) => {
+                return collider.clone(memo);
+            });
+        }
+        clone.flats = clonedFlats;
+
+        // Copy other simple properties that are not handled by constructor or special logic
+        clone.id = generateUID(); // Generate new ID
+        clone.name = this.name; // Copy name
+        clone.type = this.type; // Copy type
+        clone.debugEmoji = this.debugEmoji; // Copy debug emoji
+        clone.hoverbug = this.hoverbug; // Copy hoverbug
+        clone._layoutWidth = this._layoutWidth; // Copy layout width
+        clone._superficialWidth = this._superficialWidth; // Copy superficial width
+        clone._superficialHeight = this._superficialHeight; // Copy superficial height
+        clone.warned = new Set(this.warned); // Copy warned set
+
+
+        return clone;
+    }
+
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clone = new (this.constructor as any)({ name: this.name }); // Default clone creation
+        return this._cloneProperties(clone, memo) as this;
+    }
 }

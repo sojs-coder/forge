@@ -1,9 +1,11 @@
-import { state, findNodeById, findParentNode } from "./state.ts";
+import { state, findNodeById, findParentNode, focus, blur } from "./state.ts";
 import { renderProperties } from "./properties.ts";
 import { updateRender } from "./game.ts";
 import { selectCustomNode } from "./customNodes.ts";
-import { switchTab, customPrompt } from "./ui.ts";
+import { switchTab } from "./ui.ts";
+import { customPrompt } from "./customPrompt.ts";
 import type { GameNode } from "./types.ts";
+import type { Key } from "react";
 
 const treeView = document.getElementById('tree-view')!;
 let draggedNode: GameNode | null = null;
@@ -97,6 +99,8 @@ export function setupTreeControls() {
         searchInput.type = 'text';
         searchInput.placeholder = 'Search parts...';
         searchInput.classList.add('node-search-input');
+        searchInput.addEventListener("focus", focus);
+        searchInput.addEventListener("blur", blur);
         selectContainer.appendChild(searchInput);
 
         const optionsContainer = document.createElement('div');
@@ -123,17 +127,12 @@ export function setupTreeControls() {
                 optionDiv.addEventListener('click', () => {
                     addNode(type);
                     selectContainer.remove();
+                    removeListeners();
                 });
                 optionsContainer.appendChild(optionDiv);
             });
         };
-
-        searchInput.addEventListener('input', (event) => {
-            selectedIndex = -1; // Reset selection on input change
-            renderOptions((event.target as HTMLInputElement).value);
-        });
-
-        searchInput.addEventListener('keydown', (event) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
             if (currentFilteredTypes.length === 0) return;
 
             if (event.key === 'ArrowDown') {
@@ -151,12 +150,28 @@ export function setupTreeControls() {
                 if (selectedIndex !== -1) {
                     addNode(currentFilteredTypes[selectedIndex]);
                     selectContainer.remove();
+                    removeListeners();
                 }
             } else if (event.key === 'Escape') {
                 event.preventDefault();
                 selectContainer.remove();
+                removeListeners();
+
             }
-        });
+
+        }
+        function removeListeners() {
+            searchInput.removeEventListener('input', handleInput);
+            searchInput.removeEventListener('keydown', handleKeyDown);
+            searchInput.removeEventListener('blur', blur);
+            searchInput.removeEventListener('focus', focus);
+        }
+        const handleInput = (event: Event) => {
+            selectedIndex = -1; // Reset selection on input change
+            renderOptions((event.target as HTMLInputElement).value);
+        }
+        searchInput.addEventListener('input', handleInput);
+        searchInput.addEventListener('keydown', handleKeyDown);
 
         // Initial render of options
         renderOptions('');
@@ -303,7 +318,7 @@ export function deleteNode(nodeId: string) {
 }
 
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Delete' && state.selectedNode) {
+    if (event.key === 'Delete' && state.selectedNode && !state.inputFocused) {
         if (confirm(`Are you sure you want to delete ${state.selectedNode.properties.name}?`)) {
             deleteNode(state.selectedNode.id);
         }

@@ -22,6 +22,37 @@ export class Input extends Part {
     private keydownDef?: (event: KeyboardEvent) => void;
     private keyupDef?: (event: KeyboardEvent) => void;
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedInput = new Input({
+            key: this.key || (() => {}),
+            keyup: this.keyup || (() => {}),
+            mousemove: this.mousemove || (() => {}),
+            click: this.click || (() => {})
+        });
+
+        memo.set(this, clonedInput);
+
+        this._cloneProperties(clonedInput, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedInput.downkeys = new Set();
+        clonedInput.currentMousePos = { x: 0, y: 0 };
+        clonedInput.lastClickPos = null;
+        clonedInput.initialized = false;
+        clonedInput.mousemoveDef = undefined;
+        clonedInput.clickDef = undefined;
+        clonedInput.mousedownDef = undefined;
+        clonedInput.mouseupDef = undefined;
+        clonedInput.keydownDef = undefined;
+        clonedInput.keyupDef = undefined;
+
+        return clonedInput as this;
+    }
+
     constructor({
         key,
         keyup,
@@ -49,7 +80,6 @@ export class Input extends Part {
                 return;
             }
             const rect = canvas.getBoundingClientRect(); // DOM rect (in CSS pixels)
-            const scaleFactor = game.scaleFactor ?? 1;
             const gameCanvas = game.canvas;
             // Convert from CSS (DOM) pixels → unscaled canvas space
             const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
@@ -82,7 +112,6 @@ export class Input extends Part {
                 return;
             }
             const rect = canvas.getBoundingClientRect(); // DOM rect (in CSS pixels)
-            const scaleFactor = game.scaleFactor ?? 1;
             const gameCanvas = game.canvas;
             // Convert from CSS (DOM) pixels → unscaled canvas space
             const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);

@@ -19,12 +19,32 @@ export class SpriteRender extends Renderer {
             this.ready = true;
         };
         this.image.onerror = (err: any) => {
-            this.top?.error(`Failed to load image <${this.imageSource}>:`, err);
+            this.top?.error(`[C] Failed to load image<${this.imageSource?.slice(0, 30)}>:`, err.message);
         };
         this.image.src = imageSource;
 
         this.width = width;
         this.height = height;
+    }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedSprite = new SpriteRender({
+            imageSource: this.imageSource!,
+            width: this.width,
+            height: this.height
+        });
+
+        memo.set(this, clonedSprite);
+
+        this._cloneProperties(clonedSprite, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedSprite.ready = false;
+
+        return clonedSprite as this;
     }
     onMount(parent: Part) {
         super.onMount(parent);

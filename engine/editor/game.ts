@@ -196,13 +196,14 @@ function topologicalSort(root: GameNode): GameNode[] {
 }
 
 
-function generateNodeCode(node: GameNode): string {
+function generateNodeCode(node: GameNode, defined: Set<string>): string {
     let code = '';
     const varName = getVarName(node);
     const nodeDefs = (window as any).nodeDefinitions;
 
-    if (nodeDefs[node.type] && nodeDefs[node.type].code) {
+    if (nodeDefs[node.type] && nodeDefs[node.type].code && !defined.has(node.type)) {
         code += nodeDefs[node.type].code;
+        defined.add(node.type);
     }
 
     let props = '';
@@ -252,8 +253,9 @@ function generateChildAppendCode(node: GameNode): string {
 function generateGameCode(rootNode: GameNode, start = true, starterScene?: string): string {
     const sortedNodes = topologicalSort(rootNode);
     let code = '';
+    const defined = new Set<string>();
     for (const node of sortedNodes) {
-        code += generateNodeCode(node);
+        code += generateNodeCode(node, defined);
     }
 
     for (const node of sortedNodes) {

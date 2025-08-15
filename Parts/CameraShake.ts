@@ -18,6 +18,28 @@ export class CameraShake extends Part {
         this.type = "CameraShake";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedShake = new CameraShake({
+            intensity: this.intensity,
+            duration: this.duration
+        });
+
+        memo.set(this, clonedShake);
+
+        this._cloneProperties(clonedShake, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedShake.initialized = false;
+        clonedShake.shakeTimer = 0;
+        clonedShake.originalCameraPosition = null;
+
+        return clonedShake as this;
+    }
+
     initialize() {
         this.initialized = true;
         // Find the camera in the scene and store its original position

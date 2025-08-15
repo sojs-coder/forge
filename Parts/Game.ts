@@ -1,4 +1,3 @@
-import { Sound } from "../engine/bundle";
 import { getDebugInfo } from "../helpers";
 import { Part } from "./Part";
 import { Scene } from "./Scene";
@@ -60,6 +59,47 @@ export class Game extends Part {
                 }
             });
         }
+    }
+
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        // Game constructor requires canvas, width, height, name
+        // We cannot clone the canvas directly, so we'll create a placeholder
+        // The user will need to re-assign a real canvas after cloning
+        const clonedGame = new Game({
+            name: this.name,
+            canvas: document.createElement('canvas'), // Placeholder canvas
+            devmode: this.devmode,
+            width: this.width,
+            height: this.height,
+            disableAntiAliasing: !this.context.imageSmoothingEnabled, // Infer from original context
+            showtoolTips: this.showtoolTips
+        });
+
+        memo.set(this, clonedGame);
+
+        this._cloneProperties(clonedGame, memo);
+
+        // Reset properties that are tied to the DOM or internal state
+        clonedGame.canvas = undefined as any; // User must provide a real canvas
+        clonedGame.context = undefined as any; // Context will be derived from new canvas
+        clonedGame.currentScene = undefined; // Will be set by start() or setScene()
+        // clonedGame.childrenArray is handled by _cloneProperties
+        clonedGame.hovering = undefined; // Reset hovering part
+        clonedGame.tooltipLocked = undefined; // Reset tooltip lock
+        clonedGame.lastMousePosition = { x: 0, y: 0 }; // Reset mouse position
+        clonedGame.scaleFactor = 1; // Reset scale factor
+        clonedGame.canvasOffset = { x: 0, y: 0 }; // Reset canvas offset
+        clonedGame.messageHook = undefined; // Clear message hook
+        clonedGame._isRunning = false; // Reset running state
+        clonedGame._isPaused = false; // Reset paused state
+        clonedGame._animationFrameId = undefined; // Clear animation frame ID
+        clonedGame._lastUpdateTime = 0; // Reset last update time
+
+        return clonedGame as this;
     }
 
     changeCanvasSize(width: number, height: number) {

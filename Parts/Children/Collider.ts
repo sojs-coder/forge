@@ -10,6 +10,24 @@ export class Collider extends Part {
         this.type = "Collider";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedCollider = new Collider();
+
+        memo.set(this, clonedCollider);
+
+        this._cloneProperties(clonedCollider, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedCollider.colliding = false;
+        clonedCollider.collidingWith = new Set<Collider>();
+
+        return clonedCollider as this;
+    }
+
     onMount(parent: Part) {
         super.onMount(parent);
         if (!this.sibling("Transform")) {

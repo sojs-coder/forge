@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge - Sprite Builder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="top-panel">
+        <button id="create-frame-button">Create Frame</button>
+        <button id="export-button">Export Spritesheet</button>
+        <button id="overlay-frame-button">Overlay Frame</button>
+        <label for="frame-width">Frame Width:</label>
+        <input type="number" id="frame-width" value="32">
+        <label for="frame-height">Frame Height:</label>
+        <input type="number" id="frame-height" value="32">
+        <label for="light-background-checkbox">Light Background:</label>
+        <input type="checkbox" id="light-background-checkbox">
+    </div>
+    <div id="drawing-tools" style="display:none;">
+        <button id="draw-tool-pencil" data-tooltip="Pencil (Alt+P)">Pencil</button>
+        <button id="draw-tool-line" data-tooltip="Line (Alt+L)">Line</button>
+        <button id="draw-tool-circle" data-tooltip="Circle (Alt+C)">Circle</button>
+        <button id="draw-tool-polygon" data-tooltip="Polygon (Alt+O)">Polygon</button>
+        <button id="draw-tool-image" data-tooltip="Image (Alt+I)">Image</button>
+        <button id="draw-tool-cursor" data-tooltip="Cursor">Cursor</button>
+        <button id="draw-tool-select" data-tooltip="Select (Alt+S)">Select</button>
+        <input type="color" id="color-picker" value="#000000">
+        <label for="thickness-input">Thickness:</label>
+        <input type="number" id="thickness-input" value="1">
+        <label for="anti-aliasing-checkbox">Anti-aliasing:</label>
+        <input type="checkbox" id="anti-aliasing-checkbox" checked>
+        <button id="save-drawing-button">Save Drawing</button>
+        <button id="cancel-drawing-button">Cancel</button>
+    </div>
+    <div id="main-content">
+        <div id="center-panel">
+            <canvas id="sprite-canvas"></canvas>
+        </div>
+        <div id="right-panel">
+            <h2>Animations</h2>
+            <div id="animations-list"></div>
+            <button id="add-animation-button">Add Animation</button>
+        </div>
+    </div>
+    <div id="bottom-gutter" class="frame-gutter">
+        <h2>Frames</h2>
+        <div id="frames-list"></div>
+    </div>
+
+    <div id="animation-preview-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <canvas id="animation-preview-canvas"></canvas>
+        </div>
+    </div>
+
+    <div id="custom-prompt">
+        <div class="modal-content">
+            <p id="custom-prompt-message"></p>
+            <input type="text" id="custom-prompt-input">
+            <button id="custom-prompt-ok">OK</button>
+            <button id="custom-prompt-cancel">Cancel</button>
+        </div>
+    </div>
+
+    <script src="spriteEditor.js"></script>
+</body>
+
+</html>

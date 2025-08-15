@@ -12,6 +12,30 @@ export class Scene extends Part {
         this.debugEmoji = "🏞️"; // Default emoji for debugging the scene
         this.backgroundColor = backgroundColor || "#000"; // Default background color
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedScene = new Scene({
+            name: this.name,
+            backgroundColor: this.backgroundColor
+        });
+
+        memo.set(this, clonedScene);
+
+        this._cloneProperties(clonedScene, memo);
+
+        // Reset properties that need re-initialization after construction
+        if (this.activeCamera && memo.has(this.activeCamera)) {
+            clonedScene.activeCamera = memo.get(this.activeCamera);
+        } else {
+            clonedScene.activeCamera = null;
+        }
+
+        return clonedScene as this;
+    }
+
     addChild(part: Part) {
         part.setAll("scene", this);
         super.addChild(part);

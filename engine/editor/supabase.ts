@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { showNotification } from "./notification";
 import type { CredentialResponse } from "google-one-tap";
 import type { UserProfile } from "./types";
-import { customPrompt } from "./ui";
+import { customPrompt } from "./customPrompt";
 
 export const supabaseUrl = "https://onplezeeluinclfalmyo.supabase.co";
 export const supabaseKey = "sb_publishable_RSIsE-cpvT-PtZzF8f-b9w_8-4QRNhM";

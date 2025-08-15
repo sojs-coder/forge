@@ -38,6 +38,42 @@ export class Sound extends Part {
             this.top?.error(`Failed to load sound <${this.name}> from src: ${src.substring(0, 30)}...`);
         });
     }
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedSound = new Sound({
+            name: this.name,
+            src: this.audio.src,
+            volume: this.audio.volume,
+            loop: this.audio.loop,
+            webEngine: this.webEngine,
+            start: this.start
+        });
+
+        memo.set(this, clonedSound);
+
+        this._cloneProperties(clonedSound, memo);
+
+        // Reset internal state variables (already done by constructor, but explicitly for clarity)
+        clonedSound._isLoaded = false;
+        clonedSound._clones = new Set();
+        clonedSound._wantToPlay = false;
+        clonedSound._paused = false;
+        clonedSound._started = false;
+        clonedSound._wasMainAudioPlaying = false;
+        clonedSound._playingClonesWhenPaused = new Set();
+        clonedSound._hasEndedListener = false;
+
+        // Unregister the original sound and register the cloned sound with the SoundManager
+        // This should be done after the clone is fully constructed and its properties are set.
+        SoundManager.unregisterSound(this);
+        SoundManager.registerSound(clonedSound);
+
+        return clonedSound as this;
+    }
+
     play(options: { restart?: boolean, clone?: boolean } = {}) {
         if (this.webEngine && !SoundManager.getIsGameRunning()) return;
         const { restart = false, clone = false } = options;

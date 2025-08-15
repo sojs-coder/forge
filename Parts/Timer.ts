@@ -16,6 +16,28 @@ export class Timer extends Part {
         this.type = "Timer";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedTimer = new Timer({
+            duration: this.duration,
+            onComplete: this.onComplete,
+            repeats: this.repeats
+        });
+
+        memo.set(this, clonedTimer);
+
+        this._cloneProperties(clonedTimer, memo);
+
+        // Reset properties that need re-initialization after construction
+        clonedTimer.startTime = 0;
+        clonedTimer.isRunning = false;
+
+        return clonedTimer as this;
+    }
+
     start() {
         this.startTime = Date.now();
         this.isRunning = true;

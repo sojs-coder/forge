@@ -28,6 +28,34 @@ export class Follow extends Part {
         this.debugEmoji = "🎯";
     }
 
+    clone(memo = new Map()): this {
+        if (memo.has(this)) {
+            return memo.get(this);
+        }
+
+        const clonedFollow = new Follow({
+            name: this.name,
+            target: this.target as Transform,
+            offset: this.offset.clone(),
+            interpolationSpeed: this.interpolationSpeed
+        });
+
+        memo.set(this, clonedFollow);
+
+        this._cloneProperties(clonedFollow, memo);
+
+        // Reset properties that need re-initialization after construction
+        // Handle target separately, as it might be a cloned object
+        if (this.target && memo.has(this.target)) {
+            clonedFollow.target = memo.get(this.target);
+        } else {
+            clonedFollow.target = this.target; // Keep reference to original if not cloned
+        }
+        clonedFollow.externalOffset = new Vector(0, 0); // Reset external offset
+
+        return clonedFollow as this;
+    }
+
     act(delta: number) {
         super.act(delta);
         if (this.target) {
