@@ -16,6 +16,7 @@ export class TextRender extends Renderer {
         this.color = color || 'black'; // Default color if not specified
         this.debugEmoji = "🅰️";
         this.type = "TextRender";
+        this.base = "Renderer";
     }
     onMount(parent: Part) {
         super.onMount(parent);

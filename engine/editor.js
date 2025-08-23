@@ -4693,6 +4693,7 @@ class Part {
   _superficialHeight = 0;
   ties = new Set;
   type;
+  base;
   warned = new Set;
   _childrenByName = {};
   _childrenByType = {};
@@ -4704,6 +4705,7 @@ class Part {
     this.parent = undefined;
     this.top = undefined;
     this.ready = true;
+    this.base = "Part";
     this.type = this.constructor.name || "Part";
     this.debugEmoji = "\uD83E\uDDE9";
   }
@@ -4800,7 +4802,17 @@ class Part {
   }
   onUnmount() {
   }
+  onStart() {
+    this.childrenArray.forEach((child) => {
+      if (typeof child.onStart === "function") {
+        child.onStart();
+      }
+    });
+  }
   addChild(child) {
+    if (child.name == "LightSource") {
+      console.log(this, child);
+    }
     if (this._childrenByName[child.name]) {
       this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
       return;
@@ -4849,6 +4861,11 @@ class Part {
     });
     this.childrenArray.forEach((child) => {
       child.act(delta);
+    });
+  }
+  frameEnd(delta) {
+    this.childrenArray.forEach((child) => {
+      child.frameEnd(delta);
     });
   }
   setAll(attribute, value) {
@@ -5053,6 +5070,29 @@ class Part {
     }
     const clone = new this.constructor({ name: this.name });
     return this._cloneProperties(clone, memo);
+  }
+  isVisible(camera) {
+    return false;
+  }
+  getPart(arg) {
+    if (typeof arg === "string") {
+      return this.childrenArray.find((child) => child.type === arg || child.base === arg);
+    }
+    return this.childrenArray.find((child) => child instanceof arg);
+  }
+  getChildPartRecursive(arg, found = []) {
+    for (const child of this.childrenArray) {
+      if (typeof arg !== "string" && child instanceof arg) {
+        found.push(child);
+      } else if (child.type === arg || child.base === arg) {
+        found.push(child);
+      }
+      child.getChildPartRecursive(arg, found);
+    }
+    return found;
+  }
+  siblingOf(...args) {
+    return this.parent?.childrenArray.find((child) => args.includes(child.type) || args.includes(child.base));
   }
 }
 
@@ -24059,6 +24099,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this._isRunning = true;
       this._isPaused = false;
       this._lastUpdateTime = performance.now();
+      this.onStart();
       SoundManager.startGame();
       this.loop();
     }
@@ -24077,6 +24118,7 @@ Defaulting to 2020, but this will stop working in the future.`);
           this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
           this.context.restore();
           this.currentScene.act(delta);
+          this.currentScene.frameEnd(delta);
           this.updateDebugToolTip();
           this.context.fillStyle = "red";
           this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
@@ -24141,7 +24183,6 @@ Defaulting to 2020, but this will stop working in the future.`);
         this.currentScene = scene;
       } else {
         console.error("Set unknown scene type- neither string nor Scene instance");
-        console.log(scene);
         let json;
         try {
           json = JSON.stringify(scene);
@@ -24311,10 +24352,14 @@ Defaulting to 2020, but this will stop working in the future.`);
         return memo.get(this);
       }
       const clonedInput = new Input({
-        key: this.key,
-        keyup: this.keyup,
-        mousemove: this.mousemove,
-        click: this.click
+        key: this.key || (() => {
+        }),
+        keyup: this.keyup || (() => {
+        }),
+        mousemove: this.mousemove || (() => {
+        }),
+        click: this.click || (() => {
+        })
       });
       memo.set(this, clonedInput);
       this._cloneProperties(clonedInput, memo);
@@ -24347,12 +24392,13 @@ Defaulting to 2020, but this will stop working in the future.`);
     }
     initialize(canvas) {
       this.mousemoveDef = (event) => {
+        if (event.target !== canvas)
+          return;
         const game = this.top;
         if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
           return;
         }
         const rect = canvas.getBoundingClientRect();
-        const scaleFactor = game.scaleFactor ?? 1;
         const gameCanvas = game.canvas;
         const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
         const mouseY = (event.clientY - rect.top) * (gameCanvas.height / rect.height);
@@ -24379,7 +24425,6 @@ Defaulting to 2020, but this will stop working in the future.`);
           return;
         }
         const rect = canvas.getBoundingClientRect();
-        const scaleFactor = game.scaleFactor ?? 1;
         const gameCanvas = game.canvas;
         const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
         const mouseY = (event.clientY - rect.top) * (gameCanvas.height / rect.height);
@@ -24523,6 +24568,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.disableAntiAliasing = disableAntiAliasing || false;
       this.debugEmoji = "\uD83C\uDFA8";
       this.type = "Renderer";
+      this.base = "Rednerer";
     }
     face(direction) {
       if (direction.x !== -1 && direction.x !== 1 && direction.y !== -1 && direction.y !== 1) {
@@ -24829,6 +24875,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     constructor() {
       super({ name: "Collider" });
       this.type = "Collider";
+      this.base = "Collider";
     }
     clone(memo = new Map) {
       if (memo.has(this)) {
@@ -24873,6 +24920,75 @@ Defaulting to 2020, but this will stop working in the future.`);
         throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked. Collisions require layers.`);
       }
       this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(",")} objects`;
+    }
+    isVisible(camera) {
+      if (!this.top) {
+        throw new Error("Collider cannot calculate visibility without a 'top' (Game instance).");
+      }
+      const { offset, scale } = camera.getViewMatrix();
+      const cameraPos = offset.multiply(-1);
+      const screenWidth = this.top.width;
+      const screenHeight = this.top.height;
+      const viewWidth = screenWidth / scale.x;
+      const viewHeight = screenHeight / scale.y;
+      const vertices = this.vertices;
+      if (vertices.length === 0) {
+        return false;
+      }
+      const transform = this.sibling("Transform");
+      if (!transform) {
+        throw new Error("Can not calculate visibility if transform sibling is not present");
+      }
+      const worldVertices = vertices.map((vertex) => {
+        return vertex.add(transform.position);
+      });
+      const cameraVertices = [
+        new Vector(cameraPos.x - viewWidth / 2, cameraPos.y - viewHeight / 2),
+        new Vector(cameraPos.x + viewWidth / 2, cameraPos.y - viewHeight / 2),
+        new Vector(cameraPos.x + viewWidth / 2, cameraPos.y + viewHeight / 2),
+        new Vector(cameraPos.x - viewWidth / 2, cameraPos.y + viewHeight / 2)
+      ];
+      return this.checkVerticesAgainstVertices(worldVertices, cameraVertices);
+    }
+    checkVerticesAgainstVertices(vertices1, vertices2) {
+      const axes1 = this.getAxes(vertices1);
+      const axes2 = this.getAxes(vertices2);
+      const axes = axes1.concat(axes2);
+      for (const axis of axes) {
+        const projection1 = this.project(vertices1, axis);
+        const projection2 = this.project(vertices2, axis);
+        if (!this.overlap(projection1, projection2)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    getAxes(vertices) {
+      const axes = [];
+      for (let i = 0;i < vertices.length; i++) {
+        const p1 = vertices[i];
+        const p2 = vertices[i === vertices.length - 1 ? 0 : i + 1];
+        const edge = p2.subtract(p1);
+        const normal = new Vector(-edge.y, edge.x).normalize();
+        axes.push(normal);
+      }
+      return axes;
+    }
+    project(vertices, axis) {
+      let min = axis.dot(vertices[0]);
+      let max = min;
+      for (let i = 1;i < vertices.length; i++) {
+        const p = axis.dot(vertices[i]);
+        if (p < min) {
+          min = p;
+        } else if (p > max) {
+          max = p;
+        }
+      }
+      return { min, max };
+    }
+    overlap(proj1, proj2) {
+      return proj1.max >= proj2.min && proj2.max >= proj1.min;
     }
   };
   PolygonCollider = class PolygonCollider extends Collider {
@@ -24994,33 +25110,6 @@ Defaulting to 2020, but this will stop working in the future.`);
       }
       return true;
     }
-    getAxes(vertices) {
-      const axes = [];
-      for (let i = 0;i < vertices.length; i++) {
-        const p1 = vertices[i];
-        const p2 = vertices[i === vertices.length - 1 ? 0 : i + 1];
-        const edge = p2.subtract(p1);
-        const normal = new Vector(-edge.y, edge.x).normalize();
-        axes.push(normal);
-      }
-      return axes;
-    }
-    project(vertices, axis) {
-      let min = axis.dot(vertices[0]);
-      let max = min;
-      for (let i = 1;i < vertices.length; i++) {
-        const p = axis.dot(vertices[i]);
-        if (p < min) {
-          min = p;
-        } else if (p > max) {
-          max = p;
-        }
-      }
-      return { min, max };
-    }
-    overlap(proj1, proj2) {
-      return proj1.max >= proj2.min && proj2.max >= proj1.min;
-    }
   };
   BoxCollider = class BoxCollider extends Collider {
     start;
@@ -25036,6 +25125,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.realWorldStart = this.start;
       this.realWorldEnd = this.end;
       this.type = "BoxCollider";
+      this.base = "Collider";
     }
     onMount(parent) {
       super.onMount(parent);
@@ -25374,6 +25464,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.color = color;
       this.debugEmoji = "\uD83C\uDFA8";
       this.type = "ColorRender";
+      this.base = "Renderer";
       this.vertices = vertices || [];
       if (this.vertices.length === 0) {
         this.vertices = [
@@ -25446,6 +25537,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       super({ width, height });
       this.name = "SpriteRender";
       this.type = "SpriteRender";
+      this.base = "Renderer";
       this.ready = false;
       this.imageSource = imageSource;
       this.debugEmoji = "\uD83D\uDDBC️";
@@ -25524,6 +25616,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.color = color || "black";
       this.debugEmoji = "\uD83C\uDD70️";
       this.type = "TextRender";
+      this.base = "Renderer";
     }
     onMount(parent) {
       super.onMount(parent);
@@ -48813,6 +48906,421 @@ function hideTooltip() {
   }, 100);
 }
 
+// engine/editor/customPrompt.ts
+function customPrompt(message, defaultValue) {
+  return new Promise((resolve) => {
+    const promptBox = document.getElementById("custom-prompt");
+    const messageElement = document.getElementById("custom-prompt-message");
+    const inputElement = document.getElementById("custom-prompt-input");
+    const okButton = document.getElementById("custom-prompt-ok");
+    const cancelButton = document.getElementById("custom-prompt-cancel");
+    messageElement.textContent = message;
+    inputElement.value = defaultValue;
+    promptBox.style.display = "flex";
+    const closePrompt = (value) => {
+      promptBox.style.display = "none";
+      inputElement.removeEventListener("keydown", onKeyDown);
+      okButton.onclick = null;
+      cancelButton.onclick = null;
+      resolve(value);
+    };
+    okButton.onclick = () => closePrompt(inputElement.value);
+    cancelButton.onclick = () => closePrompt(null);
+    const onKeyDown = (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        closePrompt(inputElement.value);
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePrompt(null);
+      }
+    };
+    inputElement.addEventListener("keydown", onKeyDown);
+    inputElement.focus();
+    inputElement.select();
+  });
+}
+
+// engine/editor/tree.ts
+var treeView = document.getElementById("tree-view");
+var draggedNode = null;
+function updateTreeDisplay() {
+  treeView.innerHTML = "";
+  renderTree(state.gameTree, treeView);
+  updateRender();
+}
+function renderTree(node, parentElement) {
+  const nodeElement = document.createElement("div");
+  nodeElement.classList.add("node-item");
+  nodeElement.dataset.nodeId = node.id;
+  nodeElement.dataset.nodeType = node.type;
+  nodeElement.draggable = true;
+  const nodeHeader = document.createElement("div");
+  nodeHeader.classList.add("node-header");
+  nodeElement.appendChild(nodeHeader);
+  const nodeContent = document.createElement("span");
+  nodeContent.textContent = node.properties.name || node.type + (node.properties.name ? " (" + node.type + ")" : "");
+  nodeHeader.appendChild(nodeContent);
+  if (node.children && node.children.length > 0) {
+    const toggle = document.createElement("span");
+    toggle.classList.add("node-toggle");
+    toggle.textContent = node.expanded ? "▼" : "►";
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      node.expanded = !node.expanded;
+      updateTreeDisplay();
+    });
+    nodeHeader.prepend(toggle);
+  }
+  if (node === state.selectedNode) {
+    nodeElement.classList.add("selected");
+  }
+  nodeElement.addEventListener("click", (event) => {
+    event.stopPropagation();
+    selectNode(node);
+  });
+  nodeElement.addEventListener("dragstart", handleDragStart);
+  nodeElement.addEventListener("dragover", handleDragOver);
+  nodeElement.addEventListener("dragleave", handleDragLeave);
+  nodeElement.addEventListener("drop", (e) => {
+    handleDrop(e);
+    document.querySelectorAll(".node-item").forEach((item) => {
+      item.classList.remove("drag-over-above", "drag-over-below", "drag-over-child");
+    });
+  });
+  parentElement.appendChild(nodeElement);
+  if (node.children && node.children.length > 0 && node.expanded) {
+    const childrenContainer = document.createElement("div");
+    childrenContainer.classList.add("node-children");
+    nodeElement.appendChild(childrenContainer);
+    node.children.forEach((child) => {
+      child.parent = node.properties.name || node.properties.id;
+      renderTree(child, childrenContainer);
+    });
+  }
+}
+var addNodeButton = document.getElementById("add-node-button");
+function setupTreeControls() {
+  addNodeButton.addEventListener("click", () => {
+    if (!state.selectedNode) {
+      alert("Please select a parent node first.");
+      return;
+    }
+    const allowedChildren = window.nodeDefinitions[state.selectedNode.type]?.children || [];
+    const customNodeTypes = Object.keys(window.nodeDefinitions).filter((key) => window.nodeDefinitions[key].code);
+    const allAllowedTypes = [...allowedChildren, ...customNodeTypes].sort();
+    const selectContainer = document.createElement("div");
+    selectContainer.classList.add("node-select-container");
+    let selectedIndex = -1;
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.placeholder = "Search parts...";
+    searchInput.classList.add("node-search-input");
+    searchInput.addEventListener("focus", focus);
+    searchInput.addEventListener("blur", blur);
+    selectContainer.appendChild(searchInput);
+    const optionsContainer = document.createElement("div");
+    optionsContainer.classList.add("node-options-container");
+    selectContainer.appendChild(optionsContainer);
+    let currentFilteredTypes = [];
+    const renderOptions = (filter) => {
+      optionsContainer.innerHTML = "";
+      currentFilteredTypes = allAllowedTypes.filter((type) => type.toLowerCase().includes(filter.toLowerCase()));
+      if (selectedIndex >= currentFilteredTypes.length) {
+        selectedIndex = currentFilteredTypes.length > 0 ? 0 : -1;
+      }
+      currentFilteredTypes.forEach((type, index) => {
+        const optionDiv = document.createElement("div");
+        optionDiv.classList.add("node-option");
+        optionDiv.textContent = type;
+        if (index === selectedIndex) {
+          optionDiv.classList.add("selected-option");
+        }
+        optionDiv.addEventListener("click", () => {
+          addNode(type);
+          selectContainer.remove();
+          removeListeners();
+        });
+        optionsContainer.appendChild(optionDiv);
+      });
+    };
+    const handleKeyDown = (event) => {
+      if (currentFilteredTypes.length === 0)
+        return;
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        selectedIndex = (selectedIndex + 1) % currentFilteredTypes.length;
+        renderOptions(searchInput.value);
+        optionsContainer.children[selectedIndex]?.scrollIntoView({ block: "nearest" });
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        selectedIndex = (selectedIndex - 1 + currentFilteredTypes.length) % currentFilteredTypes.length;
+        renderOptions(searchInput.value);
+        optionsContainer.children[selectedIndex]?.scrollIntoView({ block: "nearest" });
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (selectedIndex !== -1) {
+          addNode(currentFilteredTypes[selectedIndex]);
+          selectContainer.remove();
+          removeListeners();
+        }
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        selectContainer.remove();
+        removeListeners();
+      }
+    };
+    function removeListeners() {
+      searchInput.removeEventListener("input", handleInput);
+      searchInput.removeEventListener("keydown", handleKeyDown);
+      searchInput.removeEventListener("blur", blur);
+      searchInput.removeEventListener("focus", focus);
+    }
+    const handleInput = (event) => {
+      selectedIndex = -1;
+      renderOptions(event.target.value);
+    };
+    searchInput.addEventListener("input", handleInput);
+    searchInput.addEventListener("keydown", handleKeyDown);
+    renderOptions("");
+    const addNode = async (nodeType) => {
+      const newNodeDef = window.nodeDefinitions[nodeType];
+      const newProperties = {};
+      for (const key in newNodeDef.properties) {
+        newProperties[key] = newNodeDef.properties[key].default;
+      }
+      if (newNodeDef.singular) {
+        newProperties.name = nodeType;
+      } else {
+        const defaultName = nodeType + "_" + (state.selectedNode.children.length + 1);
+        const name = await customPrompt(`Enter name for the new ${nodeType}:`, defaultName);
+        if (name === null) {
+          return;
+        }
+        newProperties.name = name.trim() || defaultName;
+      }
+      const newNode = {
+        id: shuffle((Date.now().toString(36) + Math.random().toString(36).substring(2)).split("")).join(""),
+        type: nodeType,
+        properties: newProperties,
+        children: [],
+        parent: state.selectedNode?.properties.name || state.selectedNode?.id || null
+      };
+      state.selectedNode.children.push(newNode);
+      updateTreeDisplay();
+      selectNode(newNode);
+    };
+    const cancelButton = document.createElement("button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.classList.add("cancel-button");
+    cancelButton.addEventListener("click", () => {
+      selectContainer.remove();
+    });
+    selectContainer.appendChild(cancelButton);
+    document.body.appendChild(selectContainer);
+    searchInput.focus();
+  });
+  treeView.addEventListener("keydown", (event) => {
+    const allVisibleNodes = [];
+    const collectVisibleNodes = (node) => {
+      allVisibleNodes.push(node);
+      if (node.expanded && node.children) {
+        node.children.forEach(collectVisibleNodes);
+      }
+    };
+    collectVisibleNodes(state.gameTree);
+    if (allVisibleNodes.length === 0)
+      return;
+    let currentIndex = state.selectedNode ? allVisibleNodes.findIndex((n) => n.id === state.selectedNode.id) : -1;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (currentIndex < allVisibleNodes.length - 1) {
+        selectNode(allVisibleNodes[currentIndex + 1]);
+      } else if (currentIndex === -1) {
+        selectNode(allVisibleNodes[0]);
+      }
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (currentIndex > 0) {
+        selectNode(allVisibleNodes[currentIndex - 1]);
+      } else if (currentIndex === -1) {
+        selectNode(allVisibleNodes[allVisibleNodes.length - 1]);
+      }
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      if (state.selectedNode && state.selectedNode.children && state.selectedNode.children.length > 0 && !state.selectedNode.expanded) {
+        state.selectedNode.expanded = true;
+        updateTreeDisplay();
+      }
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      if (state.selectedNode && state.selectedNode.expanded) {
+        state.selectedNode.expanded = false;
+        updateTreeDisplay();
+      } else if (state.selectedNode) {
+        const parent = findParentNode(state.gameTree, state.selectedNode.id);
+        if (parent) {
+          selectNode(parent);
+        }
+      }
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+    }
+  });
+}
+function shuffle(array) {
+  let currentIndex = array.length;
+  while (currentIndex != 0) {
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex]
+    ];
+  }
+  return array;
+}
+function selectNode(node) {
+  if (state.selectedNode) {
+    const prevSelected = document.querySelector(`[data-node-id="${state.selectedNode.id}"]`);
+    if (prevSelected) {
+      prevSelected.classList.remove("selected");
+    }
+  }
+  state.selectedNode = node;
+  const newSelected = document.querySelector(`[data-node-id="${state.selectedNode.id}"]`);
+  if (newSelected) {
+    newSelected.classList.add("selected");
+  }
+  renderProperties(node);
+}
+function deleteNode(nodeId) {
+  const nodeToDelete = findNodeById(state.gameTree, nodeId);
+  if (!nodeToDelete)
+    return;
+  if (nodeToDelete.id === state.gameTree.id) {
+    alert("Cannot delete the root Game node.");
+    return;
+  }
+  const parent = findParentNode(state.gameTree, nodeId);
+  if (parent) {
+    parent.children = parent.children.filter((child) => child.id !== nodeId);
+    if (state.selectedNode?.id === nodeId) {
+      state.selectedNode = null;
+    }
+    updateTreeDisplay();
+    renderProperties(state.selectedNode);
+  }
+}
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Delete" && state.selectedNode && !state.inputFocused) {
+    if (confirm(`Are you sure you want to delete ${state.selectedNode.properties.name}?`)) {
+      deleteNode(state.selectedNode.id);
+    }
+  }
+});
+function handleDragStart(event) {
+  const target = event.target;
+  draggedNode = findNodeById(state.gameTree, target.dataset.nodeId);
+  event.dataTransfer.effectAllowed = "copyMove";
+  event.dataTransfer.setData("text/plain", target.dataset.nodeId);
+}
+function handleDragOver(event) {
+  event.preventDefault();
+  const target = event.target;
+  const nodeElement = target.closest(".node-item");
+  if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
+    return;
+  }
+  document.querySelectorAll(".node-item").forEach((item) => {
+    item.classList.remove("drag-over-above", "drag-over-below", "drag-over-child");
+  });
+  const rect = nodeElement.getBoundingClientRect();
+  const mouseY = event.clientY;
+  if (mouseY < rect.top + rect.height * 0.25) {
+    nodeElement.classList.add("drag-over-above");
+  } else if (mouseY > rect.bottom - rect.height * 0.25) {
+    nodeElement.classList.add("drag-over-below");
+  } else {
+    nodeElement.classList.add("drag-over-child");
+  }
+}
+function handleDragLeave(event) {
+  const target = event.target;
+  const nodeElement = target.closest(".node-item");
+  if (nodeElement) {
+    nodeElement.classList.remove("drag-over-above", "drag-over-below", "drag-over-child");
+  }
+}
+function handleDrop(event) {
+  event.preventDefault();
+  const target = event.target;
+  const nodeElement = target.closest(".node-item");
+  if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
+    return;
+  }
+  const targetNodeId = nodeElement.dataset.nodeId;
+  const targetNode = findNodeById(state.gameTree, targetNodeId);
+  if (!targetNode)
+    return;
+  let tempNode = targetNode;
+  while (tempNode) {
+    if (tempNode.id === draggedNode.id) {
+      alert("Cannot drop a parent onto its child.");
+      return;
+    }
+    tempNode = findParentNode(state.gameTree, tempNode.id);
+  }
+  const oldParent = findParentNode(state.gameTree, draggedNode.id);
+  if (!oldParent)
+    return;
+  let newParent = null;
+  let insertIndex = -1;
+  if (nodeElement.classList.contains("drag-over-child")) {
+    newParent = targetNode;
+    if (!newParent.children) {
+      newParent.children = [];
+    }
+    newParent.expanded = true;
+    insertIndex = newParent.children.length;
+  } else {
+    newParent = findParentNode(state.gameTree, targetNodeId);
+    if (!newParent) {
+      return;
+    }
+    const targetIndex = newParent.children.findIndex((child) => child.id === targetNodeId);
+    if (targetIndex === -1) {
+      return;
+    }
+    if (nodeElement.classList.contains("drag-over-above")) {
+      insertIndex = targetIndex;
+    } else if (nodeElement.classList.contains("drag-over-below")) {
+      insertIndex = targetIndex + 1;
+    }
+  }
+  if (newParent && insertIndex !== -1) {
+    const originalIndex = oldParent.children.findIndex((child) => child.id === draggedNode?.id);
+    if (originalIndex === -1)
+      return;
+    if (oldParent === newParent && originalIndex < insertIndex) {
+      insertIndex--;
+    }
+    oldParent.children.splice(originalIndex, 1);
+    let newName = draggedNode.properties.name;
+    let counter = 1;
+    let originalName = newName.replace(/-\d+$/, "");
+    while (newParent.children.some((child) => child.properties.name === newName)) {
+      newName = `${originalName}-${counter}`;
+      counter++;
+    }
+    draggedNode.properties.name = newName;
+    newParent.children.splice(insertIndex, 0, draggedNode);
+    updateTreeDisplay();
+    selectNode(draggedNode);
+  }
+}
+
 // engine/editor/definitions.ts
 var nodeDefinitions = {
   Game: {
@@ -55038,7 +55546,6 @@ async function loadParts(parts) {
     partElement.appendChild(byText);
     partElement.appendChild(useButton);
     partElement.onclick = (e) => {
-      console.log(e.target, useButton, upvoteDiv);
       const arr = Array.from(upvoteDiv.childNodes);
       if (e.target === useButton || e.target === upvoteDiv || arr.includes(e.target))
         return;
@@ -55181,9 +55688,9 @@ var gameTab = document.getElementById("game-tab");
 var editorTab = document.getElementById("editor-tab");
 var gameContainer2 = document.getElementById("game-container");
 var nodeEditorContainer = document.getElementById("node-editor-container");
-var treeView = document.getElementById("tree-view");
+var treeView2 = document.getElementById("tree-view");
 var customNodesList = document.getElementById("custom-nodes-list");
-var addNodeButton = document.getElementById("add-node-button");
+var addNodeButton2 = document.getElementById("add-node-button");
 var saveButton = document.getElementById("save-button");
 var loadButton = document.getElementById("load-button");
 var playButton2 = document.getElementById("play-button");
@@ -55200,7 +55707,7 @@ function setupUI(editor) {
   document.addEventListener("keydown", (event) => {
     if (event.altKey && event.key === "a") {
       event.preventDefault();
-      addNodeButton.click();
+      addNodeButton2.click();
     }
     if (event.altKey && event.key === "p") {
       event.preventDefault();
@@ -55282,18 +55789,18 @@ function switchTab(tab, editor) {
     gameTab.classList.add("active");
     gameContainer2.classList.add("active");
     nodeEditorContainer.classList.remove("active");
-    treeView.classList.remove("hidden");
+    treeView2.classList.remove("hidden");
     customNodesList.classList.remove("active");
-    addNodeButton.style.display = "block";
+    addNodeButton2.style.display = "block";
     if (isEditorExpanded) {
       toggleEditorExpansion();
     }
   } else {
     editorTab.classList.add("active");
     nodeEditorContainer.classList.add("active");
-    treeView.classList.add("hidden");
+    treeView2.classList.add("hidden");
     customNodesList.classList.add("active");
-    addNodeButton.style.display = "none";
+    addNodeButton2.style.display = "none";
     if (editor) {
       setTimeout(() => editor.refresh(), 10);
     }
@@ -55324,419 +55831,6 @@ loadButton.addEventListener("click", () => {
   };
   input.click();
 });
-function customPrompt(message, defaultValue) {
-  return new Promise((resolve) => {
-    const promptBox = document.getElementById("custom-prompt");
-    const messageElement = document.getElementById("custom-prompt-message");
-    const inputElement = document.getElementById("custom-prompt-input");
-    const okButton = document.getElementById("custom-prompt-ok");
-    const cancelButton = document.getElementById("custom-prompt-cancel");
-    messageElement.textContent = message;
-    inputElement.value = defaultValue;
-    promptBox.style.display = "flex";
-    const closePrompt = (value) => {
-      promptBox.style.display = "none";
-      inputElement.removeEventListener("keydown", onKeyDown);
-      okButton.onclick = null;
-      cancelButton.onclick = null;
-      resolve(value);
-    };
-    okButton.onclick = () => closePrompt(inputElement.value);
-    cancelButton.onclick = () => closePrompt(null);
-    const onKeyDown = (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        closePrompt(inputElement.value);
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closePrompt(null);
-      }
-    };
-    inputElement.addEventListener("keydown", onKeyDown);
-    inputElement.focus();
-    inputElement.select();
-  });
-}
-
-// engine/editor/tree.ts
-var treeView2 = document.getElementById("tree-view");
-var draggedNode = null;
-function updateTreeDisplay() {
-  treeView2.innerHTML = "";
-  renderTree(state.gameTree, treeView2);
-  updateRender();
-}
-function renderTree(node, parentElement) {
-  const nodeElement = document.createElement("div");
-  nodeElement.classList.add("node-item");
-  nodeElement.dataset.nodeId = node.id;
-  nodeElement.dataset.nodeType = node.type;
-  nodeElement.draggable = true;
-  const nodeHeader = document.createElement("div");
-  nodeHeader.classList.add("node-header");
-  nodeElement.appendChild(nodeHeader);
-  const nodeContent = document.createElement("span");
-  nodeContent.textContent = node.properties.name || node.type + (node.properties.name ? " (" + node.type + ")" : "");
-  nodeHeader.appendChild(nodeContent);
-  if (node.children && node.children.length > 0) {
-    const toggle = document.createElement("span");
-    toggle.classList.add("node-toggle");
-    toggle.textContent = node.expanded ? "▼" : "►";
-    toggle.addEventListener("click", (event) => {
-      event.stopPropagation();
-      node.expanded = !node.expanded;
-      updateTreeDisplay();
-    });
-    nodeHeader.prepend(toggle);
-  }
-  if (node === state.selectedNode) {
-    nodeElement.classList.add("selected");
-  }
-  nodeElement.addEventListener("click", (event) => {
-    event.stopPropagation();
-    selectNode(node);
-  });
-  nodeElement.addEventListener("dragstart", handleDragStart);
-  nodeElement.addEventListener("dragover", handleDragOver);
-  nodeElement.addEventListener("dragleave", handleDragLeave);
-  nodeElement.addEventListener("drop", (e) => {
-    handleDrop(e);
-    document.querySelectorAll(".node-item").forEach((item) => {
-      item.classList.remove("drag-over-above", "drag-over-below", "drag-over-child");
-    });
-  });
-  parentElement.appendChild(nodeElement);
-  if (node.children && node.children.length > 0 && node.expanded) {
-    const childrenContainer = document.createElement("div");
-    childrenContainer.classList.add("node-children");
-    nodeElement.appendChild(childrenContainer);
-    node.children.forEach((child) => {
-      child.parent = node.properties.name || node.properties.id;
-      renderTree(child, childrenContainer);
-    });
-  }
-}
-var addNodeButton2 = document.getElementById("add-node-button");
-function setupTreeControls() {
-  addNodeButton2.addEventListener("click", () => {
-    if (!state.selectedNode) {
-      alert("Please select a parent node first.");
-      return;
-    }
-    const allowedChildren = window.nodeDefinitions[state.selectedNode.type]?.children || [];
-    const customNodeTypes = Object.keys(window.nodeDefinitions).filter((key) => window.nodeDefinitions[key].code);
-    const allAllowedTypes = [...allowedChildren, ...customNodeTypes].sort();
-    const selectContainer = document.createElement("div");
-    selectContainer.classList.add("node-select-container");
-    let selectedIndex = -1;
-    const searchInput2 = document.createElement("input");
-    searchInput2.type = "text";
-    searchInput2.placeholder = "Search parts...";
-    searchInput2.classList.add("node-search-input");
-    searchInput2.addEventListener("focus", focus);
-    searchInput2.addEventListener("blur", blur);
-    selectContainer.appendChild(searchInput2);
-    const optionsContainer = document.createElement("div");
-    optionsContainer.classList.add("node-options-container");
-    selectContainer.appendChild(optionsContainer);
-    let currentFilteredTypes = [];
-    const renderOptions = (filter) => {
-      optionsContainer.innerHTML = "";
-      currentFilteredTypes = allAllowedTypes.filter((type) => type.toLowerCase().includes(filter.toLowerCase()));
-      if (selectedIndex >= currentFilteredTypes.length) {
-        selectedIndex = currentFilteredTypes.length > 0 ? 0 : -1;
-      }
-      currentFilteredTypes.forEach((type, index2) => {
-        const optionDiv = document.createElement("div");
-        optionDiv.classList.add("node-option");
-        optionDiv.textContent = type;
-        if (index2 === selectedIndex) {
-          optionDiv.classList.add("selected-option");
-        }
-        optionDiv.addEventListener("click", () => {
-          addNode(type);
-          selectContainer.remove();
-          removeListeners();
-        });
-        optionsContainer.appendChild(optionDiv);
-      });
-    };
-    const handleKeyDown = (event) => {
-      if (currentFilteredTypes.length === 0)
-        return;
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        selectedIndex = (selectedIndex + 1) % currentFilteredTypes.length;
-        renderOptions(searchInput2.value);
-        optionsContainer.children[selectedIndex]?.scrollIntoView({ block: "nearest" });
-      } else if (event.key === "ArrowUp") {
-        event.preventDefault();
-        selectedIndex = (selectedIndex - 1 + currentFilteredTypes.length) % currentFilteredTypes.length;
-        renderOptions(searchInput2.value);
-        optionsContainer.children[selectedIndex]?.scrollIntoView({ block: "nearest" });
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        if (selectedIndex !== -1) {
-          addNode(currentFilteredTypes[selectedIndex]);
-          selectContainer.remove();
-          removeListeners();
-        }
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        selectContainer.remove();
-        removeListeners();
-      }
-    };
-    function removeListeners() {
-      searchInput2.removeEventListener("input", handleInput);
-      searchInput2.removeEventListener("keydown", handleKeyDown);
-      searchInput2.removeEventListener("blur", blur);
-      searchInput2.removeEventListener("focus", focus);
-    }
-    const handleInput = (event) => {
-      selectedIndex = -1;
-      renderOptions(event.target.value);
-    };
-    searchInput2.addEventListener("input", handleInput);
-    searchInput2.addEventListener("keydown", handleKeyDown);
-    renderOptions("");
-    const addNode = async (nodeType) => {
-      const newNodeDef = window.nodeDefinitions[nodeType];
-      const newProperties = {};
-      for (const key in newNodeDef.properties) {
-        newProperties[key] = newNodeDef.properties[key].default;
-      }
-      if (newNodeDef.singular) {
-        newProperties.name = nodeType;
-      } else {
-        const defaultName = nodeType + "_" + (state.selectedNode.children.length + 1);
-        const name = await customPrompt(`Enter name for the new ${nodeType}:`, defaultName);
-        if (name === null) {
-          return;
-        }
-        newProperties.name = name.trim() || defaultName;
-      }
-      const newNode = {
-        id: shuffle((Date.now().toString(36) + Math.random().toString(36).substring(2)).split("")).join(""),
-        type: nodeType,
-        properties: newProperties,
-        children: [],
-        parent: state.selectedNode?.properties.name || state.selectedNode?.id || null
-      };
-      state.selectedNode.children.push(newNode);
-      updateTreeDisplay();
-      selectNode(newNode);
-    };
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.classList.add("cancel-button");
-    cancelButton.addEventListener("click", () => {
-      selectContainer.remove();
-    });
-    selectContainer.appendChild(cancelButton);
-    document.body.appendChild(selectContainer);
-    searchInput2.focus();
-  });
-  treeView2.addEventListener("keydown", (event) => {
-    const allVisibleNodes = [];
-    const collectVisibleNodes = (node) => {
-      allVisibleNodes.push(node);
-      if (node.expanded && node.children) {
-        node.children.forEach(collectVisibleNodes);
-      }
-    };
-    collectVisibleNodes(state.gameTree);
-    if (allVisibleNodes.length === 0)
-      return;
-    let currentIndex = state.selectedNode ? allVisibleNodes.findIndex((n) => n.id === state.selectedNode.id) : -1;
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (currentIndex < allVisibleNodes.length - 1) {
-        selectNode(allVisibleNodes[currentIndex + 1]);
-      } else if (currentIndex === -1) {
-        selectNode(allVisibleNodes[0]);
-      }
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      if (currentIndex > 0) {
-        selectNode(allVisibleNodes[currentIndex - 1]);
-      } else if (currentIndex === -1) {
-        selectNode(allVisibleNodes[allVisibleNodes.length - 1]);
-      }
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      if (state.selectedNode && state.selectedNode.children && state.selectedNode.children.length > 0 && !state.selectedNode.expanded) {
-        state.selectedNode.expanded = true;
-        updateTreeDisplay();
-      }
-    } else if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      if (state.selectedNode && state.selectedNode.expanded) {
-        state.selectedNode.expanded = false;
-        updateTreeDisplay();
-      } else if (state.selectedNode) {
-        const parent = findParentNode(state.gameTree, state.selectedNode.id);
-        if (parent) {
-          selectNode(parent);
-        }
-      }
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-    }
-  });
-}
-function shuffle(array) {
-  let currentIndex = array.length;
-  while (currentIndex != 0) {
-    let randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex],
-      array[currentIndex]
-    ];
-  }
-  return array;
-}
-function selectNode(node) {
-  if (state.selectedNode) {
-    const prevSelected = document.querySelector(`[data-node-id="${state.selectedNode.id}"]`);
-    if (prevSelected) {
-      prevSelected.classList.remove("selected");
-    }
-  }
-  state.selectedNode = node;
-  const newSelected = document.querySelector(`[data-node-id="${state.selectedNode.id}"]`);
-  if (newSelected) {
-    newSelected.classList.add("selected");
-  }
-  renderProperties(node);
-}
-function deleteNode(nodeId) {
-  const nodeToDelete = findNodeById(state.gameTree, nodeId);
-  if (!nodeToDelete)
-    return;
-  if (nodeToDelete.id === state.gameTree.id) {
-    alert("Cannot delete the root Game node.");
-    return;
-  }
-  const parent = findParentNode(state.gameTree, nodeId);
-  if (parent) {
-    parent.children = parent.children.filter((child) => child.id !== nodeId);
-    if (state.selectedNode?.id === nodeId) {
-      state.selectedNode = null;
-    }
-    updateTreeDisplay();
-    renderProperties(state.selectedNode);
-  }
-}
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Delete" && state.selectedNode && !state.inputFocused) {
-    if (confirm(`Are you sure you want to delete ${state.selectedNode.properties.name}?`)) {
-      deleteNode(state.selectedNode.id);
-    }
-  }
-});
-function handleDragStart(event) {
-  const target = event.target;
-  draggedNode = findNodeById(state.gameTree, target.dataset.nodeId);
-  event.dataTransfer.effectAllowed = "copyMove";
-  event.dataTransfer.setData("text/plain", target.dataset.nodeId);
-}
-function handleDragOver(event) {
-  event.preventDefault();
-  const target = event.target;
-  const nodeElement = target.closest(".node-item");
-  if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
-    return;
-  }
-  document.querySelectorAll(".node-item").forEach((item) => {
-    item.classList.remove("drag-over-above", "drag-over-below", "drag-over-child");
-  });
-  const rect = nodeElement.getBoundingClientRect();
-  const mouseY = event.clientY;
-  if (mouseY < rect.top + rect.height * 0.25) {
-    nodeElement.classList.add("drag-over-above");
-  } else if (mouseY > rect.bottom - rect.height * 0.25) {
-    nodeElement.classList.add("drag-over-below");
-  } else {
-    nodeElement.classList.add("drag-over-child");
-  }
-}
-function handleDragLeave(event) {
-  const target = event.target;
-  const nodeElement = target.closest(".node-item");
-  if (nodeElement) {
-    nodeElement.classList.remove("drag-over-above", "drag-over-below", "drag-over-child");
-  }
-}
-function handleDrop(event) {
-  event.preventDefault();
-  const target = event.target;
-  const nodeElement = target.closest(".node-item");
-  if (!nodeElement || !draggedNode || nodeElement.dataset.nodeId === draggedNode.id) {
-    return;
-  }
-  const targetNodeId = nodeElement.dataset.nodeId;
-  const targetNode = findNodeById(state.gameTree, targetNodeId);
-  if (!targetNode)
-    return;
-  let tempNode = targetNode;
-  while (tempNode) {
-    if (tempNode.id === draggedNode.id) {
-      alert("Cannot drop a parent onto its child.");
-      return;
-    }
-    tempNode = findParentNode(state.gameTree, tempNode.id);
-  }
-  const oldParent = findParentNode(state.gameTree, draggedNode.id);
-  if (!oldParent)
-    return;
-  let newParent = null;
-  let insertIndex = -1;
-  if (nodeElement.classList.contains("drag-over-child")) {
-    newParent = targetNode;
-    if (!newParent.children) {
-      newParent.children = [];
-    }
-    newParent.expanded = true;
-    insertIndex = newParent.children.length;
-  } else {
-    newParent = findParentNode(state.gameTree, targetNodeId);
-    if (!newParent) {
-      return;
-    }
-    const targetIndex = newParent.children.findIndex((child) => child.id === targetNodeId);
-    if (targetIndex === -1) {
-      return;
-    }
-    if (nodeElement.classList.contains("drag-over-above")) {
-      insertIndex = targetIndex;
-    } else if (nodeElement.classList.contains("drag-over-below")) {
-      insertIndex = targetIndex + 1;
-    }
-  }
-  if (newParent && insertIndex !== -1) {
-    const originalIndex = oldParent.children.findIndex((child) => child.id === draggedNode?.id);
-    if (originalIndex === -1)
-      return;
-    if (oldParent === newParent && originalIndex < insertIndex) {
-      insertIndex--;
-    }
-    oldParent.children.splice(originalIndex, 1);
-    let newName = draggedNode.properties.name;
-    let counter = 1;
-    let originalName = newName.replace(/-\d+$/, "");
-    while (newParent.children.some((child) => child.properties.name === newName)) {
-      newName = `${originalName}-${counter}`;
-      counter++;
-    }
-    draggedNode.properties.name = newName;
-    newParent.children.splice(insertIndex, 0, draggedNode);
-    updateTreeDisplay();
-    selectNode(draggedNode);
-  }
-}
 
 // engine/editor/editor.ts
 window.nodeDefinitions = nodeDefinitions;

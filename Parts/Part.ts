@@ -4,6 +4,7 @@ import type { AnimatedSprite } from "./Children/AnimatedSprite";
 import type { Game } from "./Game";
 import type { Collider } from "./Children/Collider";
 import { Vector } from "../Math/Vector";
+import type { Camera } from "./Camera";
 
 type Tie<T extends Part = Part, L extends keyof T = keyof T, R extends keyof Part = keyof Part> = {
     target: T;
@@ -31,6 +32,7 @@ export class Part {
     _superficialHeight: number = 0; // General height of object
     ties: Set<Tie> = new Set(); // Ties to other parts, allowing for dynamic attribute linking
     type: string;
+    base: string; // Base class
     warned: Set<string> = new Set(); // Set to track warnings for this part, preventing duplicate warnings
     private _childrenByName: { [name: string]: Part } = {}; // For quick access to children by name
     private _childrenByType: { [type: string]: Array<Part> } = {}; // For quick access to children by type
@@ -42,6 +44,7 @@ export class Part {
         this.parent = undefined;
         this.top = undefined;
         this.ready = true;
+        this.base = "Part";
         this.type = this.constructor.name || "Part"; // Default type is the class name
         this.debugEmoji = "🧩"; // Default emoji for debugging
     }
@@ -150,7 +153,18 @@ export class Part {
     onUnmount() {
         // This method can be overridden in subclasses to handle unmounting logic
     }
+    onStart() {
+        // before act is called, after start is called
+        this.childrenArray.forEach(child => {
+            if (typeof child.onStart === 'function') {
+                child.onStart();
+            }
+        });
+    }
     addChild(child: Part) {
+        if (child.name == "LightSource") {
+            console.log(this, child)
+        }
         if (this._childrenByName[child.name]) {
             this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
             return;
@@ -200,6 +214,11 @@ export class Part {
         });
         this.childrenArray.forEach(child => {
             child.act(delta);
+        });
+    }
+    frameEnd(delta: number) {
+        this.childrenArray.forEach(child => {
+            child.frameEnd(delta);
         });
     }
 
@@ -449,5 +468,31 @@ export class Part {
 
         const clone = new (this.constructor as any)({ name: this.name }); // Default clone creation
         return this._cloneProperties(clone, memo) as this;
+    }
+
+    isVisible(camera: Camera) {
+        return false;
+    }
+
+    getPart<T>(arg: (new (...args: any[]) => T) | string): T | undefined {
+        if (typeof arg === "string") {
+            return this.childrenArray.find(child => child.type === arg || child.base === arg) as T | undefined;
+        }
+        return this.childrenArray.find(child => child instanceof arg) as T | undefined;
+    }
+
+    getChildPartRecursive<T extends Part>(arg: (new (...args: any[]) => T) | string, found: T[] = []): T[] {
+        for (const child of this.childrenArray) {
+            if (typeof arg !== "string" && child instanceof arg) {
+                found.push(child as T);
+            } else if (child.type === arg || child.base === arg) {
+                found.push(child as T);
+            }
+            child.getChildPartRecursive(arg, found);
+        }
+        return found;
+    }
+    siblingOf<T extends Part>(...args: string[]) {
+        return this.parent?.childrenArray.find(child => args.includes(child.type) || args.includes(child.base)) as T | undefined;
     }
 }

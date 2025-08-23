@@ -49,7 +49,7 @@ export class Button extends Renderer {
         this.hoverSound = hoverSound;
         this.activeSound = activeSound;
         this.type = "Button";
-
+        this.base = "Renderer"
         this.onclick = (event: MouseEvent, input: any) => {
             if (this.onClickHandler) {
                 this.onClickHandler();

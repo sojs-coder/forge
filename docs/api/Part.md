@@ -67,6 +67,9 @@ The `Part` class is the fundamental building block of the entire Forge engine. E
 -   `type: string`
     The type of the part.
 
+-   `base: string`
+    The base class of the part. For example, `BoxCollider` and `PolygonCollider` are both of base `Collider`. `Button` and `AnimatedSprite` are both of base `Renderer`. Most parts are of base `Part`
+
 ## Methods
 
 -   `tie(target: Part, property: string, localAttribute: string)`
@@ -131,6 +134,25 @@ The `Part` class is the fundamental building block of the entire Forge engine. E
 
 -   `child<T extends Part>(name: string): T | undefined`
     Retrieves a child `Part` by its name or type.
+
+-   `onStart()`
+    Called before act() is called, when the scene is first started through `Game.start()`
+
+-   `frameEnd(delta: number)`
+    Called when the frame has ended. This is good if you want your Part to have final say in the scene. Eg: apply a filter some other form of post effects.
+
+-   `isVisible(camera: Camera): boolean`
+    Returns true or false if the object is visible in the camera. Needs to be called on a collider or implemented in a custom class, otherwise it will not work. This is good if a Part is computationally intensive, you can call a sibling collider's isVisible method and skip an intensive rending process if it is not visible (eg: lighting). You most likely want to override this method.
+
+-   `getPart<T extends Part>(arg: (string | new (...args: any[]) => T)): T | undefined`
+    Searches through children parts to find a part of that type. Example: `part.getPart<Collider>(Collider)`. It can also be used with strings, and can reference both base types and main types. Example: `part.getPart<Collider>("Collider")` - this would return the first collider child, which could be a BoxCollider, PolygonCollider, or Collider instance.
+
+-   `getChildPartRecursive<T extends Part>(arg: (string | new (...args: any[]) => T), found: T[] = []): T[]`
+    This goes through the child node graph and identifies any child of type T. (Same implementation as getPart- either string or type). For example `part.getChildPartRecursive<Collider>("Collider")` would get every BoxCollider, PolygonCollider, and Collider that is a child of `part`.
+
+-   `siblingOf<T extends Part>(...args: string[]): (T extends Part)[]`
+    Returns a list of parts that are of type in args, as a string. `part.siblinOf("Camera", "Input", "Renderer", "BoxCollider")` would return a list with every Camera, Input, Renderer, TextRender, ColorRender, AnimatedSprite, SpriteRender, Button, and BoxCollider that is a sibling of the part.
+
 
 ## Examples
 

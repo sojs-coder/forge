@@ -175,6 +175,8 @@ export class Game extends Part {
         this._isRunning = true;
         this._isPaused = false;
         this._lastUpdateTime = performance.now();
+        this.onStart();
+
         SoundManager.startGame();
         this.loop();
     }
@@ -194,6 +196,7 @@ export class Game extends Part {
                 this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
                 this.context.restore();
                 this.currentScene.act(delta);
+                this.currentScene.frameEnd(delta);
                 this.updateDebugToolTip();
                 this.context.fillStyle = "red";
                 this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
@@ -267,7 +270,6 @@ export class Game extends Part {
             this.currentScene = scene;
         } else {
             console.error('Set unknown scene type- neither string nor Scene instance');
-            console.log(scene);
             let json;
             try {
                 json = JSON.stringify(scene);
@@ -277,7 +279,7 @@ export class Game extends Part {
             this.debug(`Trying to set scene to unknown type- neither string nor Scene instance. Got ${typeof scene} - ${json}`);
         }
     }
-    warn (...args: any[]) {
+    warn(...args: any[]) {
         if (this.messageHook && typeof this.messageHook === "function") {
             this.messageHook("warn", ...args);
             return true;
@@ -286,7 +288,7 @@ export class Game extends Part {
             return false;
         }
     }
-    error (...args: any[]) {
+    error(...args: any[]) {
         if (this.messageHook && typeof this.messageHook === "function") {
             this.messageHook("error", ...args);
             return true;
@@ -295,7 +297,7 @@ export class Game extends Part {
             return false;
         }
     }
-    debug (...args: any[]) {
+    debug(...args: any[]) {
         if (this.messageHook && typeof this.messageHook === "function") {
             this.messageHook("debug", ...args);
             return true;

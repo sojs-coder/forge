@@ -20,6 +20,7 @@ export class BoxCollider extends Collider {
         this.realWorldStart = this.start; // Will be updated in act(), onMount()
         this.realWorldEnd = this.end; // Will be updated in act(), onMount()
         this.type = "BoxCollider";
+        this.base = "Collider";
     }
     onMount(parent: Part) {
         super.onMount(parent);

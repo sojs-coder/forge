@@ -198,7 +198,6 @@ async function loadParts(parts: PartLibrarySearchResult[]) {
         partElement.appendChild(useButton);
 
         partElement.onclick = (e) => {
-            console.log(e.target, useButton, upvoteDiv);
             const arr = Array.from(upvoteDiv.childNodes as NodeListOf<HTMLElement>);
             if (e.target === useButton || e.target === upvoteDiv || arr.includes(e.target as HTMLElement)) return; // Prevent opening details on button clicks
             e.stopPropagation();

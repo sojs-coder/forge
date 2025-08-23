@@ -75,6 +75,7 @@ export class Input extends Part {
     }
     initialize(canvas: HTMLCanvasElement) {
         this.mousemoveDef = (event: MouseEvent) => {
+            if (event.target !== canvas)  return;
             const game = this.top as Game;
             if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
                 return;

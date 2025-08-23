@@ -22,6 +22,7 @@ export class ColorRender extends Renderer {
         this.color = color;
         this.debugEmoji = "🎨";
         this.type = "ColorRender";
+        this.base = "Renderer";
         this.vertices = vertices || [];
         if (this.vertices.length === 0) {
             this.vertices = [

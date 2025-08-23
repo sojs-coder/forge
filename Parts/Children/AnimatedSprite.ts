@@ -36,6 +36,7 @@ export class AnimatedSprite extends Renderer {
         this.onAnimationComplete = onAnimationComplete; // Set the callback for animation completion
         this.webEngine = webEngine; // Set the web engine flag
         this.type = "AnimatedSprite";
+        this.base = "Renderer";
     }
     clone(memo = new Map()): this {
         if (memo.has(this)) {

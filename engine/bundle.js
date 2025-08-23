@@ -10451,6 +10451,7 @@ class Part {
   _superficialHeight = 0;
   ties = new Set;
   type;
+  base;
   warned = new Set;
   _childrenByName = {};
   _childrenByType = {};
@@ -10462,6 +10463,7 @@ class Part {
     this.parent = undefined;
     this.top = undefined;
     this.ready = true;
+    this.base = "Part";
     this.type = this.constructor.name || "Part";
     this.debugEmoji = "\uD83E\uDDE9";
   }
@@ -10558,7 +10560,17 @@ class Part {
   }
   onUnmount() {
   }
+  onStart() {
+    this.childrenArray.forEach((child) => {
+      if (typeof child.onStart === "function") {
+        child.onStart();
+      }
+    });
+  }
   addChild(child) {
+    if (child.name == "LightSource") {
+      console.log(this, child);
+    }
     if (this._childrenByName[child.name]) {
       this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
       return;
@@ -10607,6 +10619,11 @@ class Part {
     });
     this.childrenArray.forEach((child) => {
       child.act(delta);
+    });
+  }
+  frameEnd(delta) {
+    this.childrenArray.forEach((child) => {
+      child.frameEnd(delta);
     });
   }
   setAll(attribute, value) {
@@ -10811,6 +10828,29 @@ class Part {
     }
     const clone = new this.constructor({ name: this.name });
     return this._cloneProperties(clone, memo);
+  }
+  isVisible(camera) {
+    return false;
+  }
+  getPart(arg) {
+    if (typeof arg === "string") {
+      return this.childrenArray.find((child) => child.type === arg || child.base === arg);
+    }
+    return this.childrenArray.find((child) => child instanceof arg);
+  }
+  getChildPartRecursive(arg, found = []) {
+    for (const child of this.childrenArray) {
+      if (typeof arg !== "string" && child instanceof arg) {
+        found.push(child);
+      } else if (child.type === arg || child.base === arg) {
+        found.push(child);
+      }
+      child.getChildPartRecursive(arg, found);
+    }
+    return found;
+  }
+  siblingOf(...args) {
+    return this.parent?.childrenArray.find((child) => args.includes(child.type) || args.includes(child.base));
   }
 }
 
@@ -11072,6 +11112,7 @@ class Game extends Part {
     this._isRunning = true;
     this._isPaused = false;
     this._lastUpdateTime = performance.now();
+    this.onStart();
     SoundManager.startGame();
     this.loop();
   }
@@ -11090,6 +11131,7 @@ class Game extends Part {
         this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
         this.context.restore();
         this.currentScene.act(delta);
+        this.currentScene.frameEnd(delta);
         this.updateDebugToolTip();
         this.context.fillStyle = "red";
         this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
@@ -11154,7 +11196,6 @@ class Game extends Part {
       this.currentScene = scene;
     } else {
       console.error("Set unknown scene type- neither string nor Scene instance");
-      console.log(scene);
       let json;
       try {
         json = JSON.stringify(scene);
@@ -11328,10 +11369,14 @@ class Input extends Part {
       return memo.get(this);
     }
     const clonedInput = new Input({
-      key: this.key,
-      keyup: this.keyup,
-      mousemove: this.mousemove,
-      click: this.click
+      key: this.key || (() => {
+      }),
+      keyup: this.keyup || (() => {
+      }),
+      mousemove: this.mousemove || (() => {
+      }),
+      click: this.click || (() => {
+      })
     });
     memo.set(this, clonedInput);
     this._cloneProperties(clonedInput, memo);
@@ -11364,12 +11409,13 @@ class Input extends Part {
   }
   initialize(canvas) {
     this.mousemoveDef = (event) => {
+      if (event.target !== canvas)
+        return;
       const game = this.top;
       if (!game || !game.currentScene || game.currentScene !== this.parent || !game.currentScene?.activeCamera) {
         return;
       }
       const rect = canvas.getBoundingClientRect();
-      const scaleFactor = game.scaleFactor ?? 1;
       const gameCanvas = game.canvas;
       const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
       const mouseY = (event.clientY - rect.top) * (gameCanvas.height / rect.height);
@@ -11396,7 +11442,6 @@ class Input extends Part {
         return;
       }
       const rect = canvas.getBoundingClientRect();
-      const scaleFactor = game.scaleFactor ?? 1;
       const gameCanvas = game.canvas;
       const mouseX = (event.clientX - rect.left) * (gameCanvas.width / rect.width);
       const mouseY = (event.clientY - rect.top) * (gameCanvas.height / rect.height);
@@ -11541,6 +11586,7 @@ class Renderer extends Part {
     this.disableAntiAliasing = disableAntiAliasing || false;
     this.debugEmoji = "\uD83C\uDFA8";
     this.type = "Renderer";
+    this.base = "Rednerer";
   }
   face(direction) {
     if (direction.x !== -1 && direction.x !== 1 && direction.y !== -1 && direction.y !== 1) {
@@ -11850,6 +11896,7 @@ class Collider extends Part {
   constructor() {
     super({ name: "Collider" });
     this.type = "Collider";
+    this.base = "Collider";
   }
   clone(memo = new Map) {
     if (memo.has(this)) {
@@ -11894,6 +11941,75 @@ class Collider extends Part {
       throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked. Collisions require layers.`);
     }
     this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(",")} objects`;
+  }
+  isVisible(camera) {
+    if (!this.top) {
+      throw new Error("Collider cannot calculate visibility without a 'top' (Game instance).");
+    }
+    const { offset, scale } = camera.getViewMatrix();
+    const cameraPos = offset.multiply(-1);
+    const screenWidth = this.top.width;
+    const screenHeight = this.top.height;
+    const viewWidth = screenWidth / scale.x;
+    const viewHeight = screenHeight / scale.y;
+    const vertices = this.vertices;
+    if (vertices.length === 0) {
+      return false;
+    }
+    const transform = this.sibling("Transform");
+    if (!transform) {
+      throw new Error("Can not calculate visibility if transform sibling is not present");
+    }
+    const worldVertices = vertices.map((vertex) => {
+      return vertex.add(transform.position);
+    });
+    const cameraVertices = [
+      new Vector(cameraPos.x - viewWidth / 2, cameraPos.y - viewHeight / 2),
+      new Vector(cameraPos.x + viewWidth / 2, cameraPos.y - viewHeight / 2),
+      new Vector(cameraPos.x + viewWidth / 2, cameraPos.y + viewHeight / 2),
+      new Vector(cameraPos.x - viewWidth / 2, cameraPos.y + viewHeight / 2)
+    ];
+    return this.checkVerticesAgainstVertices(worldVertices, cameraVertices);
+  }
+  checkVerticesAgainstVertices(vertices1, vertices2) {
+    const axes1 = this.getAxes(vertices1);
+    const axes2 = this.getAxes(vertices2);
+    const axes = axes1.concat(axes2);
+    for (const axis of axes) {
+      const projection1 = this.project(vertices1, axis);
+      const projection2 = this.project(vertices2, axis);
+      if (!this.overlap(projection1, projection2)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  getAxes(vertices) {
+    const axes = [];
+    for (let i = 0;i < vertices.length; i++) {
+      const p1 = vertices[i];
+      const p2 = vertices[i === vertices.length - 1 ? 0 : i + 1];
+      const edge = p2.subtract(p1);
+      const normal = new Vector(-edge.y, edge.x).normalize();
+      axes.push(normal);
+    }
+    return axes;
+  }
+  project(vertices, axis) {
+    let min = axis.dot(vertices[0]);
+    let max = min;
+    for (let i = 1;i < vertices.length; i++) {
+      const p = axis.dot(vertices[i]);
+      if (p < min) {
+        min = p;
+      } else if (p > max) {
+        max = p;
+      }
+    }
+    return { min, max };
+  }
+  overlap(proj1, proj2) {
+    return proj1.max >= proj2.min && proj2.max >= proj1.min;
   }
 }
 
@@ -12017,33 +12133,6 @@ class PolygonCollider extends Collider {
     }
     return true;
   }
-  getAxes(vertices) {
-    const axes = [];
-    for (let i = 0;i < vertices.length; i++) {
-      const p1 = vertices[i];
-      const p2 = vertices[i === vertices.length - 1 ? 0 : i + 1];
-      const edge = p2.subtract(p1);
-      const normal = new Vector(-edge.y, edge.x).normalize();
-      axes.push(normal);
-    }
-    return axes;
-  }
-  project(vertices, axis) {
-    let min = axis.dot(vertices[0]);
-    let max = min;
-    for (let i = 1;i < vertices.length; i++) {
-      const p = axis.dot(vertices[i]);
-      if (p < min) {
-        min = p;
-      } else if (p > max) {
-        max = p;
-      }
-    }
-    return { min, max };
-  }
-  overlap(proj1, proj2) {
-    return proj1.max >= proj2.min && proj2.max >= proj1.min;
-  }
 }
 
 // Parts/Children/BoxCollider.ts
@@ -12061,6 +12150,7 @@ class BoxCollider extends Collider {
     this.realWorldStart = this.start;
     this.realWorldEnd = this.end;
     this.type = "BoxCollider";
+    this.base = "Collider";
   }
   onMount(parent) {
     super.onMount(parent);
@@ -12401,6 +12491,7 @@ class ColorRender extends Renderer {
     this.color = color;
     this.debugEmoji = "\uD83C\uDFA8";
     this.type = "ColorRender";
+    this.base = "Renderer";
     this.vertices = vertices || [];
     if (this.vertices.length === 0) {
       this.vertices = [
@@ -12474,6 +12565,7 @@ class SpriteRender extends Renderer {
     super({ width, height });
     this.name = "SpriteRender";
     this.type = "SpriteRender";
+    this.base = "Renderer";
     this.ready = false;
     this.imageSource = imageSource;
     this.debugEmoji = "\uD83D\uDDBC️";
@@ -12553,6 +12645,7 @@ class TextRender extends Renderer {
     this.color = color || "black";
     this.debugEmoji = "\uD83C\uDD70️";
     this.type = "TextRender";
+    this.base = "Renderer";
   }
   onMount(parent) {
     super.onMount(parent);

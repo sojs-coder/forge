@@ -3,7 +3,6 @@ import { Part } from "../Part";
 import { Collider } from "./Collider";
 import type { Transform } from "./Transform";
 import { Game } from "../Game";
-import { drawBox } from "../../helpers"; // For debug drawing AABB of polygon
 import { BoxCollider } from "./BoxCollider"; // For collision with BoxCollider
 
 export class PolygonCollider extends Collider {
@@ -163,36 +162,5 @@ export class PolygonCollider extends Collider {
         return true; // No separating axis found, they are colliding
     }
 
-    // Helper to get axes (normals) of a polygon's edges
-    private getAxes(vertices: Vector[]): Vector[] {
-        const axes: Vector[] = [];
-        for (let i = 0; i < vertices.length; i++) {
-            const p1 = vertices[i];
-            const p2 = vertices[i === vertices.length - 1 ? 0 : i + 1];
-            const edge = p2.subtract(p1);
-            const normal = new Vector(-edge.y, edge.x).normalize(); // Perpendicular vector (normal)
-            axes.push(normal);
-        }
-        return axes;
-    }
 
-    // Helper to project a polygon onto an axis
-    private project(vertices: Vector[], axis: Vector): { min: number, max: number } {
-        let min = axis.dot(vertices[0]);
-        let max = min;
-        for (let i = 1; i < vertices.length; i++) {
-            const p = axis.dot(vertices[i]);
-            if (p < min) {
-                min = p;
-            } else if (p > max) {
-                max = p;
-            }
-        }
-        return { min, max };
-    }
-
-    // Helper to check if two projections overlap
-    private overlap(proj1: { min: number, max: number }, proj2: { min: number, max: number }): boolean {
-        return proj1.max >= proj2.min && proj2.max >= proj1.min;
-    }
 }

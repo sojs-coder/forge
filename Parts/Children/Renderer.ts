@@ -14,6 +14,7 @@ export class Renderer extends Part {
         this.disableAntiAliasing = disableAntiAliasing || false; // Default to false if not provided
         this.debugEmoji = "🎨"; // Emoji for debugging Renderer
         this.type = "Renderer";
+        this.base = "Rednerer";
     }
 
     face(direction: Vector) {
