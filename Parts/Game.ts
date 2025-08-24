@@ -195,13 +195,16 @@ export class Game extends Part {
                 this.context.setTransform(1, 0, 0, 1, 0, 0);
                 this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
                 this.context.restore();
+                this.currentScene.preFrame();
                 this.currentScene.act(delta);
                 this.currentScene.frameEnd(delta);
                 this.updateDebugToolTip();
                 this.context.fillStyle = "red";
                 this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
             } else {
+                this.currentScene.preFrame();
                 this.currentScene.act(delta);
+                this.currentScene.frameEnd(delta);
             }
             this._lastUpdateTime = now;
         }

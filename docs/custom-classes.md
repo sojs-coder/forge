@@ -52,7 +52,18 @@ export interface PropertyDefinition {
     fileType?: 'image' | 'audio' | 'video' | 'json'; // For the 'file' type
     options?: string[]; // For enum type. Enum only accepts string as subtype
     dontShow?: boolean; // If true, this property will not show up in the editor. 
+    tertiaryType?: string; // For defining the type of Parts when Part is a subtype of main type List
 }
+```
+
+Examples:
+```js
+{ type: "number", default: 50, description: "How fast the character moves" },
+{ type: "boolean", default: false, description: "Whether the character is on offensive or defensive" },
+{ type: "list", subType: "number", default: [0.2, 1, 1.5], description: "Crawl speed, walk speed, run speed multipliers" },
+{ type: "enum", options: ["CRAWL", "WALK", "RUN"], description: "The starting state of the character" },
+{ type: "list", subType: "ParT", tertiaryType: "GameObject", description: "Target game objects- the character wins when he reaches any one of these" },
+{ type: "boolean", default: true, dontShow: true, description: "A hidden property that changes the way that sprites are loaded if in the web editor" }
 ```
 
 #### Setting `default`

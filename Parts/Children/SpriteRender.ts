@@ -6,13 +6,15 @@ import type { Transform } from "./Transform";
 export class SpriteRender extends Renderer {
     imageSource: string | null;
     image: any; // Using any for cross-platform compatibility
-    constructor({ imageSource, width, height }: { imageSource: string, width: number, height: number }) {
+    disableAntiAliasing: boolean; // Whether to disable anti-aliasing
+    constructor({ imageSource, width, height, disableAntiAliasing }: { imageSource: string, width: number, height: number, disableAntiAliasing?: boolean }) {
         super({ width, height });
         this.name = "SpriteRender";
         this.type = "SpriteRender";
         this.base = "Renderer";
         this.ready = false;
         this.imageSource = imageSource;
+        this.disableAntiAliasing = typeof disableAntiAliasing !== "undefined" ? disableAntiAliasing : false;
         this.debugEmoji = "🖼️"; // Default emoji for debugging the sprite render 
         this.image = new Image() as HTMLImageElement;
 
@@ -35,7 +37,8 @@ export class SpriteRender extends Renderer {
         const clonedSprite = new SpriteRender({
             imageSource: this.imageSource!,
             width: this.width,
-            height: this.height
+            height: this.height,
+            disableAntiAliasing: this.disableAntiAliasing
         });
 
         memo.set(this, clonedSprite);
@@ -76,6 +79,7 @@ export class SpriteRender extends Renderer {
         const rotation = transform.rotation;
 
         this.top.context.save();
+        this.top.context.imageSmoothingEnabled = !this.disableAntiAliasing; // Respect anti-aliasing setting
         // Move to the center of the sprite for rotation
         this.top.context.translate(position.x, position.y);
         this.top.context.rotate(rotation);

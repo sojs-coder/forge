@@ -1,6 +1,6 @@
 import { Part, type Game } from "../engine-core.ts";
 import { findNodeById, state } from "./state.ts";
-import type { GameNode } from "./types.ts";
+import type { GameNode, NodeDefinition } from "./types.ts";
 
 
 const gameContainer = document.getElementById('game-container')!;
@@ -199,7 +199,7 @@ function topologicalSort(root: GameNode): GameNode[] {
 function generateNodeCode(node: GameNode, defined: Set<string>): string {
     let code = '';
     const varName = getVarName(node);
-    const nodeDefs = (window as any).nodeDefinitions;
+    const nodeDefs = (window as any).nodeDefinitions as Record<string, NodeDefinition>;
 
     if (nodeDefs[node.type] && nodeDefs[node.type].code && !defined.has(node.type)) {
         code += nodeDefs[node.type].code;
@@ -218,10 +218,10 @@ function generateNodeCode(node: GameNode, defined: Set<string>): string {
             }
         } else if (propDef?.type === 'list' && Array.isArray(value)) {
             // Handle lists of Parts or primitives
-            if (propDef.subtype === 'Part') {
+            if (propDef.subType === 'Part') {
                 const varNames = value.map((v: any) => (v.length == 2 && v[1]) ? getVarNameById(v[1]) : getVarName(v));
                 props += `${key}: [${varNames.join(', ')}],`;
-            } else if (propDef.subtype === 'string') {
+            } else if (propDef.subType === 'string') {
                 const strList = value.map((v: any) => `"${v}"`);
                 props += `${key}: [${strList.join(', ')}],`;
             } else {

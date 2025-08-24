@@ -36,7 +36,8 @@ export class Part {
     warned: Set<string> = new Set(); // Set to track warnings for this part, preventing duplicate warnings
     private _childrenByName: { [name: string]: Part } = {}; // For quick access to children by name
     private _childrenByType: { [type: string]: Array<Part> } = {}; // For quick access to children by type
-    constructor({ name }: { name?: string } = {}) {
+    render: boolean; // Whether this part should be rendered, default true
+    constructor({ name, render }: { name?: string, render?: boolean } = {}) {
         this.id = generateUID();
         this.name = name || "New Object";
         this.type = "Part";
@@ -45,6 +46,7 @@ export class Part {
         this.top = undefined;
         this.ready = true;
         this.base = "Part";
+        this.render = typeof render !== "undefined" ? render : true;
         this.type = this.constructor.name || "Part"; // Default type is the class name
         this.debugEmoji = "🧩"; // Default emoji for debugging
     }
@@ -162,9 +164,6 @@ export class Part {
         });
     }
     addChild(child: Part) {
-        if (child.name == "LightSource") {
-            console.log(this, child)
-        }
         if (this._childrenByName[child.name]) {
             this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
             return;
@@ -201,7 +200,11 @@ export class Part {
         (this as any)[attribute] = value;
         return value;
     }
-
+    preFrame() {
+        this.childrenArray.forEach(child => {
+            child.preFrame();
+        });
+    }
     act(delta: number) {
         if (!this.ready) {
             return;
@@ -212,6 +215,7 @@ export class Part {
                 tie.target.attr(tie.targetAttribute, value);
             }
         });
+        if (!this.render) return;
         this.childrenArray.forEach(child => {
             child.act(delta);
         });
@@ -408,11 +412,11 @@ export class Part {
         // Deep clone children
         this._cloneAndAddChildren(clone, memo);
 
-        // Deep clone ties, registrations, flats
+        // Deep clone ties, registrations, flats -- these actually dont need to be cloned, the just need to be re-assigned
         // Ties
         const clonedTies = new Set<Tie>();
         this.ties.forEach(tie => {
-            const clonedTarget = memo.get(tie.target) || tie.target; // Get cloned target if available, else use original
+            const clonedTarget = tie.target; // pass reference
             clonedTies.add({
                 target: clonedTarget,
                 localAttribute: tie.localAttribute,
@@ -425,27 +429,17 @@ export class Part {
         const clonedRegistrations: { [key: string]: any } = {};
         for (const regKey in this.registrations) {
             const regValue = this.registrations[regKey];
-            if (regValue instanceof Part) {
-                clonedRegistrations[regKey] = regValue.clone(memo);
-            } else if (regValue instanceof Vector) {
-                clonedRegistrations[regKey] = regValue.clone();
-            } else if (typeof regValue === 'object' && regValue !== null) {
-                clonedRegistrations[regKey] = { ...regValue }; // Shallow copy for now, can be made deeper if needed
-            } else {
-                clonedRegistrations[regKey] = regValue;
-            }
+            clonedRegistrations[regKey] = regValue; // Pass reference
         }
         clone.registrations = clonedRegistrations;
-
         // Flats
         const clonedFlats = { colliders: [] as Collider[] };
         if (this.flats.colliders) {
             clonedFlats.colliders = this.flats.colliders.map((collider: Collider) => {
-                return collider.clone(memo);
+                return collider; // pass reference
             });
         }
         clone.flats = clonedFlats;
-
         // Copy other simple properties that are not handled by constructor or special logic
         clone.id = generateUID(); // Generate new ID
         clone.name = this.name; // Copy name
@@ -455,8 +449,8 @@ export class Part {
         clone._layoutWidth = this._layoutWidth; // Copy layout width
         clone._superficialWidth = this._superficialWidth; // Copy superficial width
         clone._superficialHeight = this._superficialHeight; // Copy superficial height
+        clone.base = this.base; // Copy base
         clone.warned = new Set(this.warned); // Copy warned set
-
 
         return clone;
     }

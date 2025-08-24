@@ -25,6 +25,7 @@ export interface PropertyDefinition {
     fileType?: 'image' | 'audio' | 'video' | 'json'; // For 'file' type
     options?: string[]; // For 'enum' type
     dontShow?: boolean; // If true, this property won't be shown in the editor
+    tertiaryType?: string; // For List with subtype Part, to specify the type of the Parts
 
 }
 

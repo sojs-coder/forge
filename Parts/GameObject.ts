@@ -4,8 +4,8 @@ import { Part } from "./Part";
 
 export class GameObject extends Part {
     layer?: Layer;
-    constructor({ name }: { name: string }) {
-        super();
+    constructor({ name, render }: { name: string, render?: boolean }) {
+        super({ name, render });
         this.name = name;
         this.debugEmoji = "🕹️"; // Default emoji for debugging the game object
     }

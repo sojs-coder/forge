@@ -16,7 +16,6 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     "Scene": {
         properties: {
             name: { type: "text", default: "NewScene", description: "The name of the scene." },
-            backgroundColor: { type: "color", default: "#000000", description: "Background color of the scene." }
         },
         children: ["Layer", "Camera", "Input", "ParallaxLayer", "Sound", "PhysicsEngine"]
     },
@@ -29,6 +28,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     "GameObject": {
         properties: {
             name: { type: "text", default: "NewGameObject", description: "The name of the game object." },
+            render: { type: "boolean", default: true, description: "Whether this GameObject should be rendered. If false, no child Parts will be ran." }
         },
         children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody"]
     },
@@ -86,7 +86,9 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             imageSource: { type: "file", fileType: "image", default: "", description: "Path to the image source." },
             width: { type: "number", default: 50, description: "Width of the sprite." },
             height: { type: "number", default: 50, description: "Height of the sprite." },
-            facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." }
+            facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." },
+            disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for this sprite." },
+
         },
         singular: true
     },

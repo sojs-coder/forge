@@ -10353,86 +10353,6 @@ function isPointInObject(mouseX, mouseY, child) {
   return false;
 }
 
-// Math/Vector.ts
-class Vector {
-  x;
-  y;
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
-  distance(other) {
-    return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
-  }
-  add(other) {
-    if (other instanceof Vector) {
-      return new Vector(this.x + other.x, this.y + other.y);
-    }
-    return new Vector(this.x + other, this.y + other);
-  }
-  toObject() {
-    return { x: this.x, y: this.y };
-  }
-  toArray() {
-    return [this.x, this.y];
-  }
-  subtract(other) {
-    if (other instanceof Vector) {
-      return new Vector(this.x - other.x, this.y - other.y);
-    }
-    return new Vector(this.x - other, this.y - other);
-  }
-  multiply(other) {
-    if (other instanceof Vector) {
-      return new Vector(this.x * other.x, this.y * other.y);
-    }
-    return new Vector(this.x * other, this.y * other);
-  }
-  divide(other) {
-    if (other instanceof Vector) {
-      if (other.x === 0 || other.y === 0)
-        throw new Error("Cannot divide by zero");
-      return new Vector(this.x / other.x, this.y / other.y);
-    }
-    if (other === 0)
-      throw new Error("Cannot divide by zero");
-    return new Vector(this.x / other, this.y / other);
-  }
-  length() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
-  }
-  toString() {
-    return `[${this.x}, ${this.y}]`;
-  }
-  normalize() {
-    const len = this.length();
-    if (len === 0)
-      throw new Error("Cannot normalize zero-length vector");
-    return new Vector(this.x / len, this.y / len);
-  }
-  dot(other) {
-    return this.x * other.x + this.y * other.y;
-  }
-  clone() {
-    return new Vector(this.x, this.y);
-  }
-  set(...args) {
-    if (args.length === 1 && args[0] instanceof Vector) {
-      this.x = args[0].x;
-      this.y = args[0].y;
-    } else if (args.length === 2) {
-      this.x = args[0];
-      this.y = args[1];
-    } else {
-      throw new Error("Invalid arguments for set method");
-    }
-    return this;
-  }
-  static From(scalar) {
-    return new Vector(scalar, scalar);
-  }
-}
-
 // Parts/Part.ts
 class Part {
   id;
@@ -10455,7 +10375,8 @@ class Part {
   warned = new Set;
   _childrenByName = {};
   _childrenByType = {};
-  constructor({ name } = {}) {
+  render;
+  constructor({ name, render } = {}) {
     this.id = generateUID();
     this.name = name || "New Object";
     this.type = "Part";
@@ -10464,6 +10385,7 @@ class Part {
     this.top = undefined;
     this.ready = true;
     this.base = "Part";
+    this.render = typeof render !== "undefined" ? render : true;
     this.type = this.constructor.name || "Part";
     this.debugEmoji = "\uD83E\uDDE9";
   }
@@ -10568,9 +10490,6 @@ class Part {
     });
   }
   addChild(child) {
-    if (child.name == "LightSource") {
-      console.log(this, child);
-    }
     if (this._childrenByName[child.name]) {
       this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
       return;
@@ -10607,6 +10526,11 @@ class Part {
     this[attribute] = value;
     return value;
   }
+  preFrame() {
+    this.childrenArray.forEach((child) => {
+      child.preFrame();
+    });
+  }
   act(delta) {
     if (!this.ready) {
       return;
@@ -10617,6 +10541,8 @@ class Part {
         tie.target.attr(tie.targetAttribute, value);
       }
     });
+    if (!this.render)
+      return;
     this.childrenArray.forEach((child) => {
       child.act(delta);
     });
@@ -10782,7 +10708,7 @@ class Part {
     this._cloneAndAddChildren(clone, memo);
     const clonedTies = new Set;
     this.ties.forEach((tie) => {
-      const clonedTarget = memo.get(tie.target) || tie.target;
+      const clonedTarget = tie.target;
       clonedTies.add({
         target: clonedTarget,
         localAttribute: tie.localAttribute,
@@ -10793,21 +10719,13 @@ class Part {
     const clonedRegistrations = {};
     for (const regKey in this.registrations) {
       const regValue = this.registrations[regKey];
-      if (regValue instanceof Part) {
-        clonedRegistrations[regKey] = regValue.clone(memo);
-      } else if (regValue instanceof Vector) {
-        clonedRegistrations[regKey] = regValue.clone();
-      } else if (typeof regValue === "object" && regValue !== null) {
-        clonedRegistrations[regKey] = { ...regValue };
-      } else {
-        clonedRegistrations[regKey] = regValue;
-      }
+      clonedRegistrations[regKey] = regValue;
     }
     clone.registrations = clonedRegistrations;
     const clonedFlats = { colliders: [] };
     if (this.flats.colliders) {
       clonedFlats.colliders = this.flats.colliders.map((collider) => {
-        return collider.clone(memo);
+        return collider;
       });
     }
     clone.flats = clonedFlats;
@@ -10819,6 +10737,7 @@ class Part {
     clone._layoutWidth = this._layoutWidth;
     clone._superficialWidth = this._superficialWidth;
     clone._superficialHeight = this._superficialHeight;
+    clone.base = this.base;
     clone.warned = new Set(this.warned);
     return clone;
   }
@@ -10857,20 +10776,17 @@ class Part {
 // Parts/Scene.ts
 class Scene extends Part {
   activeCamera = null;
-  backgroundColor;
-  constructor({ name, backgroundColor } = { name: "Scene" }) {
+  constructor({ name } = { name: "Scene" }) {
     super();
     this.name = name;
     this.debugEmoji = "\uD83C\uDFDE️";
-    this.backgroundColor = backgroundColor || "#000";
   }
   clone(memo = new Map) {
     if (memo.has(this)) {
       return memo.get(this);
     }
     const clonedScene = new Scene({
-      name: this.name,
-      backgroundColor: this.backgroundColor
+      name: this.name
     });
     memo.set(this, clonedScene);
     this._cloneProperties(clonedScene, memo);
@@ -10897,10 +10813,6 @@ class Scene extends Part {
     }
     if (!this.top.canvas) {
       throw new Error("Game instance must have a canvas element.");
-    }
-    if (this.backgroundColor) {
-      this.top.context.fillStyle = this.backgroundColor;
-      this.top.context.fillRect(0, 0, this.top.canvas.width, this.top.canvas.height);
     }
     if (this.activeCamera && this.top instanceof Game) {
       const camera = this.activeCamera;
@@ -11130,13 +11042,16 @@ class Game extends Part {
         this.context.setTransform(1, 0, 0, 1, 0, 0);
         this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
         this.context.restore();
+        this.currentScene.preFrame();
         this.currentScene.act(delta);
         this.currentScene.frameEnd(delta);
         this.updateDebugToolTip();
         this.context.fillStyle = "red";
         this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
       } else {
+        this.currentScene.preFrame();
         this.currentScene.act(delta);
+        this.currentScene.frameEnd(delta);
       }
       this._lastUpdateTime = now;
     }
@@ -11287,12 +11202,92 @@ class Layer extends Part {
 // Parts/GameObject.ts
 class GameObject extends Part {
   layer;
-  constructor({ name }) {
-    super();
+  constructor({ name, render }) {
+    super({ name, render });
     this.name = name;
     this.debugEmoji = "\uD83D\uDD79️";
   }
 }
+// Math/Vector.ts
+class Vector {
+  x;
+  y;
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  distance(other) {
+    return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
+  }
+  add(other) {
+    if (other instanceof Vector) {
+      return new Vector(this.x + other.x, this.y + other.y);
+    }
+    return new Vector(this.x + other, this.y + other);
+  }
+  toObject() {
+    return { x: this.x, y: this.y };
+  }
+  toArray() {
+    return [this.x, this.y];
+  }
+  subtract(other) {
+    if (other instanceof Vector) {
+      return new Vector(this.x - other.x, this.y - other.y);
+    }
+    return new Vector(this.x - other, this.y - other);
+  }
+  multiply(other) {
+    if (other instanceof Vector) {
+      return new Vector(this.x * other.x, this.y * other.y);
+    }
+    return new Vector(this.x * other, this.y * other);
+  }
+  divide(other) {
+    if (other instanceof Vector) {
+      if (other.x === 0 || other.y === 0)
+        throw new Error("Cannot divide by zero");
+      return new Vector(this.x / other.x, this.y / other.y);
+    }
+    if (other === 0)
+      throw new Error("Cannot divide by zero");
+    return new Vector(this.x / other, this.y / other);
+  }
+  length() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+  toString() {
+    return `[${this.x}, ${this.y}]`;
+  }
+  normalize() {
+    const len = this.length();
+    if (len === 0)
+      throw new Error("Cannot normalize zero-length vector");
+    return new Vector(this.x / len, this.y / len);
+  }
+  dot(other) {
+    return this.x * other.x + this.y * other.y;
+  }
+  clone() {
+    return new Vector(this.x, this.y);
+  }
+  set(...args) {
+    if (args.length === 1 && args[0] instanceof Vector) {
+      this.x = args[0].x;
+      this.y = args[0].y;
+    } else if (args.length === 2) {
+      this.x = args[0];
+      this.y = args[1];
+    } else {
+      throw new Error("Invalid arguments for set method");
+    }
+    return this;
+  }
+  static From(scalar) {
+    return new Vector(scalar, scalar);
+  }
+}
+
 // Parts/Camera.ts
 class Camera extends Part {
   zoom;
@@ -11630,6 +11625,7 @@ class AnimatedSprite extends Renderer {
     this.onAnimationComplete = onAnimationComplete;
     this.webEngine = webEngine;
     this.type = "AnimatedSprite";
+    this.base = "Renderer";
   }
   clone(memo = new Map) {
     if (memo.has(this)) {
@@ -12280,6 +12276,7 @@ class Button extends Renderer {
     this.hoverSound = hoverSound;
     this.activeSound = activeSound;
     this.type = "Button";
+    this.base = "Renderer";
     this.onclick = (event, input) => {
       if (this.onClickHandler) {
         this.onClickHandler();
@@ -12561,13 +12558,15 @@ class ColorRender extends Renderer {
 class SpriteRender extends Renderer {
   imageSource;
   image;
-  constructor({ imageSource, width, height }) {
+  disableAntiAliasing;
+  constructor({ imageSource, width, height, disableAntiAliasing }) {
     super({ width, height });
     this.name = "SpriteRender";
     this.type = "SpriteRender";
     this.base = "Renderer";
     this.ready = false;
     this.imageSource = imageSource;
+    this.disableAntiAliasing = typeof disableAntiAliasing !== "undefined" ? disableAntiAliasing : false;
     this.debugEmoji = "\uD83D\uDDBC️";
     this.image = new Image;
     this.image.onload = () => {
@@ -12587,7 +12586,8 @@ class SpriteRender extends Renderer {
     const clonedSprite = new SpriteRender({
       imageSource: this.imageSource,
       width: this.width,
-      height: this.height
+      height: this.height,
+      disableAntiAliasing: this.disableAntiAliasing
     });
     memo.set(this, clonedSprite);
     this._cloneProperties(clonedSprite, memo);
@@ -12621,6 +12621,7 @@ class SpriteRender extends Renderer {
     const position = transform.worldPosition;
     const rotation = transform.rotation;
     this.top.context.save();
+    this.top.context.imageSmoothingEnabled = !this.disableAntiAliasing;
     this.top.context.translate(position.x, position.y);
     this.top.context.rotate(rotation);
     this.top.context.imageSmoothingEnabled = !this.disableAntiAliasing;

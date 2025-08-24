@@ -5,12 +5,10 @@ import { Part } from "./Part";
 
 export class Scene extends Part {
     activeCamera: Camera | null = null; // The active camera for this scene
-    backgroundColor: string; // Background color of the scene
-    constructor({ name, backgroundColor }: { name: string, backgroundColor?: string } = { name: "Scene" }) {
+    constructor({ name }: { name: string } = { name: "Scene" }) {
         super();
         this.name = name;
         this.debugEmoji = "🏞️"; // Default emoji for debugging the scene
-        this.backgroundColor = backgroundColor || "#000"; // Default background color
     }
     clone(memo = new Map()): this {
         if (memo.has(this)) {
@@ -19,7 +17,6 @@ export class Scene extends Part {
 
         const clonedScene = new Scene({
             name: this.name,
-            backgroundColor: this.backgroundColor
         });
 
         memo.set(this, clonedScene);
@@ -54,13 +51,6 @@ export class Scene extends Part {
         }
         if (!this.top.canvas) {
             throw new Error("Game instance must have a canvas element.");
-        }
-
-        // Draw background BEFORE applying camera transformations
-        // This ensures the background covers the entire screen regardless of camera position
-        if (this.backgroundColor) {
-            this.top.context.fillStyle = this.backgroundColor;
-            this.top.context.fillRect(0, 0, this.top.canvas.width, this.top.canvas.height);
         }
 
         // Now apply camera transformations for world space objects

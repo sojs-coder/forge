@@ -3,7 +3,6 @@ import { deleteNode } from "./tree.ts";
 import { updateRender } from "./game.ts";
 import { updateTreeDisplay } from "./tree.ts";
 import type { GameNode, PropertyDefinition } from "./types.ts";
-import type { EventHandler } from "react";
 
 const propertyEditor = document.getElementById('property-editor')!;
 export function renderProperties(node: GameNode) {
@@ -62,74 +61,7 @@ export function renderProperties(node: GameNode) {
                 input = createFileInput(node, key, propDef);
                 break;
             case 'Part':
-                const partContainer = document.createElement('div');
-                partContainer.classList.add('part-property-container');
-                let name = '(none)', id = null;
-                if (node.properties[key]) {
-                    try {
-                        [name, id] = node.properties[key];
-                    } catch (error) {
-                        name = 'DEP+' + node.properties[key].properties.name;
-                        id = node.properties[key].id;
-                    }
-                }
-
-                const partDisplay = document.createElement('span');
-                partDisplay.classList.add('part-name-display');
-                partDisplay.textContent = name ? name : '(None)';
-                partDisplay.draggable = true; // Make it draggable
-                partDisplay.dataset.partPropertyKey = key; // Store the key for drop target
-
-                partDisplay.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    partDisplay.classList.add('drag-over-input');
-                });
-                partDisplay.addEventListener('dragleave', () => {
-                    partDisplay.classList.remove('drag-over-input');
-                });
-                partDisplay.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    partDisplay.classList.remove('drag-over-input');
-                    const droppedNodeId = e.dataTransfer?.getData('text/plain');
-                    if (droppedNodeId) {
-                        const droppedNode = findNodeById(state.gameTree, droppedNodeId);
-                        if (droppedNode) {
-                            // If the subType is 'Part', allow any node to be assigned
-                            if (propDef.subType === 'Part') {
-                                node.properties[key] = [droppedNode.properties.name, droppedNode.id];
-                                updateTreeDisplay();
-                                renderProperties(node); // Re-render to update display
-                            } else {
-                                // Check if the dropped node is compatible with the subType
-                                const allowedTypes = getAllowedSubtypes(propDef.subType!);
-                                if (allowedTypes.includes(droppedNode.type)) {
-                                    node.properties[key] = [droppedNode.properties.name, droppedNode.id];
-                                    updateTreeDisplay();
-                                    renderProperties(node); // Re-render to update display
-                                } else {
-                                    alert(`Cannot assign ${droppedNode.type} to ${propDef.subType} property.`);
-                                }
-                            }
-                        }
-                    }
-                });
-
-                partDisplay.addEventListener('click', () => {
-                    createNodeSelectionPopup(node, key, propDef.subType!); // Open selection popup
-                });
-
-                const clearButton = document.createElement('button');
-                clearButton.textContent = 'X';
-                clearButton.classList.add('clear-part-button');
-                clearButton.title = 'Clear assignment';
-                clearButton.addEventListener('click', () => {
-                    node.properties[key] = null;
-                    updateTreeDisplay();
-                    renderProperties(node); // Re-render to update display
-                });
-
-                partContainer.append(partDisplay, clearButton);
-                input = partContainer;
+                input = createPartInput(node, key, propDef);
                 break;
             case 'color':
                 input = createColorInput(node, key, propDef);
@@ -191,7 +123,93 @@ export function renderProperties(node: GameNode) {
         propertyEditor.appendChild(deleteButton);
     }
 }
+function createPartInput(node: GameNode, key: string, propDef: PropertyDefinition, tertiaryType?: string, listIndex?: number): HTMLElement {
+    console.log(node, key, propDef, tertiaryType, listIndex);
+    const partContainer = document.createElement('div');
+    partContainer.classList.add('part-property-container');
+    let name = '(none)', id = null;
+    if (node.properties[key]) {
+        try {
+            if (typeof listIndex === "number") {
+                [name, id] = node.properties[key][listIndex];
+            } else {
+                [name, id] = node.properties[key];
+            }
+        } catch (error) {
+            name = 'DEP+' + node.properties[key].properties.name;
+            id = node.properties[key].id;
+        }
+    }
 
+    const partDisplay = document.createElement('span');
+    partDisplay.classList.add('part-name-display');
+    partDisplay.textContent = name ? name : '(None)';
+    partDisplay.draggable = true; // Make it draggable
+    partDisplay.dataset.partPropertyKey = key; // Store the key for drop target
+
+    partDisplay.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        partDisplay.classList.add('drag-over-input');
+    });
+    partDisplay.addEventListener('dragleave', () => {
+        partDisplay.classList.remove('drag-over-input');
+    });
+    partDisplay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        partDisplay.classList.remove('drag-over-input');
+        const droppedNodeId = e.dataTransfer?.getData('text/plain');
+        if (droppedNodeId) {
+            const droppedNode = findNodeById(state.gameTree, droppedNodeId);
+            if (droppedNode) {
+                // If the subType is 'Part', allow any node to be assigned
+                if (
+                    ((!tertiaryType) || tertiaryType === "Part") && (
+                        propDef.tertiaryType === "Part"
+                    )
+                ) {
+                    if (propDef.type == "Part") {
+                        node.properties[key] = [droppedNode.properties.name, droppedNode.id];
+                    } else if (propDef.type == "list" && typeof listIndex === "number") {
+                        node.properties[key][listIndex] = [droppedNode.properties.name, droppedNode.id];
+                    }
+                    updateTreeDisplay();
+                    renderProperties(node); // Re-render to update display
+                } else {
+                    // Check if the dropped node is compatible with the subType
+                    const allowedTypes = getAllowedSubtypes(tertiaryType ? tertiaryType : propDef.subType!);
+                    if (allowedTypes.includes(droppedNode.type)) {
+                        if (propDef.type == "Part") {
+                            node.properties[key] = [droppedNode.properties.name, droppedNode.id];
+                        } else if (propDef.type == "list" && typeof listIndex === "number") {
+                            node.properties[key][listIndex] = [droppedNode.properties.name, droppedNode.id];
+                        }
+                        updateTreeDisplay();
+                        renderProperties(node); // Re-render to update display
+                    } else {
+                        alert(`Cannot assign ${droppedNode.type} to ${tertiaryType ? tertiaryType : propDef.subType} property.`);
+                    }
+                }
+            }
+        }
+    });
+
+    partDisplay.addEventListener('click', () => {
+        createNodeSelectionPopup(node, key, propDef.subType!, propDef.tertiaryType, listIndex); // Open selection popup
+    });
+
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'X';
+    clearButton.classList.add('clear-part-button');
+    clearButton.title = 'Clear assignment';
+    clearButton.addEventListener('click', () => {
+        node.properties[key] = null;
+        updateTreeDisplay();
+        renderProperties(node); // Re-render to update display
+    });
+
+    partContainer.append(partDisplay, clearButton);
+    return partContainer;
+}
 function createFileInput(node: GameNode, key: string, propDef: PropertyDefinition): HTMLElement {
     const container = document.createElement('div');
     container.classList.add('file-input-container');
@@ -312,8 +330,7 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
 
     const renderListItems = () => {
         listContainer.innerHTML = '';
-        let currentList = node.properties[key];
-
+        let currentList: (string | number | [string, string])[] = node.properties[key];
         // If property is undefined, use default if available
         if (currentList === undefined) {
             if (Array.isArray(propDef.default)) {
@@ -376,6 +393,9 @@ function createListInput(node: GameNode, key: string, propDef: PropertyDefinitio
                     updateRender();
                 });
                 itemInput = numberItemInput;
+            } else if (propDef.subType === 'Part') {
+                const partItemInput = createPartInput(node, key, propDef, propDef.tertiaryType || "Part", index);
+                itemInput = partItemInput;
             } else {
                 const textItemInput = document.createElement('input');
                 textItemInput.type = 'text';
@@ -427,6 +447,7 @@ function formatPropertyKey(text: string, separator = " "): string {
 }
 
 function getAllowedSubtypes(baseType: string): string[] {
+    console.log("Getting allowed subtypes for:", baseType);
     const allowed = new Set<string>();
     allowed.add(baseType);
 
@@ -444,7 +465,7 @@ function getAllowedSubtypes(baseType: string): string[] {
     return Array.from(allowed);
 }
 
-function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subType: string) {
+function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subType: string, tertiaryType?: string, listIndex?: number) {
     const popup = document.createElement('div');
     popup.classList.add('node-selection-popup');
 
@@ -463,10 +484,12 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
     let selectedIndex = -1;
 
     const collectNodes = (node: GameNode) => {
-        if (subType === 'Part') {
+        if (
+            (!tertiaryType || tertiaryType === 'Part') && (
+                subType === 'Part')) {
             allNodes.push(node);
         } else {
-            const allowedTypes = getAllowedSubtypes(subType);
+            const allowedTypes = getAllowedSubtypes(tertiaryType ? tertiaryType : subType);
             if (allowedTypes.includes(node.type)) {
                 allNodes.push(node);
             }
@@ -494,7 +517,11 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
                 optionDiv.classList.add('selected-option');
             }
             optionDiv.addEventListener('click', () => {
-                targetNode.properties[targetKey] = [node.properties.name, node.id];
+                if (typeof listIndex === "number") {
+                    targetNode.properties[targetKey][listIndex] = [node.properties.name, node.id];
+                } else {
+                    targetNode.properties[targetKey] = [node.properties.name, node.id];
+                }
                 document.body.removeChild(popup);
                 updateTreeDisplay();
                 renderProperties(targetNode);
@@ -523,7 +550,11 @@ function createNodeSelectionPopup(targetNode: GameNode, targetKey: string, subTy
         } else if (event.key === 'Enter') {
             event.preventDefault();
             if (selectedIndex !== -1) {
-                targetNode.properties[targetKey] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
+                if (typeof listIndex === "number") {
+                    targetNode.properties[targetKey][listIndex] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
+                } else {
+                    targetNode.properties[targetKey] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
+                }
                 document.body.removeChild(popup);
                 removeListeners();
                 updateTreeDisplay();

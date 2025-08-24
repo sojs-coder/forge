@@ -4597,85 +4597,6 @@ function isPointInObject(mouseX, mouseY, child) {
   return false;
 }
 
-class Vector {
-  x;
-  y;
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
-  distance(other) {
-    return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
-  }
-  add(other) {
-    if (other instanceof Vector) {
-      return new Vector(this.x + other.x, this.y + other.y);
-    }
-    return new Vector(this.x + other, this.y + other);
-  }
-  toObject() {
-    return { x: this.x, y: this.y };
-  }
-  toArray() {
-    return [this.x, this.y];
-  }
-  subtract(other) {
-    if (other instanceof Vector) {
-      return new Vector(this.x - other.x, this.y - other.y);
-    }
-    return new Vector(this.x - other, this.y - other);
-  }
-  multiply(other) {
-    if (other instanceof Vector) {
-      return new Vector(this.x * other.x, this.y * other.y);
-    }
-    return new Vector(this.x * other, this.y * other);
-  }
-  divide(other) {
-    if (other instanceof Vector) {
-      if (other.x === 0 || other.y === 0)
-        throw new Error("Cannot divide by zero");
-      return new Vector(this.x / other.x, this.y / other.y);
-    }
-    if (other === 0)
-      throw new Error("Cannot divide by zero");
-    return new Vector(this.x / other, this.y / other);
-  }
-  length() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
-  }
-  toString() {
-    return `[${this.x}, ${this.y}]`;
-  }
-  normalize() {
-    const len = this.length();
-    if (len === 0)
-      throw new Error("Cannot normalize zero-length vector");
-    return new Vector(this.x / len, this.y / len);
-  }
-  dot(other) {
-    return this.x * other.x + this.y * other.y;
-  }
-  clone() {
-    return new Vector(this.x, this.y);
-  }
-  set(...args) {
-    if (args.length === 1 && args[0] instanceof Vector) {
-      this.x = args[0].x;
-      this.y = args[0].y;
-    } else if (args.length === 2) {
-      this.x = args[0];
-      this.y = args[1];
-    } else {
-      throw new Error("Invalid arguments for set method");
-    }
-    return this;
-  }
-  static From(scalar) {
-    return new Vector(scalar, scalar);
-  }
-}
-
 class Part {
   id;
   name;
@@ -4697,7 +4618,8 @@ class Part {
   warned = new Set;
   _childrenByName = {};
   _childrenByType = {};
-  constructor({ name } = {}) {
+  render;
+  constructor({ name, render } = {}) {
     this.id = generateUID();
     this.name = name || "New Object";
     this.type = "Part";
@@ -4706,6 +4628,7 @@ class Part {
     this.top = undefined;
     this.ready = true;
     this.base = "Part";
+    this.render = typeof render !== "undefined" ? render : true;
     this.type = this.constructor.name || "Part";
     this.debugEmoji = "\uD83E\uDDE9";
   }
@@ -4810,9 +4733,6 @@ class Part {
     });
   }
   addChild(child) {
-    if (child.name == "LightSource") {
-      console.log(this, child);
-    }
     if (this._childrenByName[child.name]) {
       this.top?.warn(`Child with name <${child.name}> already exists in <${this.name}>. Skipping addition. (Child has ID <${child.id}>).`);
       return;
@@ -4849,6 +4769,11 @@ class Part {
     this[attribute] = value;
     return value;
   }
+  preFrame() {
+    this.childrenArray.forEach((child) => {
+      child.preFrame();
+    });
+  }
   act(delta) {
     if (!this.ready) {
       return;
@@ -4859,6 +4784,8 @@ class Part {
         tie.target.attr(tie.targetAttribute, value);
       }
     });
+    if (!this.render)
+      return;
     this.childrenArray.forEach((child) => {
       child.act(delta);
     });
@@ -5024,7 +4951,7 @@ class Part {
     this._cloneAndAddChildren(clone, memo);
     const clonedTies = new Set;
     this.ties.forEach((tie) => {
-      const clonedTarget = memo.get(tie.target) || tie.target;
+      const clonedTarget = tie.target;
       clonedTies.add({
         target: clonedTarget,
         localAttribute: tie.localAttribute,
@@ -5035,21 +4962,13 @@ class Part {
     const clonedRegistrations = {};
     for (const regKey in this.registrations) {
       const regValue = this.registrations[regKey];
-      if (regValue instanceof Part) {
-        clonedRegistrations[regKey] = regValue.clone(memo);
-      } else if (regValue instanceof Vector) {
-        clonedRegistrations[regKey] = regValue.clone();
-      } else if (typeof regValue === "object" && regValue !== null) {
-        clonedRegistrations[regKey] = { ...regValue };
-      } else {
-        clonedRegistrations[regKey] = regValue;
-      }
+      clonedRegistrations[regKey] = regValue;
     }
     clone.registrations = clonedRegistrations;
     const clonedFlats = { colliders: [] };
     if (this.flats.colliders) {
       clonedFlats.colliders = this.flats.colliders.map((collider) => {
-        return collider.clone(memo);
+        return collider;
       });
     }
     clone.flats = clonedFlats;
@@ -5061,6 +4980,7 @@ class Part {
     clone._layoutWidth = this._layoutWidth;
     clone._superficialWidth = this._superficialWidth;
     clone._superficialHeight = this._superficialHeight;
+    clone.base = this.base;
     clone.warned = new Set(this.warned);
     return clone;
   }
@@ -5139,6 +5059,85 @@ class SoundManagerController {
   }
   getIsGameRunning() {
     return this.isGameRunning;
+  }
+}
+
+class Vector {
+  x;
+  y;
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  distance(other) {
+    return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
+  }
+  add(other) {
+    if (other instanceof Vector) {
+      return new Vector(this.x + other.x, this.y + other.y);
+    }
+    return new Vector(this.x + other, this.y + other);
+  }
+  toObject() {
+    return { x: this.x, y: this.y };
+  }
+  toArray() {
+    return [this.x, this.y];
+  }
+  subtract(other) {
+    if (other instanceof Vector) {
+      return new Vector(this.x - other.x, this.y - other.y);
+    }
+    return new Vector(this.x - other, this.y - other);
+  }
+  multiply(other) {
+    if (other instanceof Vector) {
+      return new Vector(this.x * other.x, this.y * other.y);
+    }
+    return new Vector(this.x * other, this.y * other);
+  }
+  divide(other) {
+    if (other instanceof Vector) {
+      if (other.x === 0 || other.y === 0)
+        throw new Error("Cannot divide by zero");
+      return new Vector(this.x / other.x, this.y / other.y);
+    }
+    if (other === 0)
+      throw new Error("Cannot divide by zero");
+    return new Vector(this.x / other, this.y / other);
+  }
+  length() {
+    return Math.sqrt(this.x * this.x + this.y * this.y);
+  }
+  toString() {
+    return `[${this.x}, ${this.y}]`;
+  }
+  normalize() {
+    const len = this.length();
+    if (len === 0)
+      throw new Error("Cannot normalize zero-length vector");
+    return new Vector(this.x / len, this.y / len);
+  }
+  dot(other) {
+    return this.x * other.x + this.y * other.y;
+  }
+  clone() {
+    return new Vector(this.x, this.y);
+  }
+  set(...args) {
+    if (args.length === 1 && args[0] instanceof Vector) {
+      this.x = args[0].x;
+      this.y = args[0].y;
+    } else if (args.length === 2) {
+      this.x = args[0];
+      this.y = args[1];
+    } else {
+      throw new Error("Invalid arguments for set method");
+    }
+    return this;
+  }
+  static From(scalar) {
+    return new Vector(scalar, scalar);
   }
 }
 function characters(str) {
@@ -23893,20 +23892,17 @@ Defaulting to 2020, but this will stop working in the future.`);
   });
   Scene = class Scene extends Part {
     activeCamera = null;
-    backgroundColor;
-    constructor({ name, backgroundColor } = { name: "Scene" }) {
+    constructor({ name } = { name: "Scene" }) {
       super();
       this.name = name;
       this.debugEmoji = "\uD83C\uDFDE️";
-      this.backgroundColor = backgroundColor || "#000";
     }
     clone(memo = new Map) {
       if (memo.has(this)) {
         return memo.get(this);
       }
       const clonedScene = new Scene({
-        name: this.name,
-        backgroundColor: this.backgroundColor
+        name: this.name
       });
       memo.set(this, clonedScene);
       this._cloneProperties(clonedScene, memo);
@@ -23933,10 +23929,6 @@ Defaulting to 2020, but this will stop working in the future.`);
       }
       if (!this.top.canvas) {
         throw new Error("Game instance must have a canvas element.");
-      }
-      if (this.backgroundColor) {
-        this.top.context.fillStyle = this.backgroundColor;
-        this.top.context.fillRect(0, 0, this.top.canvas.width, this.top.canvas.height);
       }
       if (this.activeCamera && this.top instanceof Game) {
         const camera = this.activeCamera;
@@ -24117,13 +24109,16 @@ Defaulting to 2020, but this will stop working in the future.`);
           this.context.setTransform(1, 0, 0, 1, 0, 0);
           this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
           this.context.restore();
+          this.currentScene.preFrame();
           this.currentScene.act(delta);
           this.currentScene.frameEnd(delta);
           this.updateDebugToolTip();
           this.context.fillStyle = "red";
           this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
         } else {
+          this.currentScene.preFrame();
           this.currentScene.act(delta);
+          this.currentScene.frameEnd(delta);
         }
         this._lastUpdateTime = now;
       }
@@ -24272,8 +24267,8 @@ Defaulting to 2020, but this will stop working in the future.`);
   };
   GameObject = class GameObject extends Part {
     layer;
-    constructor({ name }) {
-      super();
+    constructor({ name, render }) {
+      super({ name, render });
       this.name = name;
       this.debugEmoji = "\uD83D\uDD79️";
     }
@@ -24610,6 +24605,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.onAnimationComplete = onAnimationComplete;
       this.webEngine = webEngine;
       this.type = "AnimatedSprite";
+      this.base = "Renderer";
     }
     clone(memo = new Map) {
       if (memo.has(this)) {
@@ -25254,6 +25250,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.hoverSound = hoverSound;
       this.activeSound = activeSound;
       this.type = "Button";
+      this.base = "Renderer";
       this.onclick = (event, input) => {
         if (this.onClickHandler) {
           this.onClickHandler();
@@ -25533,13 +25530,15 @@ Defaulting to 2020, but this will stop working in the future.`);
   SpriteRender = class SpriteRender extends Renderer {
     imageSource;
     image;
-    constructor({ imageSource, width, height }) {
+    disableAntiAliasing;
+    constructor({ imageSource, width, height, disableAntiAliasing }) {
       super({ width, height });
       this.name = "SpriteRender";
       this.type = "SpriteRender";
       this.base = "Renderer";
       this.ready = false;
       this.imageSource = imageSource;
+      this.disableAntiAliasing = typeof disableAntiAliasing !== "undefined" ? disableAntiAliasing : false;
       this.debugEmoji = "\uD83D\uDDBC️";
       this.image = new Image;
       this.image.onload = () => {
@@ -25559,7 +25558,8 @@ Defaulting to 2020, but this will stop working in the future.`);
       const clonedSprite = new SpriteRender({
         imageSource: this.imageSource,
         width: this.width,
-        height: this.height
+        height: this.height,
+        disableAntiAliasing: this.disableAntiAliasing
       });
       memo.set(this, clonedSprite);
       this._cloneProperties(clonedSprite, memo);
@@ -25593,6 +25593,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       const position = transform.worldPosition;
       const rotation = transform.rotation;
       this.top.context.save();
+      this.top.context.imageSmoothingEnabled = !this.disableAntiAliasing;
       this.top.context.translate(position.x, position.y);
       this.top.context.rotate(rotation);
       this.top.context.imageSmoothingEnabled = !this.disableAntiAliasing;
@@ -48318,10 +48319,10 @@ function generateNodeCode(node, defined) {
         props += `${key}: ${getVarName(value)},`;
       }
     } else if (propDef?.type === "list" && Array.isArray(value)) {
-      if (propDef.subtype === "Part") {
+      if (propDef.subType === "Part") {
         const varNames = value.map((v) => v.length == 2 && v[1] ? getVarNameById(v[1]) : getVarName(v));
         props += `${key}: [${varNames.join(", ")}],`;
-      } else if (propDef.subtype === "string") {
+      } else if (propDef.subType === "string") {
         const strList = value.map((v) => `"${v}"`);
         props += `${key}: [${strList.join(", ")}],`;
       } else {
@@ -48439,67 +48440,7 @@ function renderProperties(node) {
         input = createFileInput(node, key, propDef);
         break;
       case "Part":
-        const partContainer = document.createElement("div");
-        partContainer.classList.add("part-property-container");
-        let name = "(none)", id = null;
-        if (node.properties[key]) {
-          try {
-            [name, id] = node.properties[key];
-          } catch (error) {
-            name = "DEP+" + node.properties[key].properties.name;
-            id = node.properties[key].id;
-          }
-        }
-        const partDisplay = document.createElement("span");
-        partDisplay.classList.add("part-name-display");
-        partDisplay.textContent = name ? name : "(None)";
-        partDisplay.draggable = true;
-        partDisplay.dataset.partPropertyKey = key;
-        partDisplay.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          partDisplay.classList.add("drag-over-input");
-        });
-        partDisplay.addEventListener("dragleave", () => {
-          partDisplay.classList.remove("drag-over-input");
-        });
-        partDisplay.addEventListener("drop", (e) => {
-          e.preventDefault();
-          partDisplay.classList.remove("drag-over-input");
-          const droppedNodeId = e.dataTransfer?.getData("text/plain");
-          if (droppedNodeId) {
-            const droppedNode = findNodeById(state.gameTree, droppedNodeId);
-            if (droppedNode) {
-              if (propDef.subType === "Part") {
-                node.properties[key] = [droppedNode.properties.name, droppedNode.id];
-                updateTreeDisplay();
-                renderProperties(node);
-              } else {
-                const allowedTypes = getAllowedSubtypes(propDef.subType);
-                if (allowedTypes.includes(droppedNode.type)) {
-                  node.properties[key] = [droppedNode.properties.name, droppedNode.id];
-                  updateTreeDisplay();
-                  renderProperties(node);
-                } else {
-                  alert(`Cannot assign ${droppedNode.type} to ${propDef.subType} property.`);
-                }
-              }
-            }
-          }
-        });
-        partDisplay.addEventListener("click", () => {
-          createNodeSelectionPopup(node, key, propDef.subType);
-        });
-        const clearButton = document.createElement("button");
-        clearButton.textContent = "X";
-        clearButton.classList.add("clear-part-button");
-        clearButton.title = "Clear assignment";
-        clearButton.addEventListener("click", () => {
-          node.properties[key] = null;
-          updateTreeDisplay();
-          renderProperties(node);
-        });
-        partContainer.append(partDisplay, clearButton);
-        input = partContainer;
+        input = createPartInput(node, key, propDef);
         break;
       case "color":
         input = createColorInput(node, key, propDef);
@@ -48558,6 +48499,82 @@ function renderProperties(node) {
     });
     propertyEditor.appendChild(deleteButton);
   }
+}
+function createPartInput(node, key, propDef, tertiaryType, listIndex) {
+  console.log(node, key, propDef, tertiaryType, listIndex);
+  const partContainer = document.createElement("div");
+  partContainer.classList.add("part-property-container");
+  let name = "(none)", id = null;
+  if (node.properties[key]) {
+    try {
+      if (typeof listIndex === "number") {
+        [name, id] = node.properties[key][listIndex];
+      } else {
+        [name, id] = node.properties[key];
+      }
+    } catch (error) {
+      name = "DEP+" + node.properties[key].properties.name;
+      id = node.properties[key].id;
+    }
+  }
+  const partDisplay = document.createElement("span");
+  partDisplay.classList.add("part-name-display");
+  partDisplay.textContent = name ? name : "(None)";
+  partDisplay.draggable = true;
+  partDisplay.dataset.partPropertyKey = key;
+  partDisplay.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    partDisplay.classList.add("drag-over-input");
+  });
+  partDisplay.addEventListener("dragleave", () => {
+    partDisplay.classList.remove("drag-over-input");
+  });
+  partDisplay.addEventListener("drop", (e) => {
+    e.preventDefault();
+    partDisplay.classList.remove("drag-over-input");
+    const droppedNodeId = e.dataTransfer?.getData("text/plain");
+    if (droppedNodeId) {
+      const droppedNode = findNodeById(state.gameTree, droppedNodeId);
+      if (droppedNode) {
+        if ((!tertiaryType || tertiaryType === "Part") && propDef.tertiaryType === "Part") {
+          if (propDef.type == "Part") {
+            node.properties[key] = [droppedNode.properties.name, droppedNode.id];
+          } else if (propDef.type == "list" && typeof listIndex === "number") {
+            node.properties[key][listIndex] = [droppedNode.properties.name, droppedNode.id];
+          }
+          updateTreeDisplay();
+          renderProperties(node);
+        } else {
+          const allowedTypes = getAllowedSubtypes(tertiaryType ? tertiaryType : propDef.subType);
+          if (allowedTypes.includes(droppedNode.type)) {
+            if (propDef.type == "Part") {
+              node.properties[key] = [droppedNode.properties.name, droppedNode.id];
+            } else if (propDef.type == "list" && typeof listIndex === "number") {
+              node.properties[key][listIndex] = [droppedNode.properties.name, droppedNode.id];
+            }
+            updateTreeDisplay();
+            renderProperties(node);
+          } else {
+            alert(`Cannot assign ${droppedNode.type} to ${tertiaryType ? tertiaryType : propDef.subType} property.`);
+          }
+        }
+      }
+    }
+  });
+  partDisplay.addEventListener("click", () => {
+    createNodeSelectionPopup(node, key, propDef.subType, propDef.tertiaryType, listIndex);
+  });
+  const clearButton = document.createElement("button");
+  clearButton.textContent = "X";
+  clearButton.classList.add("clear-part-button");
+  clearButton.title = "Clear assignment";
+  clearButton.addEventListener("click", () => {
+    node.properties[key] = null;
+    updateTreeDisplay();
+    renderProperties(node);
+  });
+  partContainer.append(partDisplay, clearButton);
+  return partContainer;
 }
 function createFileInput(node, key, propDef) {
   const container = document.createElement("div");
@@ -48716,6 +48733,9 @@ function createListInput(node, key, propDef) {
           updateRender();
         });
         itemInput = numberItemInput;
+      } else if (propDef.subType === "Part") {
+        const partItemInput = createPartInput(node, key, propDef, propDef.tertiaryType || "Part", index);
+        itemInput = partItemInput;
       } else {
         const textItemInput = document.createElement("input");
         textItemInput.type = "text";
@@ -48760,6 +48780,7 @@ function formatPropertyKey(text, separator = " ") {
   return text.replace(/[A-Z]|\d+/g, (match) => separator + match.toUpperCase()).replace(new RegExp("^" + separator), "").charAt(0).toUpperCase() + text.slice(1);
 }
 function getAllowedSubtypes(baseType) {
+  console.log("Getting allowed subtypes for:", baseType);
   const allowed = new Set;
   allowed.add(baseType);
   for (const type in window.nodeDefinitions) {
@@ -48773,7 +48794,7 @@ function getAllowedSubtypes(baseType) {
   }
   return Array.from(allowed);
 }
-function createNodeSelectionPopup(targetNode, targetKey, subType) {
+function createNodeSelectionPopup(targetNode, targetKey, subType, tertiaryType, listIndex) {
   const popup = document.createElement("div");
   popup.classList.add("node-selection-popup");
   const searchInput = document.createElement("input");
@@ -48788,10 +48809,10 @@ function createNodeSelectionPopup(targetNode, targetKey, subType) {
   let filteredNodes = [];
   let selectedIndex = -1;
   const collectNodes = (node) => {
-    if (subType === "Part") {
+    if ((!tertiaryType || tertiaryType === "Part") && subType === "Part") {
       allNodes.push(node);
     } else {
-      const allowedTypes = getAllowedSubtypes(subType);
+      const allowedTypes = getAllowedSubtypes(tertiaryType ? tertiaryType : subType);
       if (allowedTypes.includes(node.type)) {
         allNodes.push(node);
       }
@@ -48813,7 +48834,11 @@ function createNodeSelectionPopup(targetNode, targetKey, subType) {
         optionDiv.classList.add("selected-option");
       }
       optionDiv.addEventListener("click", () => {
-        targetNode.properties[targetKey] = [node.properties.name, node.id];
+        if (typeof listIndex === "number") {
+          targetNode.properties[targetKey][listIndex] = [node.properties.name, node.id];
+        } else {
+          targetNode.properties[targetKey] = [node.properties.name, node.id];
+        }
         document.body.removeChild(popup);
         updateTreeDisplay();
         renderProperties(targetNode);
@@ -48842,7 +48867,11 @@ function createNodeSelectionPopup(targetNode, targetKey, subType) {
     } else if (event.key === "Enter") {
       event.preventDefault();
       if (selectedIndex !== -1) {
-        targetNode.properties[targetKey] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
+        if (typeof listIndex === "number") {
+          targetNode.properties[targetKey][listIndex] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
+        } else {
+          targetNode.properties[targetKey] = [filteredNodes[selectedIndex].properties.name, filteredNodes[selectedIndex].id];
+        }
         document.body.removeChild(popup);
         removeListeners();
         updateTreeDisplay();
@@ -49337,8 +49366,7 @@ var nodeDefinitions = {
   },
   Scene: {
     properties: {
-      name: { type: "text", default: "NewScene", description: "The name of the scene." },
-      backgroundColor: { type: "color", default: "#000000", description: "Background color of the scene." }
+      name: { type: "text", default: "NewScene", description: "The name of the scene." }
     },
     children: ["Layer", "Camera", "Input", "ParallaxLayer", "Sound", "PhysicsEngine"]
   },
@@ -49350,7 +49378,8 @@ var nodeDefinitions = {
   },
   GameObject: {
     properties: {
-      name: { type: "text", default: "NewGameObject", description: "The name of the game object." }
+      name: { type: "text", default: "NewGameObject", description: "The name of the game object." },
+      render: { type: "boolean", default: true, description: "Whether this GameObject should be rendered. If false, no child Parts will be ran." }
     },
     children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody"]
   },
@@ -49408,7 +49437,8 @@ var nodeDefinitions = {
       imageSource: { type: "file", fileType: "image", default: "", description: "Path to the image source." },
       width: { type: "number", default: 50, description: "Width of the sprite." },
       height: { type: "number", default: 50, description: "Height of the sprite." },
-      facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." }
+      facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." },
+      disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for this sprite." }
     },
     singular: true
   },
