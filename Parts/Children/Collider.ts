@@ -11,6 +11,7 @@ export abstract class Collider extends Part {
     radius: number;
     realWorldStart: Vector;
     realWorldEnd: Vector;
+    vertices: Vector[];
 
     constructor({ tag }: { tag?: string }) {
         super({ name: "Collider" });
@@ -20,6 +21,7 @@ export abstract class Collider extends Part {
         this.radius = 0;
         this.realWorldStart = new Vector(0, 0);
         this.realWorldEnd = new Vector(0, 0);
+        this.vertices = [];
     }
 
     setTag(tag: string) {

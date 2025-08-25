@@ -24978,6 +24978,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     radius;
     realWorldStart;
     realWorldEnd;
+    vertices;
     constructor({ tag }) {
       super({ name: "Collider" });
       this.type = "Collider";
@@ -24986,6 +24987,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.radius = 0;
       this.realWorldStart = new Vector(0, 0);
       this.realWorldEnd = new Vector(0, 0);
+      this.vertices = [];
     }
     setTag(tag) {
       this.tag = tag;
@@ -25113,6 +25115,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       super({ tag });
       this.name = "PolygonCollider";
       this.localVertices = vertices;
+      this.vertices = vertices;
       let maxDist = 0;
       for (let i = 0;i < this.localVertices.length; i++) {
         for (let j = i + 1;j < this.localVertices.length; j++) {
@@ -25235,6 +25238,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.type = "BoxCollider";
       for (let i = 0;i < 4; i++) {
         this.rotatedCorners.push(new Vector(0, 0));
+        this.vertices.push(new Vector(0, 0));
       }
     }
     get worldVertices() {
@@ -25257,6 +25261,7 @@ Defaulting to 2020, but this will stop working in the future.`);
         const x = c.x * cos - c.y * sin + transform.worldPosition.x;
         const y = c.x * sin + c.y * cos + transform.worldPosition.y;
         this.rotatedCorners[i].set(x, y);
+        this.vertices[i].set(x - transform.worldPosition.x, y - transform.worldPosition.y);
         if (x < minX)
           minX = x;
         if (x > maxX)

@@ -13,7 +13,7 @@ export class PolygonCollider extends Collider {
         super({ tag: tag });
         this.name = "PolygonCollider";
         this.localVertices = vertices;
-
+        this.vertices = vertices;
         let maxDist = 0;
         for (let i = 0; i < this.localVertices.length; i++) {
             for (let j = i + 1; j < this.localVertices.length; j++) {

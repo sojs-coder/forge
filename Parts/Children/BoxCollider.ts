@@ -28,6 +28,7 @@ export class BoxCollider extends Collider {
 
         for (let i = 0; i < 4; i++) {
             this.rotatedCorners.push(new Vector(0, 0));
+            this.vertices.push(new Vector(0, 0));
         }
     }
 
@@ -57,7 +58,7 @@ export class BoxCollider extends Collider {
             const y = c.x * sin + c.y * cos + transform.worldPosition.y;
 
             this.rotatedCorners[i].set(x, y);
-
+            this.vertices[i].set(x - transform.worldPosition.x, y - transform.worldPosition.y);
             if (x < minX) minX = x;
             if (x > maxX) maxX = x;
             if (y < minY) minY = y;
