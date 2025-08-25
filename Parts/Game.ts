@@ -16,6 +16,13 @@ export class Game extends Part {
     scaleFactor: number = 1;
     canvasOffset: { x: number, y: number } = { x: 0, y: 0 };
     messageHook?: (type: "warn" | "error" | "debug", ...args: any[]) => void;
+    showFrameStats: "BASIC" | "EXTENDED" | "ADVANCED" | "PERFORMANCE_HUD" = "BASIC";
+    frameBuffer: number[] = [];
+    maxFrameBufferLength = 60 * 5; // last 5s worth of frames
+
+    private _minFrameTime = Number.POSITIVE_INFINITY;
+    private _maxFrameTime = 0;
+    private _droppedFrames = 0;
     private _isRunning: boolean = false;
     private _width: number = 800;
     private _height: number = 600;
@@ -23,11 +30,12 @@ export class Game extends Part {
     private _animationFrameId?: number;
     private _lastUpdateTime: number = 0;
 
-    constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false }: { name: string, canvas: HTMLCanvasElement | string, devmode?: boolean, width: number, height: number, disableAntiAliasing?: boolean, showtoolTips?: boolean }) {
+    constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false, showFrameStats = "BASIC" }: { name: string, canvas: HTMLCanvasElement | string, devmode?: boolean, width: number, height: number, disableAntiAliasing?: boolean, showtoolTips?: boolean, showFrameStats?: "BASIC" | "EXTENDED" | "ADVANCED" }) {
         super();
         this.name = name;
         this.showtoolTips = showtoolTips;
         this.childrenArray = [];
+        this.showFrameStats = showFrameStats;
         this.canvas = typeof canvas === "string" ? document.getElementById(canvas) as HTMLCanvasElement : canvas;
         this.context = (this.canvas as HTMLCanvasElement).getContext("2d")!;
         this.devmode = devmode;
@@ -182,35 +190,121 @@ export class Game extends Part {
     }
 
     loop() {
-        if (!this._isRunning) {
-            return;
-        }
+        if (!this._isRunning) return;
+
         if (!this._isPaused && this.currentScene) {
             const now = performance.now();
-            const delta = (now - this._lastUpdateTime)
+            const delta = (now - this._lastUpdateTime);
+            this._lastUpdateTime = now;
+
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
             if (this.devmode) {
                 this.currentScene.calculateLayout();
                 this.context.save();
                 this.context.setTransform(1, 0, 0, 1, 0, 0);
                 this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
                 this.context.restore();
-                this.currentScene.preFrame();
-                this.currentScene.act(delta);
-                this.currentScene.frameEnd(delta);
-                this.updateDebugToolTip();
-                this.context.fillStyle = "red";
-                this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
-            } else {
-                this.currentScene.preFrame();
-                this.currentScene.act(delta);
-                this.currentScene.frameEnd(delta);
             }
-            this._lastUpdateTime = now;
+
+            this.currentScene.preFrame();
+            this.currentScene.act(delta);
+            this.currentScene.frameEnd(delta);
+
+            // --- PERFORMANCE TRACKING ---
+            this.frameBuffer.push(delta);
+            if (this.frameBuffer.length > this.maxFrameBufferLength) {
+                this.frameBuffer.shift();
+            }
+            this._minFrameTime = Math.min(this._minFrameTime, delta);
+            this._maxFrameTime = Math.max(this._maxFrameTime, delta);
+
+            // Dropped frame if > 32ms (half of 60Hz)
+            if (delta > 32) this._droppedFrames++;
+
+            this.renderFrameStats();
         }
 
         if (this._isRunning) {
             this._animationFrameId = window.requestAnimationFrame(this.loop.bind(this));
+        }
+    }
+
+    getColliderCount(): number {
+        const layers = this.currentScene?.childrenArray || [];
+        let c = 0;
+        for (const layer of layers) {
+            const colliders = layer.flats.colliders.length;
+            c += colliders;
+        }
+
+        return c;
+        
+    }
+
+    private renderFrameStats() {
+        if (!this.showFrameStats) return;
+
+        const avgDelta = this.frameBuffer.reduce((a, b) => a + b, 0) / this.frameBuffer.length;
+        const avgFPS = 1000 / avgDelta;
+        const sorted = [...this.frameBuffer].sort((a, b) => a - b);
+        const p95 = sorted[Math.floor(sorted.length * 0.95)];
+        const p99 = sorted[Math.floor(sorted.length * 0.99)];
+        const minFrameTime = sorted[0];
+        const maxFrameTime = sorted[sorted.length - 1];
+        this.context.fillStyle = "white";
+        this.context.font = "12px Arial";
+        let y = 20;
+
+        const levels = ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"];
+        const levelIndex = levels.indexOf(this.showFrameStats);
+
+        if (levelIndex >= 0) {
+            this.context.fillText(`FPS: ${avgFPS.toFixed(2)}`, 10, y); y += 20;
+        }
+        if (levelIndex >= 1) {
+            this.context.fillText(`Frame Time: ${avgDelta.toFixed(2)} ms`, 10, y); y += 20;
+        }
+        if (levelIndex >= 2) {
+            this.context.fillText(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`, 10, y); y += 20;
+            this.context.fillText(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`, 10, y); y += 20;
+        }
+        if (levelIndex >= 3) {
+            // --- PERFORMANCE HUD ---
+            this.context.fillText(`p95 Frame: ${p95.toFixed(2)} ms`, 10, y); y += 20;
+            this.context.fillText(`p99 Frame: ${p99.toFixed(2)} ms`, 10, y); y += 20;
+            const droppedPct = (this._droppedFrames / (this.frameBuffer.length || 1)) * 100;
+            this.context.fillText(`Dropped Frames: ${droppedPct.toFixed(1)}%`, 10, y); y += 20;
+
+            // Memory usage (if available)
+            const perfMem = (performance as any).memory;
+            if (perfMem) {
+                const usedMB = (perfMem.usedJSHeapSize / 1048576).toFixed(1);
+                const totalMB = (perfMem.totalJSHeapSize / 1048576).toFixed(1);
+                this.context.fillText(`Heap: ${usedMB} MB / ${totalMB} MB`, 10, y); y += 20;
+            }
+
+            // Scene stats
+            if (this.currentScene) {
+                this.context.fillText(`Colliders: ${this.getColliderCount()}`, 10, y); y += 20;
+                // (Optionally count draw calls if you track them)
+            }
+
+            // Small frame time chart
+            const chartWidth = 200;
+            const chartHeight = 80;
+            const chartX = 10;
+            const chartY = y + 10;
+            const maxFrameTime = Math.max(...this.frameBuffer);
+            this.context.strokeStyle = "white";
+            this.context.beginPath();
+            this.context.moveTo(chartX, chartY + chartHeight);
+            this.frameBuffer.forEach((frameTime, index) => {
+                const x = chartX + (index / this.maxFrameBufferLength) * chartWidth;
+                const yVal = chartY + chartHeight - (frameTime / maxFrameTime) * chartHeight;
+                this.context.lineTo(x, yVal);
+            });
+            this.context.stroke();
         }
     }
 

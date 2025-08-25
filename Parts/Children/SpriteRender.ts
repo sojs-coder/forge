@@ -1,3 +1,4 @@
+import { Vector } from "../../Math/Vector";
 import { Game } from "../Game";
 import { Part } from "../Part";
 import { Renderer } from "./Renderer";
@@ -7,7 +8,7 @@ export class SpriteRender extends Renderer {
     imageSource: string | null;
     image: any; // Using any for cross-platform compatibility
     disableAntiAliasing: boolean; // Whether to disable anti-aliasing
-    constructor({ imageSource, width, height, disableAntiAliasing }: { imageSource: string, width: number, height: number, disableAntiAliasing?: boolean }) {
+    constructor({ imageSource, width, height, disableAntiAliasing, facing }: { imageSource: string, width: number, height: number, disableAntiAliasing?: boolean, facing: Vector }) {
         super({ width, height });
         this.name = "SpriteRender";
         this.type = "SpriteRender";
@@ -17,7 +18,7 @@ export class SpriteRender extends Renderer {
         this.disableAntiAliasing = typeof disableAntiAliasing !== "undefined" ? disableAntiAliasing : false;
         this.debugEmoji = "🖼️"; // Default emoji for debugging the sprite render 
         this.image = new Image() as HTMLImageElement;
-
+        this.facing = facing || Vector.From(1);
         this.image.onload = () => {
             this.ready = true;
         };
@@ -38,7 +39,8 @@ export class SpriteRender extends Renderer {
             imageSource: this.imageSource!,
             width: this.width,
             height: this.height,
-            disableAntiAliasing: this.disableAntiAliasing
+            disableAntiAliasing: this.disableAntiAliasing,
+            facing: this.facing.clone()
         });
 
         memo.set(this, clonedSprite);

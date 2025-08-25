@@ -1,4 +1,3 @@
-import { generateUID } from "../helpers";
 import type { Layer } from "./Layer";
 import { Part } from "./Part";
 

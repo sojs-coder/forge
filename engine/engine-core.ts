@@ -32,6 +32,7 @@ export * from '../Parts/WaypointFollower';
 export * from '../Parts/CameraShake';
 export * from '../Parts/HealthBar';
 export * from '../Parts/PhysicsBody';
+export * from '../Parts/GravityCharacterMovement';
 export * from '../Math/Vector';
 export * from '../helpers';
 export * from '../types';

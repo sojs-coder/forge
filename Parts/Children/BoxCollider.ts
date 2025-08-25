@@ -1,4 +1,3 @@
-import { drawBox } from "../../helpers";
 import { Vector } from "../../Math/Vector";
 import { Game } from "../Game";
 import { Part } from "../Part";
@@ -9,151 +8,128 @@ import { PolygonCollider } from "./PolygonCollider";
 export class BoxCollider extends Collider {
     start: Vector;
     end: Vector;
-    realWorldStart: Vector;
-    realWorldEnd: Vector;
-    rotatedCorners: Vector[] = []; // Store the four corners of the rotated box
-    constructor({ width, height }: { width: number, height: number }) {
-        super();
+    rotatedCorners: Vector[] = [];
+    width: number;
+    height: number;
+
+    private cachedAxes: Vector[] = [];
+    private lastRotation: number = NaN;
+    private lastScale: Vector = new Vector(NaN, NaN);
+
+    constructor({ width, height, tag }: { width: number; height: number; tag?: string }) {
+        super({ tag });
         this.name = "BoxCollider";
+        this.width = width;
+        this.height = height;
         this.start = new Vector(-width / 2, -height / 2);
         this.end = new Vector(width / 2, height / 2);
-        this.realWorldStart = this.start; // Will be updated in act(), onMount()
-        this.realWorldEnd = this.end; // Will be updated in act(), onMount()
+        this.radius = Math.sqrt((width / 2) ** 2 + (height / 2) ** 2);
         this.type = "BoxCollider";
-        this.base = "Collider";
-    }
-    onMount(parent: Part) {
-        super.onMount(parent);
-        const transform = this.sibling<Transform>("Transform")
-        if (!transform) {
-            this.top?.warn(
-                `BoxCollider <${this.name}> (${this.id}) does not have Transform sibling. Skipping`
-            );
-            return;
+
+        for (let i = 0; i < 4; i++) {
+            this.rotatedCorners.push(new Vector(0, 0));
         }
-
-        // Initialize realWorldStart and realWorldEnd based on parent's Transform
-        this.updateRotatedBounds(transform);
-
-
     }
 
-    // Helper method to calculate rotated bounding box
-    updateRotatedBounds(transform: Transform) {
-        const scaledStart = this.start.multiply(transform.scale);
-        const scaledEnd = this.end.multiply(transform.scale);
+    get worldVertices(): Vector[] {
+        return this.rotatedCorners;
+    }
 
-        // Calculate the center of the box (in local space)
-        const center = new Vector(
-            (scaledStart.x + scaledEnd.x) / 2,
-            (scaledStart.y + scaledEnd.y) / 2
-        );
+    updateCollider(transform: Transform) {
+        const cos = Math.cos(transform.rotation);
+        const sin = Math.sin(transform.rotation);
 
-        // Corners in local space (top-left, top-right, bottom-right, bottom-left)
-        const corners = [
-            scaledStart, // top-left
-            new Vector(scaledEnd.x, scaledStart.y), // top-right
-            scaledEnd, // bottom-right
-            new Vector(scaledStart.x, scaledEnd.y), // bottom-left
+        const halfW = (this.width * transform.scale.x) / 2;
+        const halfH = (this.height * transform.scale.y) / 2;
+
+        const localCorners = [
+            new Vector(-halfW, -halfH),
+            new Vector(halfW, -halfH),
+            new Vector(halfW, halfH),
+            new Vector(-halfW, halfH),
         ];
 
-        // Rotate each corner around the center, then translate to world position
-        this.rotatedCorners = corners.map(corner => {
-            const rel = corner.subtract(center);
-            if (transform.rotation === 0) {
-                return transform.worldPosition.add(corner);
-            }
-            const cos = Math.cos(transform.rotation);
-            const sin = Math.sin(transform.rotation);
-            const rotated = new Vector(
-                rel.x * cos - rel.y * sin,
-                rel.x * sin + rel.y * cos
-            );
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-            return transform.worldPosition.add(rotated.add(center));
-        });
+        for (let i = 0; i < 4; i++) {
+            const c = localCorners[i];
+            const x = c.x * cos - c.y * sin + transform.worldPosition.x;
+            const y = c.x * sin + c.y * cos + transform.worldPosition.y;
 
-        // Calculate axis-aligned bounding box from rotated corners
-        const xs = this.rotatedCorners.map(corner => corner.x);
-        const ys = this.rotatedCorners.map(corner => corner.y);
+            this.rotatedCorners[i].set(x, y);
 
-        this.realWorldStart = new Vector(Math.min(...xs), Math.min(...ys));
-        this.realWorldEnd = new Vector(Math.max(...xs), Math.max(...ys));
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        }
+
+        this.realWorldStart.set(minX, minY);
+        this.realWorldEnd.set(maxX, maxY);
+
+        if (transform.rotation !== this.lastRotation || !transform.scale.equals(this.lastScale)) {
+            this.cachedAxes = this.getAxes(this.rotatedCorners);
+            this.lastRotation = transform.rotation;
+            this.lastScale = transform.scale.clone();
+        }
     }
 
-
-    checkCollision(other: Collider): boolean {
-
+    narrowPhaseCheck(other: Collider): boolean {
         if (other instanceof BoxCollider) {
-            return !(
-                this.realWorldEnd.x < other.realWorldStart.x || this.realWorldStart.x > other.realWorldEnd.x ||
-                this.realWorldEnd.y < other.realWorldStart.y || this.realWorldStart.y > other.realWorldEnd.y
-            );
+            return this.checkBoxVsBox(this, other);
         } else if (other instanceof PolygonCollider) {
-            // Delegate to PolygonCollider's checkCollision method
-            return other.checkCollision(this);
+            return other.narrowPhaseCheck(this);
         }
-        this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
+
+        this.top?.warn(`Collision with unsupported collider type: ${other.type}`);
         return false;
     }
-    get vertices(): Vector[] {
-        const width = this.end.x - this.start.x;
-        const height = this.end.y - this.start.y;
-        const halfWidth = width / 2;
-        const halfHeight = height / 2;
 
-        const vertices = [
-            new Vector(-halfWidth, -halfHeight),
-            new Vector(halfWidth, -halfHeight),
-            new Vector(halfWidth, halfHeight),
-            new Vector(-halfWidth, halfHeight),
-        ];
-        return vertices;
+    private checkBoxVsBox(box1: BoxCollider, box2: BoxCollider): boolean {
+        const axes = box1.cachedAxes.concat(box2.cachedAxes);
+        for (const axis of axes) {
+            const proj1 = this.project(box1.rotatedCorners, axis);
+            const proj2 = this.project(box2.rotatedCorners, axis);
+            if (!this.overlap(proj1, proj2)) return false;
+        }
+        return true;
     }
+
     act(delta: number) {
-        super.act(delta); // Pass to children
-        const transform = this.sibling<Transform>("Transform");
-        if (!transform) {
-            throw new Error(`BoxCollider <${this.name}> (${this.id}) does not have a Transform sibling. Ensure it is mounted to a GameObject with a Transform component.`);
-        }
+        super.act(delta);
+    }
 
-        if (transform.rotation !== 0) {
-            // If rotated, replace with a PolygonCollider
-            const vertices = this.vertices;
-
-            const polygonCollider = new PolygonCollider({ vertices });
-            this.parent?.addChild(polygonCollider);
-            this.parent?.removeChild(this);
-            return; // Stop further execution for this BoxCollider instance
+    drawDebug(ctx: CanvasRenderingContext2D): void {
+        ctx.save();
+        ctx.strokeStyle = this.colliding ? "rgba(255,0,0,0.5)" : "rgba(0,255,0,0.5)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(this.rotatedCorners[0].x, this.rotatedCorners[0].y);
+        for (let i = 1; i < 4; i++) {
+            ctx.lineTo(this.rotatedCorners[i].x, this.rotatedCorners[i].y);
         }
-        this.updateRotatedBounds(transform);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+    }
 
-        this.colliding = false;
+    override clone(memo = new Map()): this {
+        if (memo.has(this)) return memo.get(this);
 
-        const layer = this.registrations?.layer as Part | undefined;
-        const colliders = layer?.flats.colliders as Collider[] || [];
-        this.collidingWith = new Set<Collider>();; // Reset collidingWith list for this frame
-        for (const other of colliders) {
-            if (other === this) continue;
-            if (this.checkCollision(other)) {
-                this.colliding = true;
-                this.collidingWith.add(other);
-            }
-        }
-        if (this.top instanceof Game && this.top.devmode) {
-            if (transform.rotation === 0) {
-                // Draw regular box if not rotated
-                drawBox(
-                    this.top.context,
-                    this.realWorldStart.x,
-                    this.realWorldStart.y,
-                    this.realWorldEnd.x - this.realWorldStart.x,
-                    this.realWorldEnd.y - this.realWorldStart.y,
-                    this.colliding
-                        ? "rgba(255, 0, 0, 0.5)"
-                        : "rgba(0, 255, 0, 0.5)"
-                );
-            }
-        }
+        const cloned = new BoxCollider({
+            width: this.width,
+            height: this.height,
+            tag: this.tag,
+        });
+        memo.set(this, cloned);
+
+        this._cloneProperties(cloned, memo);
+
+        cloned.colliding = false;
+        cloned.base = this.base;
+        cloned.type = this.type;
+        cloned.collidingWith = new Set<Collider>();
+
+        return cloned as this;
     }
 }

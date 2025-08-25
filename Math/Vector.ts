@@ -43,6 +43,12 @@ export class Vector {
     length(): number {
         return Math.sqrt(this.x * this.x + this.y * this.y);
     }
+    magnitude(): number {
+        return this.length();
+    }
+    equals(other: Vector): boolean {
+        return this.x === other.x && this.y === other.y;
+    }
     toString(): string {
         return `[${this.x}, ${this.y}]`;
     }
@@ -67,6 +73,11 @@ export class Vector {
         } else {
             throw new Error("Invalid arguments for set method");
         }
+        return this;
+    }
+    addInPlace(other: Vector): Vector {
+        this.x += other.x;
+        this.y += other.y;
         return this;
     }
     static From(scalar: number): Vector {

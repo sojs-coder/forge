@@ -18,6 +18,10 @@ export class Layer extends Part {
     addChildren(...parts: Part[]) {
         parts.forEach((part) => this.addChild(part));
     }
+    removeChild(part: Part) {
+        part.onUnregister("layer", this);
+        super.removeChild(part);
+    }
     act(delta: number) {
         if (!this.ready) {
             return;

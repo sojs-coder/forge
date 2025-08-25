@@ -10460,7 +10460,9 @@ class Part {
   }
   onRegister(attribute, value) {
   }
-  onUnregister(attribute, value) {
+  onUnregister(attribute, value, debug) {
+    if (debug)
+      console.log(debug, value.name);
     switch (attribute) {
       case "parent":
         this.parent = undefined;
@@ -10473,7 +10475,7 @@ class Part {
         break;
       case "layer":
         if (this.registrations.layer && this.registrations.layer.flats) {
-          this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c) => c !== this);
+          this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c) => c.id !== this.id);
         }
         break;
       default:
@@ -10582,6 +10584,9 @@ class Part {
   }
   removeChild(child) {
     if (this._childrenByName[child.name]) {
+      child.childrenArray.forEach((gc) => {
+        child.removeChild(gc);
+      });
       delete this._childrenByName[child.name];
       this._childrenByType[child.type] = this._childrenByType[child.type]?.filter((c) => c.id != child.id) || [];
       const index = this.childrenArray.indexOf(child);
@@ -10797,6 +10802,10 @@ class Scene extends Part {
     }
     return clonedScene;
   }
+  removeChild(child) {
+    child.onUnregister("scene", this);
+    super.removeChild(child);
+  }
   addChild(part) {
     part.setAll("scene", this);
     super.addChild(part);
@@ -10887,17 +10896,24 @@ class Game extends Part {
   scaleFactor = 1;
   canvasOffset = { x: 0, y: 0 };
   messageHook;
+  showFrameStats = "BASIC";
+  frameBuffer = [];
+  maxFrameBufferLength = 60 * 5;
+  _minFrameTime = Number.POSITIVE_INFINITY;
+  _maxFrameTime = 0;
+  _droppedFrames = 0;
   _isRunning = false;
   _width = 800;
   _height = 600;
   _isPaused = false;
   _animationFrameId;
   _lastUpdateTime = 0;
-  constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false }) {
+  constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false, showFrameStats = "BASIC" }) {
     super();
     this.name = name;
     this.showtoolTips = showtoolTips;
     this.childrenArray = [];
+    this.showFrameStats = showFrameStats;
     this.canvas = typeof canvas === "string" ? document.getElementById(canvas) : canvas;
     this.context = this.canvas.getContext("2d");
     this.devmode = devmode;
@@ -11029,12 +11045,12 @@ class Game extends Part {
     this.loop();
   }
   loop() {
-    if (!this._isRunning) {
+    if (!this._isRunning)
       return;
-    }
     if (!this._isPaused && this.currentScene) {
       const now = performance.now();
       const delta = now - this._lastUpdateTime;
+      this._lastUpdateTime = now;
       this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
       if (this.devmode) {
         this.currentScene.calculateLayout();
@@ -11042,21 +11058,95 @@ class Game extends Part {
         this.context.setTransform(1, 0, 0, 1, 0, 0);
         this.currentScene.debugTreeRender(this.canvas.width / 2, 10, { x: 10, y: 40 });
         this.context.restore();
-        this.currentScene.preFrame();
-        this.currentScene.act(delta);
-        this.currentScene.frameEnd(delta);
-        this.updateDebugToolTip();
-        this.context.fillStyle = "red";
-        this.context.fillRect(this.canvas.width / 2 - 2, this.canvas.height / 2 - 2, 4, 4);
-      } else {
-        this.currentScene.preFrame();
-        this.currentScene.act(delta);
-        this.currentScene.frameEnd(delta);
       }
-      this._lastUpdateTime = now;
+      this.currentScene.preFrame();
+      this.currentScene.act(delta);
+      this.currentScene.frameEnd(delta);
+      this.frameBuffer.push(delta);
+      if (this.frameBuffer.length > this.maxFrameBufferLength) {
+        this.frameBuffer.shift();
+      }
+      this._minFrameTime = Math.min(this._minFrameTime, delta);
+      this._maxFrameTime = Math.max(this._maxFrameTime, delta);
+      if (delta > 32)
+        this._droppedFrames++;
+      this.renderFrameStats();
     }
     if (this._isRunning) {
       this._animationFrameId = window.requestAnimationFrame(this.loop.bind(this));
+    }
+  }
+  getColliderCount() {
+    const layers = this.currentScene?.childrenArray || [];
+    let c = 0;
+    for (const layer of layers) {
+      const colliders = layer.flats.colliders.length;
+      c += colliders;
+    }
+    return c;
+  }
+  renderFrameStats() {
+    if (!this.showFrameStats)
+      return;
+    const avgDelta = this.frameBuffer.reduce((a, b) => a + b, 0) / this.frameBuffer.length;
+    const avgFPS = 1000 / avgDelta;
+    const sorted = [...this.frameBuffer].sort((a, b) => a - b);
+    const p95 = sorted[Math.floor(sorted.length * 0.95)];
+    const p99 = sorted[Math.floor(sorted.length * 0.99)];
+    const minFrameTime = sorted[0];
+    const maxFrameTime = sorted[sorted.length - 1];
+    this.context.fillStyle = "white";
+    this.context.font = "12px Arial";
+    let y = 20;
+    const levels = ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"];
+    const levelIndex = levels.indexOf(this.showFrameStats);
+    if (levelIndex >= 0) {
+      this.context.fillText(`FPS: ${avgFPS.toFixed(2)}`, 10, y);
+      y += 20;
+    }
+    if (levelIndex >= 1) {
+      this.context.fillText(`Frame Time: ${avgDelta.toFixed(2)} ms`, 10, y);
+      y += 20;
+    }
+    if (levelIndex >= 2) {
+      this.context.fillText(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`, 10, y);
+      y += 20;
+      this.context.fillText(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`, 10, y);
+      y += 20;
+    }
+    if (levelIndex >= 3) {
+      this.context.fillText(`p95 Frame: ${p95.toFixed(2)} ms`, 10, y);
+      y += 20;
+      this.context.fillText(`p99 Frame: ${p99.toFixed(2)} ms`, 10, y);
+      y += 20;
+      const droppedPct = this._droppedFrames / (this.frameBuffer.length || 1) * 100;
+      this.context.fillText(`Dropped Frames: ${droppedPct.toFixed(1)}%`, 10, y);
+      y += 20;
+      const perfMem = performance.memory;
+      if (perfMem) {
+        const usedMB = (perfMem.usedJSHeapSize / 1048576).toFixed(1);
+        const totalMB = (perfMem.totalJSHeapSize / 1048576).toFixed(1);
+        this.context.fillText(`Heap: ${usedMB} MB / ${totalMB} MB`, 10, y);
+        y += 20;
+      }
+      if (this.currentScene) {
+        this.context.fillText(`Colliders: ${this.getColliderCount()}`, 10, y);
+        y += 20;
+      }
+      const chartWidth = 200;
+      const chartHeight = 80;
+      const chartX = 10;
+      const chartY = y + 10;
+      const maxFrameTime2 = Math.max(...this.frameBuffer);
+      this.context.strokeStyle = "white";
+      this.context.beginPath();
+      this.context.moveTo(chartX, chartY + chartHeight);
+      this.frameBuffer.forEach((frameTime, index) => {
+        const x = chartX + index / this.maxFrameBufferLength * chartWidth;
+        const yVal = chartY + chartHeight - frameTime / maxFrameTime2 * chartHeight;
+        this.context.lineTo(x, yVal);
+      });
+      this.context.stroke();
     }
   }
   pause() {
@@ -11184,6 +11274,10 @@ class Layer extends Part {
   addChildren(...parts) {
     parts.forEach((part) => this.addChild(part));
   }
+  removeChild(part) {
+    part.onUnregister("layer", this);
+    super.removeChild(part);
+  }
   act(delta) {
     if (!this.ready) {
       return;
@@ -11256,6 +11350,12 @@ class Vector {
   length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
   }
+  magnitude() {
+    return this.length();
+  }
+  equals(other) {
+    return this.x === other.x && this.y === other.y;
+  }
   toString() {
     return `[${this.x}, ${this.y}]`;
   }
@@ -11281,6 +11381,11 @@ class Vector {
     } else {
       throw new Error("Invalid arguments for set method");
     }
+    return this;
+  }
+  addInPlace(other) {
+    this.x += other.x;
+    this.y += other.y;
     return this;
   }
   static From(scalar) {
@@ -11889,31 +11994,30 @@ class AnimatedSprite extends Renderer {
 class Collider extends Part {
   colliding = false;
   collidingWith = new Set;
-  constructor() {
+  tag = "";
+  radius;
+  realWorldStart;
+  realWorldEnd;
+  constructor({ tag }) {
     super({ name: "Collider" });
     this.type = "Collider";
     this.base = "Collider";
+    this.tag = tag || "<Untagged>";
+    this.radius = 0;
+    this.realWorldStart = new Vector(0, 0);
+    this.realWorldEnd = new Vector(0, 0);
   }
-  clone(memo = new Map) {
-    if (memo.has(this)) {
-      return memo.get(this);
-    }
-    const clonedCollider = new Collider;
-    memo.set(this, clonedCollider);
-    this._cloneProperties(clonedCollider, memo);
-    clonedCollider.colliding = false;
-    clonedCollider.collidingWith = new Set;
-    return clonedCollider;
+  setTag(tag) {
+    this.tag = tag;
   }
   onMount(parent) {
     super.onMount(parent);
-    if (!this.sibling("Transform")) {
-      this.top?.warn(`Collider <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component before adding a Collider. It will not technically effect functionality, but it is good practice.`);
+    const transform = this.sibling("Transform");
+    if (!transform) {
+      this.top?.warn(`Collider <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component.`);
       return;
     }
-  }
-  get vertices() {
-    return [];
+    this.updateCollider(transform);
   }
   onRegister(attribute, value) {
     super.onRegister(attribute, value);
@@ -11921,51 +12025,65 @@ class Collider extends Part {
       value.flats.colliders.push(this);
     }
   }
-  onUnregister(attribute, value) {
-    super.onUnregister(attribute, value);
-    if (attribute === "layer") {
-      const list = value.flats.colliders;
-      const index = list.indexOf(this);
-      if (index !== -1) {
-        list.splice(index, 1);
-      }
-    }
-  }
   act(delta) {
     super.act(delta);
     if (!this.registrations?.layer) {
-      throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked. Collisions require layers.`);
+      throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked.`);
     }
-    this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(",")} objects`;
+    const transform = this.sibling("Transform");
+    if (!transform)
+      return;
+    this.updateCollider(transform);
+    this.colliding = false;
+    this.collidingWith.clear();
+    const layer = this.registrations.layer;
+    const colliders = layer.flats.colliders;
+    for (const other of colliders) {
+      if (other === this)
+        continue;
+      if (this.checkCollision(other)) {
+        this.colliding = true;
+        this.collidingWith.add(other);
+      }
+    }
+    this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(", ")} objects`;
+    if (this.top instanceof Game && this.top.devmode) {
+      const ctx = this.top.context;
+      if (ctx) {
+        this.drawDebug(ctx);
+      }
+    }
+  }
+  checkCollision(other) {
+    if (other.tag === this.tag && this.tag !== "<Untagged>")
+      return false;
+    if (this.realWorldEnd.x < other.realWorldStart.x || this.realWorldStart.x > other.realWorldEnd.x || this.realWorldEnd.y < other.realWorldStart.y || this.realWorldStart.y > other.realWorldEnd.y) {
+      return false;
+    }
+    return this.narrowPhaseCheck(other);
   }
   isVisible(camera) {
     if (!this.top) {
       throw new Error("Collider cannot calculate visibility without a 'top' (Game instance).");
     }
+    const transform = this.sibling("Transform");
+    if (!transform) {
+      return false;
+    }
+    this.updateCollider(transform);
     const { offset, scale } = camera.getViewMatrix();
     const cameraPos = offset.multiply(-1);
     const screenWidth = this.top.width;
     const screenHeight = this.top.height;
     const viewWidth = screenWidth / scale.x;
     const viewHeight = screenHeight / scale.y;
-    const vertices = this.vertices;
-    if (vertices.length === 0) {
-      return false;
-    }
-    const transform = this.sibling("Transform");
-    if (!transform) {
-      throw new Error("Can not calculate visibility if transform sibling is not present");
-    }
-    const worldVertices = vertices.map((vertex) => {
-      return vertex.add(transform.position);
-    });
     const cameraVertices = [
       new Vector(cameraPos.x - viewWidth / 2, cameraPos.y - viewHeight / 2),
       new Vector(cameraPos.x + viewWidth / 2, cameraPos.y - viewHeight / 2),
       new Vector(cameraPos.x + viewWidth / 2, cameraPos.y + viewHeight / 2),
       new Vector(cameraPos.x - viewWidth / 2, cameraPos.y + viewHeight / 2)
     ];
-    return this.checkVerticesAgainstVertices(worldVertices, cameraVertices);
+    return this.checkVerticesAgainstVertices(this.worldVertices, cameraVertices);
   }
   checkVerticesAgainstVertices(vertices1, vertices2) {
     const axes1 = this.getAxes(vertices1);
@@ -12012,74 +12130,34 @@ class Collider extends Part {
 // Parts/Children/PolygonCollider.ts
 class PolygonCollider extends Collider {
   localVertices;
-  worldVertices = [];
-  realWorldStart;
-  realWorldEnd;
-  constructor({ vertices }) {
-    super();
+  _worldVertices = [];
+  constructor({ vertices, tag }) {
+    super({ tag });
     this.name = "PolygonCollider";
     this.localVertices = vertices;
-    this.realWorldStart = new Vector(0, 0);
-    this.realWorldEnd = new Vector(0, 0);
+    let maxDist = 0;
+    for (let i = 0;i < this.localVertices.length; i++) {
+      for (let j = i + 1;j < this.localVertices.length; j++) {
+        const dist = this.localVertices[i].distance(this.localVertices[j]);
+        if (dist > maxDist) {
+          maxDist = dist;
+        }
+      }
+    }
+    this.radius = maxDist;
     this.type = "PolygonCollider";
   }
-  onMount(parent) {
-    super.onMount(parent);
-    if (!this.sibling("Transform")) {
-      this.top?.warn(`PolygonCollider <${this.name}> (${this.id}) is not attached to a parent with a Transform component. Please ensure it is mounted to a GameObject with a Transform`);
-      return;
-    }
-    this.updateWorldVertices();
-  }
-  get vertices() {
-    return this.localVertices;
+  get worldVertices() {
+    return this._worldVertices;
   }
   act(delta) {
     super.act(delta);
-    if (!this.sibling("Transform")) {
-      this.top?.warn(`PolygonCollider <${this.name}> (${this.id}) is not attached to a parent with a Transform component. Skipping`);
-      return;
-    }
-    this.updateWorldVertices();
-    this.colliding = false;
-    const layer = this.registrations?.layer;
-    const colliders = layer?.flats.colliders || [];
-    this.collidingWith = new Set;
-    for (const other of colliders) {
-      if (other === this)
-        continue;
-      if (this.checkCollision(other)) {
-        this.colliding = true;
-        this.collidingWith.add(other);
-      }
-    }
-    if (this.top instanceof Game && this.top.devmode) {
-      const ctx = this.top.context;
-      if (ctx) {
-        ctx.save();
-        ctx.strokeStyle = this.colliding ? "rgba(255, 0, 100, 0.8)" : "rgba(0, 255, 100, 0.8)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(this.worldVertices[0].x, this.worldVertices[0].y);
-        for (let i = 1;i < this.worldVertices.length; i++) {
-          ctx.lineTo(this.worldVertices[i].x, this.worldVertices[i].y);
-        }
-        ctx.closePath();
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
   }
-  updateWorldVertices() {
-    const transform = this.sibling("Transform");
-    if (!transform) {
-      this.worldVertices = [];
-      return;
-    }
+  updateCollider(transform) {
     const position = transform.worldPosition;
     const rotation = transform.rotation;
     const scale = transform.scale;
-    this.worldVertices = this.localVertices.map((vertex) => {
+    this._worldVertices = this.localVertices.map((vertex) => {
       let scaledVertex = vertex.multiply(scale);
       if (rotation !== 0) {
         const cos = Math.cos(rotation);
@@ -12088,12 +12166,12 @@ class PolygonCollider extends Collider {
       }
       return position.add(scaledVertex);
     });
-    const xs = this.worldVertices.map((v) => v.x);
-    const ys = this.worldVertices.map((v) => v.y);
-    this.realWorldStart = new Vector(Math.min(...xs), Math.min(...ys));
-    this.realWorldEnd = new Vector(Math.max(...xs), Math.max(...ys));
+    const xs = this._worldVertices.map((v) => v.x);
+    const ys = this._worldVertices.map((v) => v.y);
+    this.realWorldStart.set(Math.min(...xs), Math.min(...ys));
+    this.realWorldEnd.set(Math.max(...xs), Math.max(...ys));
   }
-  checkCollision(other) {
+  narrowPhaseCheck(other) {
     if (other instanceof BoxCollider) {
       return this.checkPolygonVsBox(this, other);
     } else if (other instanceof PolygonCollider) {
@@ -12116,7 +12194,7 @@ class PolygonCollider extends Collider {
     return true;
   }
   checkPolygonVsBox(poly, box) {
-    const boxVertices = box.rotatedCorners;
+    const boxVertices = box.worldVertices;
     const axes1 = this.getAxes(poly.worldVertices);
     const axes2 = this.getAxes(boxVertices);
     const axes = axes1.concat(axes2);
@@ -12129,112 +12207,147 @@ class PolygonCollider extends Collider {
     }
     return true;
   }
+  drawDebug(ctx) {
+    ctx.save();
+    ctx.strokeStyle = this.colliding ? "rgba(255, 0, 100, 0.8)" : "rgba(0, 255, 100, 0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(this._worldVertices[0].x, this._worldVertices[0].y);
+    for (let i = 1;i < this._worldVertices.length; i++) {
+      ctx.lineTo(this._worldVertices[i].x, this._worldVertices[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+  clone(memo = new Map) {
+    if (memo.has(this)) {
+      return memo.get(this);
+    }
+    const clonedPolygonCollider = new PolygonCollider({
+      vertices: this.localVertices.map((v) => v.clone()),
+      tag: this.tag
+    });
+    memo.set(this, clonedPolygonCollider);
+    this._cloneProperties(clonedPolygonCollider, memo);
+    clonedPolygonCollider.colliding = false;
+    clonedPolygonCollider.base = this.base;
+    clonedPolygonCollider.type = this.type;
+    clonedPolygonCollider.collidingWith = new Set;
+    return clonedPolygonCollider;
+  }
 }
 
 // Parts/Children/BoxCollider.ts
 class BoxCollider extends Collider {
   start;
   end;
-  realWorldStart;
-  realWorldEnd;
   rotatedCorners = [];
-  constructor({ width, height }) {
-    super();
+  width;
+  height;
+  cachedAxes = [];
+  lastRotation = NaN;
+  lastScale = new Vector(NaN, NaN);
+  constructor({ width, height, tag }) {
+    super({ tag });
     this.name = "BoxCollider";
+    this.width = width;
+    this.height = height;
     this.start = new Vector(-width / 2, -height / 2);
     this.end = new Vector(width / 2, height / 2);
-    this.realWorldStart = this.start;
-    this.realWorldEnd = this.end;
+    this.radius = Math.sqrt((width / 2) ** 2 + (height / 2) ** 2);
     this.type = "BoxCollider";
-    this.base = "Collider";
-  }
-  onMount(parent) {
-    super.onMount(parent);
-    const transform = this.sibling("Transform");
-    if (!transform) {
-      this.top?.warn(`BoxCollider <${this.name}> (${this.id}) does not have Transform sibling. Skipping`);
-      return;
+    for (let i = 0;i < 4; i++) {
+      this.rotatedCorners.push(new Vector(0, 0));
     }
-    this.updateRotatedBounds(transform);
   }
-  updateRotatedBounds(transform) {
-    const scaledStart = this.start.multiply(transform.scale);
-    const scaledEnd = this.end.multiply(transform.scale);
-    const center = new Vector((scaledStart.x + scaledEnd.x) / 2, (scaledStart.y + scaledEnd.y) / 2);
-    const corners = [
-      scaledStart,
-      new Vector(scaledEnd.x, scaledStart.y),
-      scaledEnd,
-      new Vector(scaledStart.x, scaledEnd.y)
+  get worldVertices() {
+    return this.rotatedCorners;
+  }
+  updateCollider(transform) {
+    const cos = Math.cos(transform.rotation);
+    const sin = Math.sin(transform.rotation);
+    const halfW = this.width * transform.scale.x / 2;
+    const halfH = this.height * transform.scale.y / 2;
+    const localCorners = [
+      new Vector(-halfW, -halfH),
+      new Vector(halfW, -halfH),
+      new Vector(halfW, halfH),
+      new Vector(-halfW, halfH)
     ];
-    this.rotatedCorners = corners.map((corner) => {
-      const rel = corner.subtract(center);
-      if (transform.rotation === 0) {
-        return transform.worldPosition.add(corner);
-      }
-      const cos = Math.cos(transform.rotation);
-      const sin = Math.sin(transform.rotation);
-      const rotated = new Vector(rel.x * cos - rel.y * sin, rel.x * sin + rel.y * cos);
-      return transform.worldPosition.add(rotated.add(center));
-    });
-    const xs = this.rotatedCorners.map((corner) => corner.x);
-    const ys = this.rotatedCorners.map((corner) => corner.y);
-    this.realWorldStart = new Vector(Math.min(...xs), Math.min(...ys));
-    this.realWorldEnd = new Vector(Math.max(...xs), Math.max(...ys));
-  }
-  checkCollision(other) {
-    if (other instanceof BoxCollider) {
-      return !(this.realWorldEnd.x < other.realWorldStart.x || this.realWorldStart.x > other.realWorldEnd.x || this.realWorldEnd.y < other.realWorldStart.y || this.realWorldStart.y > other.realWorldEnd.y);
-    } else if (other instanceof PolygonCollider) {
-      return other.checkCollision(this);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0;i < 4; i++) {
+      const c = localCorners[i];
+      const x = c.x * cos - c.y * sin + transform.worldPosition.x;
+      const y = c.x * sin + c.y * cos + transform.worldPosition.y;
+      this.rotatedCorners[i].set(x, y);
+      if (x < minX)
+        minX = x;
+      if (x > maxX)
+        maxX = x;
+      if (y < minY)
+        minY = y;
+      if (y > maxY)
+        maxY = y;
     }
-    this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
+    this.realWorldStart.set(minX, minY);
+    this.realWorldEnd.set(maxX, maxY);
+    if (transform.rotation !== this.lastRotation || !transform.scale.equals(this.lastScale)) {
+      this.cachedAxes = this.getAxes(this.rotatedCorners);
+      this.lastRotation = transform.rotation;
+      this.lastScale = transform.scale.clone();
+    }
+  }
+  narrowPhaseCheck(other) {
+    if (other instanceof BoxCollider) {
+      return this.checkBoxVsBox(this, other);
+    } else if (other instanceof PolygonCollider) {
+      return other.narrowPhaseCheck(this);
+    }
+    this.top?.warn(`Collision with unsupported collider type: ${other.type}`);
     return false;
   }
-  get vertices() {
-    const width = this.end.x - this.start.x;
-    const height = this.end.y - this.start.y;
-    const halfWidth = width / 2;
-    const halfHeight = height / 2;
-    const vertices = [
-      new Vector(-halfWidth, -halfHeight),
-      new Vector(halfWidth, -halfHeight),
-      new Vector(halfWidth, halfHeight),
-      new Vector(-halfWidth, halfHeight)
-    ];
-    return vertices;
+  checkBoxVsBox(box1, box2) {
+    const axes = box1.cachedAxes.concat(box2.cachedAxes);
+    for (const axis of axes) {
+      const proj1 = this.project(box1.rotatedCorners, axis);
+      const proj2 = this.project(box2.rotatedCorners, axis);
+      if (!this.overlap(proj1, proj2))
+        return false;
+    }
+    return true;
   }
   act(delta) {
     super.act(delta);
-    const transform = this.sibling("Transform");
-    if (!transform) {
-      throw new Error(`BoxCollider <${this.name}> (${this.id}) does not have a Transform sibling. Ensure it is mounted to a GameObject with a Transform component.`);
+  }
+  drawDebug(ctx) {
+    ctx.save();
+    ctx.strokeStyle = this.colliding ? "rgba(255,0,0,0.5)" : "rgba(0,255,0,0.5)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(this.rotatedCorners[0].x, this.rotatedCorners[0].y);
+    for (let i = 1;i < 4; i++) {
+      ctx.lineTo(this.rotatedCorners[i].x, this.rotatedCorners[i].y);
     }
-    if (transform.rotation !== 0) {
-      const vertices = this.vertices;
-      const polygonCollider = new PolygonCollider({ vertices });
-      this.parent?.addChild(polygonCollider);
-      this.parent?.removeChild(this);
-      return;
-    }
-    this.updateRotatedBounds(transform);
-    this.colliding = false;
-    const layer = this.registrations?.layer;
-    const colliders = layer?.flats.colliders || [];
-    this.collidingWith = new Set;
-    for (const other of colliders) {
-      if (other === this)
-        continue;
-      if (this.checkCollision(other)) {
-        this.colliding = true;
-        this.collidingWith.add(other);
-      }
-    }
-    if (this.top instanceof Game && this.top.devmode) {
-      if (transform.rotation === 0) {
-        drawBox(this.top.context, this.realWorldStart.x, this.realWorldStart.y, this.realWorldEnd.x - this.realWorldStart.x, this.realWorldEnd.y - this.realWorldStart.y, this.colliding ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 255, 0, 0.5)");
-      }
-    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+  clone(memo = new Map) {
+    if (memo.has(this))
+      return memo.get(this);
+    const cloned = new BoxCollider({
+      width: this.width,
+      height: this.height,
+      tag: this.tag
+    });
+    memo.set(this, cloned);
+    this._cloneProperties(cloned, memo);
+    cloned.colliding = false;
+    cloned.base = this.base;
+    cloned.type = this.type;
+    cloned.collidingWith = new Set;
+    return cloned;
   }
 }
 // Parts/Children/Button.ts
@@ -12559,7 +12672,7 @@ class SpriteRender extends Renderer {
   imageSource;
   image;
   disableAntiAliasing;
-  constructor({ imageSource, width, height, disableAntiAliasing }) {
+  constructor({ imageSource, width, height, disableAntiAliasing, facing }) {
     super({ width, height });
     this.name = "SpriteRender";
     this.type = "SpriteRender";
@@ -12569,6 +12682,7 @@ class SpriteRender extends Renderer {
     this.disableAntiAliasing = typeof disableAntiAliasing !== "undefined" ? disableAntiAliasing : false;
     this.debugEmoji = "\uD83D\uDDBC️";
     this.image = new Image;
+    this.facing = facing || Vector.From(1);
     this.image.onload = () => {
       this.ready = true;
     };
@@ -12587,7 +12701,8 @@ class SpriteRender extends Renderer {
       imageSource: this.imageSource,
       width: this.width,
       height: this.height,
-      disableAntiAliasing: this.disableAntiAliasing
+      disableAntiAliasing: this.disableAntiAliasing,
+      facing: this.facing.clone()
     });
     memo.set(this, clonedSprite);
     this._cloneProperties(clonedSprite, memo);
@@ -13854,6 +13969,151 @@ class PhysicsBody extends Part {
       import_matter_js2.World.remove(physicsEngine.world, this.body);
     }
     super.onUnmount();
+  }
+}
+// Parts/GravityCharacterMovement.ts
+class GravityCharacterMovement extends Part {
+  speed;
+  movementType;
+  input;
+  gravityScale;
+  maxSpeed;
+  velocity;
+  jumpForce;
+  facing;
+  constructor({
+    speed = 5,
+    movementType = "WASD",
+    input,
+    gravityScale,
+    maxSpeed,
+    jumpForce
+  }) {
+    super({ name: "GravityCharacterMovement" });
+    this.speed = speed;
+    this.movementType = movementType;
+    this.input = input;
+    this.gravityScale = gravityScale;
+    this.type = "GravityCharacterMovement";
+    this.maxSpeed = maxSpeed;
+    this.velocity = new Vector(0, 0);
+    this.jumpForce = jumpForce;
+    this.facing = new Vector(1, 1);
+  }
+  getStandingGround() {
+    const myCollider = this.siblingOf("Collider", "BoxCollider", "PolygonCollider");
+    if (!myCollider)
+      return null;
+    for (const other of myCollider.collidingWith) {
+      if (other.tag === "ground") {
+        const myBox = myCollider;
+        const myTransform = this.sibling("Transform");
+        const myBottom = myTransform.worldPosition.y + myBox.height * myTransform.scale.y / 2;
+        const groundTop = other.realWorldStart.y;
+        if (this.velocity.y >= 0 && myBottom > groundTop - 1) {
+          return other;
+        }
+      }
+    }
+    return null;
+  }
+  isInWater() {
+    const myCollider = this.siblingOf("Collider", "BoxCollider", "PolygonCollider");
+    if (!myCollider)
+      return false;
+    for (const other of myCollider.collidingWith) {
+      if (other.tag === "water") {
+        return true;
+      }
+    }
+    return false;
+  }
+  act(delta) {
+    super.act(delta);
+    if (!this.input) {
+      if (!this.warned.has("MissingInput"))
+        this.top?.warn(`GravityCharacterMovement <${this.name}> (${this.id}) is missing an input property. Please create an input on the scene and pass it.`) && this.warned.add("MissingInput");
+      return;
+    }
+    const transform = this.sibling("Transform");
+    if (!transform)
+      return;
+    const keys = this.input.downkeys;
+    const myCollider = this.siblingOf("Collider", "BoxCollider", "PolygonCollider");
+    const groundCollider = this.getStandingGround();
+    const onGround = !!groundCollider;
+    const inWater = this.isInWater();
+    const speedMultiplier = inWater ? 0.5 : 1;
+    const gravityMultiplier = inWater ? 0.5 : 1;
+    const jumpForceMultiplier = inWater ? 0.8 : 1;
+    let dx = 0;
+    if (this.movementType === "WASD" || this.movementType === "BOTH") {
+      if (keys.has("a")) {
+        dx -= this.speed * speedMultiplier;
+        this.facing.x = -1;
+      }
+      if (keys.has("d")) {
+        dx += this.speed * speedMultiplier;
+        this.facing.x = 1;
+      }
+    }
+    if (this.movementType === "ArrowKeys" || this.movementType === "BOTH") {
+      if (keys.has("ArrowLeft")) {
+        dx -= this.speed * speedMultiplier;
+        this.facing.x = -1;
+      }
+      if (keys.has("ArrowRight")) {
+        dx += this.speed * speedMultiplier;
+        this.facing.x = 1;
+      }
+    }
+    if (dx !== 0 && myCollider) {
+      for (const other of myCollider.collidingWith) {
+        if ((other.tag === "ground" || other.tag === "block") && other !== groundCollider) {
+          const myBox = myCollider;
+          const otherBox = other;
+          const overlapY = Math.min(myBox.realWorldEnd.y, otherBox.realWorldEnd.y) - Math.max(myBox.realWorldStart.y, otherBox.realWorldStart.y);
+          if (overlapY > myBox.height * 0.25) {
+            const myCenterX = transform.worldPosition.x;
+            const otherCenterX = otherBox.realWorldStart.x + (otherBox.realWorldEnd.x - otherBox.realWorldStart.x) / 2;
+            if (dx > 0 && myCenterX < otherCenterX) {
+              dx = 0;
+            }
+            if (dx < 0 && myCenterX > otherCenterX) {
+              dx = 0;
+            }
+          }
+        }
+      }
+    }
+    this.velocity.x = dx;
+    let isJumping = false;
+    if (onGround || inWater) {
+      if ((this.movementType === "WASD" || this.movementType === "BOTH") && keys.has("w")) {
+        this.velocity.y = -this.jumpForce * jumpForceMultiplier;
+        isJumping = true;
+      }
+      if ((this.movementType === "ArrowKeys" || this.movementType === "BOTH") && keys.has("ArrowUp")) {
+        this.velocity.y = -this.jumpForce * jumpForceMultiplier;
+        isJumping = true;
+      }
+    }
+    if (!onGround || isJumping) {
+      this.velocity.y += this.gravityScale.y * gravityMultiplier * delta;
+    } else {
+      this.velocity.y = 0;
+      const myBox = myCollider;
+      if (myBox && groundCollider) {
+        transform.position.y = groundCollider.realWorldStart.y - myBox.height * transform.scale.y / 2;
+      }
+    }
+    if (this.velocity.y > this.maxSpeed) {
+      this.velocity.y = this.maxSpeed;
+    }
+    if (Math.abs(this.velocity.x) > this.maxSpeed) {
+      this.velocity.x = Math.sign(this.velocity.x) * this.maxSpeed;
+    }
+    transform.position.addInPlace(this.velocity.multiply(delta));
   }
 }
 // node_modules/terser/lib/utils/index.js
@@ -43864,6 +44124,7 @@ export {
   Input,
   HealthBar,
   Health,
+  GravityCharacterMovement,
   GameObject,
   Game,
   Follow,

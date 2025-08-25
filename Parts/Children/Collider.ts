@@ -1,48 +1,52 @@
 import { Vector } from "../../Math/Vector";
 import type { Camera } from "../Camera";
+import { Game } from "../Game";
 import { Part } from "../Part";
 import type { Transform } from "./Transform";
 
-export class Collider extends Part {
+export abstract class Collider extends Part {
     colliding: boolean = false;
-    collidingWith: Set<Collider> = new Set(); // List of colliding parts
-    constructor() {
+    collidingWith: Set<Collider> = new Set();
+    tag: string = "";
+    radius: number;
+    realWorldStart: Vector;
+    realWorldEnd: Vector;
+
+    constructor({ tag }: { tag?: string }) {
         super({ name: "Collider" });
         this.type = "Collider";
         this.base = "Collider";
+        this.tag = tag || "<Untagged>";
+        this.radius = 0;
+        this.realWorldStart = new Vector(0, 0);
+        this.realWorldEnd = new Vector(0, 0);
     }
 
-    clone(memo = new Map()): this {
-        if (memo.has(this)) {
-            return memo.get(this);
-        }
-
-        const clonedCollider = new Collider();
-
-        memo.set(this, clonedCollider);
-
-        this._cloneProperties(clonedCollider, memo);
-
-        // Reset properties that need re-initialization after construction
-        clonedCollider.colliding = false;
-        clonedCollider.collidingWith = new Set<Collider>();
-
-        return clonedCollider as this;
+    setTag(tag: string) {
+        this.tag = tag;
     }
+
+    abstract override clone(memo?: Map<Part, Part>): this;
 
     onMount(parent: Part) {
         super.onMount(parent);
-        if (!this.sibling("Transform")) {
+        const transform = this.sibling<Transform>("Transform");
+        if (!transform) {
             this.top?.warn(
-                `Collider <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component before adding a Collider. It will not technically effect functionality, but it is good practice.`
+                `Collider <${this.name}> (${this.id}) does not have Transform sibling. Please ensure you add a Transform component.`
             );
             return;
         }
+        this.updateCollider(transform);
     }
-    get vertices(): Vector[] {
-        // Override in subclasses to provide collider-specific vertices
-        return [];
-    }
+
+    abstract get worldVertices(): Vector[];
+
+    abstract narrowPhaseCheck(other: Collider): boolean;
+
+    abstract updateCollider(transform: Transform): void;
+
+    abstract drawDebug(ctx: CanvasRenderingContext2D): void;
 
     onRegister(attribute: string, value: any) {
         super.onRegister(attribute, value);
@@ -51,24 +55,53 @@ export class Collider extends Part {
         }
     }
 
-    onUnregister(attribute: string, value: any) {
-        super.onUnregister(attribute, value);
-        if (attribute === "layer") {
-            const list = value.flats.colliders;
-            const index = list.indexOf(this);
-            if (index !== -1) {
-                list.splice(index, 1);
+    act(delta: number): void {
+        super.act(delta);
+        if (!this.registrations?.layer) {
+            throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked.`);
+        }
+
+        const transform = this.sibling<Transform>("Transform");
+        if (!transform) return;
+
+        this.updateCollider(transform);
+
+        this.colliding = false;
+        this.collidingWith.clear();
+
+        const layer = this.registrations.layer as Part;
+        const colliders = layer.flats.colliders as Collider[];
+        for (const other of colliders) {
+            if (other === this) continue;
+            if (this.checkCollision(other)) {
+                this.colliding = true;
+                this.collidingWith.add(other);
+            }
+        }
+
+        this.hoverbug = `${this.colliding ? "🟥" : "🟩"} - ${Array.from(this.collidingWith).map(o => o.name).join(", ")} objects`;
+
+        if (this.top instanceof Game && this.top.devmode) {
+            const ctx = this.top.context;
+            if (ctx) {
+                this.drawDebug(ctx);
             }
         }
     }
 
-    act(delta: number) {
-        super.act(delta);
-        if (!this.registrations?.layer) {
-            throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked. Collisions require layers.`)
-        }
-        this.hoverbug = `${this.colliding ? "🟥" : "🟩"} - ${Array.from(this.collidingWith).map(o => o.name).join(",")} objects`
+    checkCollision(other: Collider): boolean {
+        if (other.tag === this.tag && this.tag !== "<Untagged>") return false;
 
+        if (
+            this.realWorldEnd.x < other.realWorldStart.x ||
+            this.realWorldStart.x > other.realWorldEnd.x ||
+            this.realWorldEnd.y < other.realWorldStart.y ||
+            this.realWorldStart.y > other.realWorldEnd.y
+        ) {
+            return false;
+        }
+
+        return this.narrowPhaseCheck(other);
     }
 
     isVisible(camera: Camera): boolean {
@@ -76,51 +109,38 @@ export class Collider extends Part {
             throw new Error("Collider cannot calculate visibility without a 'top' (Game instance).");
         }
 
-        // 1. Get camera's view boundaries in world space.
+        const transform = this.sibling<Transform>("Transform");
+        if (!transform) {
+            return false;
+        }
+        this.updateCollider(transform);
+
         const { offset, scale } = camera.getViewMatrix();
-        // cameraPos is the world coordinate at the center of the camera's view.
         const cameraPos = offset.multiply(-1);
 
         const screenWidth = this.top.width;
         const screenHeight = this.top.height;
 
-        // Calculate the width and height of the camera's view in world units.
         const viewWidth = screenWidth / scale.x;
         const viewHeight = screenHeight / scale.y;
-
-        // 2. Get collider's AABB in world space.
-        const vertices = this.vertices;
-        if (vertices.length === 0) {
-            return false; // No vertices means it has no shape to be visible.
-        }
-
-        const transform = this.sibling<Transform>("Transform");
-        if (!transform) {
-            throw new Error("Can not calculate visibility if transform sibling is not present");
-        }
-
-        const worldVertices = vertices.map(vertex => {
-            return vertex.add(transform.position)
-        });
 
         const cameraVertices = [
             new Vector(cameraPos.x - viewWidth / 2, cameraPos.y - viewHeight / 2),
             new Vector(cameraPos.x + viewWidth / 2, cameraPos.y - viewHeight / 2),
             new Vector(cameraPos.x + viewWidth / 2, cameraPos.y + viewHeight / 2),
             new Vector(cameraPos.x - viewWidth / 2, cameraPos.y + viewHeight / 2)
-        ]
+        ];
 
-
-        return this.checkVerticesAgainstVertices(worldVertices, cameraVertices);
+        return this.checkVerticesAgainstVertices(this.worldVertices, cameraVertices);
     }
 
-    protected checkVerticesAgainstVertices(vertices1: Vector[], vertices2: Vector[]) {
+    protected checkVerticesAgainstVertices(vertices1: Vector[], vertices2: Vector[]): boolean {
         const axes1 = this.getAxes(vertices1);
         const axes2 = this.getAxes(vertices2);
 
         const axes = axes1.concat(axes2);
 
-        for(const axis of axes) {
+        for (const axis of axes) {
             const projection1 = this.project(vertices1, axis);
             const projection2 = this.project(vertices2, axis);
 
@@ -128,22 +148,22 @@ export class Collider extends Part {
                 return false;
             }
         }
-        
+
         return true;
     }
-    // Helper to get axes (normals) of a polygon's edges
+
     protected getAxes(vertices: Vector[]): Vector[] {
         const axes: Vector[] = [];
         for (let i = 0; i < vertices.length; i++) {
             const p1 = vertices[i];
             const p2 = vertices[i === vertices.length - 1 ? 0 : i + 1];
             const edge = p2.subtract(p1);
-            const normal = new Vector(-edge.y, edge.x).normalize(); // Perpendicular vector (normal)
+            const normal = new Vector(-edge.y, edge.x).normalize();
             axes.push(normal);
         }
         return axes;
     }
-    // Helper to project a polygon onto an axis
+
     protected project(vertices: Vector[], axis: Vector): { min: number, max: number } {
         let min = axis.dot(vertices[0]);
         let max = min;
@@ -157,7 +177,7 @@ export class Collider extends Part {
         }
         return { min, max };
     }
-    // Helper to check if two projections overlap
+
     protected overlap(proj1: { min: number, max: number }, proj2: { min: number, max: number }): boolean {
         return proj1.max >= proj2.min && proj2.max >= proj1.min;
     }

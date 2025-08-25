@@ -9,7 +9,8 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             height: { type: "number", default: 600, description: "Height of the game canvas in pixels." },
             devmode: { type: "boolean", default: true, description: "Enable developer mode." },
             disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for every object." },
-            starterScene: { type: "Part", subType: "Scene", description: "The scene that will be loaded when the game starts." }
+            starterScene: { type: "Part", subType: "Scene", description: "The scene that will be loaded when the game starts." },
+            showFrameStats: { type: "enum", default: "BASIC", options: ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"], description: "Show frame statistics." }
         },
         children: ["Scene"]
     },
@@ -30,7 +31,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             name: { type: "text", default: "NewGameObject", description: "The name of the game object." },
             render: { type: "boolean", default: true, description: "Whether this GameObject should be rendered. If false, no child Parts will be ran." }
         },
-        children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody"]
+        children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody", "GravityCharacterMovement"]
     },
     "Camera": {
         properties: {
@@ -60,13 +61,15 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         properties: {
             name: { type: "text", default: "BoxCollider", description: "The name of the box collider." },
             width: { type: "number", default: 50, description: "Width of the box collider." },
-            height: { type: "number", default: 50, description: "Height of the box collider." }
+            height: { type: "number", default: 50, description: "Height of the box collider." },
+            tag: { type: "text", default: "<Untagged>", description: "The tag of the box collider." }
         },
         singular: true
     },
     "PolygonCollider": {
         properties: {
             name: { type: "text", default: "PolygonCollider", description: "The name of the polygon collider." },
+            tag: { type: "text", default: "<Untagged>", description: "The tag of the polygon collider." },
             vertices: { type: "list", subType: "Vector", default: ["new Vector(-25,-25)", "new Vector(25,-25)", "new Vector(25,25)", "new Vector(-25,25)"], description: "Vertices of the polygon." }
         },
         singular: true
@@ -282,6 +285,18 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             density: { type: "number", default: 0.001, description: "Density of the body." },
             friction: { type: "number", default: 0.1, description: "Friction of the body." },
             restitution: { type: "number", default: 0, description: "Restitution (bounciness) of the body." }
+        },
+        singular: true
+    },
+    "GravityCharacterMovement": {
+        properties: {
+            name: { type: "text", default: "GravityCharacterMovement", description: "The name of the gravity character movement." },
+            speed: { type: "number", default: 5, description: "Movement speed of the character." },
+            movementType: { type: "enum", default: "WASD", options: ["WASD", "ArrowKeys", "BOTH"], description: "Type of movement controls to use." },
+            input: { type: "Part", subType: "Input", description: "The input component for the scene, used to track player input." },
+            gravityScale: { type: "Vector", default: "new Vector(0, 0.5)", description: "Gravity scale applied to the character." },
+            maxSpeed: { type: "number", default: 10, description: "Maximum speed of the character." },
+            jumpForce: { type: "number", default: 10, description: "Jump force applied to the character." }
         },
         singular: true
     }

@@ -129,7 +129,8 @@ export class Part {
     onRegister(attribute: string, value: any) {
         // This method can be overridden in subclasses to handle registration logic
     }
-    onUnregister(attribute: string, value: any) {
+    onUnregister(attribute: string, value: any, debug?: string) {
+        if (debug) console.log(debug, value.name);
         switch (attribute) {
             case "parent":
                 this.parent = undefined; // Clear parent reference
@@ -142,7 +143,7 @@ export class Part {
                 break;
             case "layer":
                 if (this.registrations.layer && this.registrations.layer.flats) {
-                    this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c: Collider) => c as any !== this as any);
+                    this.registrations.layer.flats.colliders = this.registrations.layer.flats.colliders.filter((c: Collider) => c.id !== this.id);
                 }
                 break;
             default:
@@ -261,6 +262,9 @@ export class Part {
     }
     removeChild(child: Part) {
         if (this._childrenByName[child.name]) {
+            child.childrenArray.forEach(gc => {
+                child.removeChild(gc)
+            })
             delete this._childrenByName[child.name];
             this._childrenByType[child.type] = this._childrenByType[child.type]?.filter(c => c.id != child.id) || [];
             const index = this.childrenArray.indexOf(child);
@@ -273,6 +277,7 @@ export class Part {
             child.onUnregister("parent", this); // Notify child of unregistration
             child.onUnregister("top", this.top); // Notify child of unregistration from top
             child.onUnmount(); // Call onUnmount for the removed child
+
         } else {
             this.top?.warn(`Child with name <${child.name}> not found in <${this.name}>. Cannot remove. (Child has ID <${child.id}>).`);
         }

@@ -1,4 +1,4 @@
-import { applyCamera, generateUID, resetCamera } from "../helpers";
+import { applyCamera, resetCamera } from "../helpers";
 import type { Camera } from "./Camera";
 import { Game } from "./Game";
 import { Part } from "./Part";
@@ -32,7 +32,10 @@ export class Scene extends Part {
 
         return clonedScene as this;
     }
-
+    removeChild(child: Part): void {
+        child.onUnregister("scene", this);
+        super.removeChild(child);
+    }
     addChild(part: Part) {
         part.setAll("scene", this);
         super.addChild(part);
