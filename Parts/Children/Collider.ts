@@ -129,10 +129,12 @@ export abstract class Collider extends Part {
 
 
     evaluateMerging() {
-        const layer = this.registrations["layer"];
+        const layer = this.registrations["layer"] as import("../Layer").Layer;
         if (!layer) return;
 
-        const fellowColliders: Collider[] = layer.flats.colliders.filter((c: Collider) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
+        const candidates = layer.spatialGrid.query(this);
+        const fellowColliders: Collider[] = candidates.filter((c: Collider) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
+
         if (fellowColliders.length == 0) return;
 
         for (const fellow of fellowColliders) {
@@ -210,9 +212,10 @@ export abstract class Collider extends Part {
         this.collidingWith.clear();
 
 
-        const layer = this.registrations.layer as Part;
-        const colliders = layer.flats.colliders as Collider[];
-        for (const other of colliders) {
+        const layer = this.registrations.layer as import("../Layer").Layer;
+        const candidates = layer.spatialGrid.query(this);
+
+        for (const other of candidates) {
             if (other === this) continue;
             if (this.checkCollision(other)) {
                 this.colliding = true;

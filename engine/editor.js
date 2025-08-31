@@ -5045,6 +5045,58 @@ class SoundManagerController {
   }
 }
 
+class SpatialGrid {
+  cells;
+  cellSize;
+  constructor(cellSize) {
+    this.cells = new Map;
+    this.cellSize = cellSize;
+  }
+  getKey(x, y) {
+    return `${Math.floor(x / this.cellSize)}_${Math.floor(y / this.cellSize)}`;
+  }
+  clear() {
+    this.cells.clear();
+  }
+  insert(collider) {
+    const start = collider.realWorldStart;
+    const end = collider.realWorldEnd;
+    const startX = Math.floor(start.x / this.cellSize);
+    const startY = Math.floor(start.y / this.cellSize);
+    const endX = Math.floor(end.x / this.cellSize);
+    const endY = Math.floor(end.y / this.cellSize);
+    for (let x = startX;x <= endX; x++) {
+      for (let y = startY;y <= endY; y++) {
+        const key = `${x}_${y}`;
+        if (!this.cells.has(key)) {
+          this.cells.set(key, []);
+        }
+        this.cells.get(key).push(collider);
+      }
+    }
+  }
+  query(collider) {
+    const candidates = new Set;
+    const start = collider.realWorldStart;
+    const end = collider.realWorldEnd;
+    const startX = Math.floor(start.x / this.cellSize);
+    const startY = Math.floor(start.y / this.cellSize);
+    const endX = Math.floor(end.x / this.cellSize);
+    const endY = Math.floor(end.y / this.cellSize);
+    for (let x = startX;x <= endX; x++) {
+      for (let y = startY;y <= endY; y++) {
+        const key = `${x}_${y}`;
+        if (this.cells.has(key)) {
+          for (const other of this.cells.get(key)) {
+            candidates.add(other);
+          }
+        }
+      }
+    }
+    return Array.from(candidates);
+  }
+}
+
 class Vector {
   x;
   y;
@@ -24275,11 +24327,13 @@ Defaulting to 2020, but this will stop working in the future.`);
     }
   };
   Layer = class Layer extends Part {
+    spatialGrid;
     constructor({ name }) {
       super({ name });
       this.type = "Layer";
       this.id = generateUID();
       this.debugEmoji = "\uD83D\uDDC2️";
+      this.spatialGrid = new SpatialGrid(100);
     }
     addChild(part) {
       part.setAll("layer", this);
@@ -24295,6 +24349,13 @@ Defaulting to 2020, but this will stop working in the future.`);
     act(delta) {
       if (!this.ready) {
         return;
+      }
+      this.spatialGrid.clear();
+      const colliders = this.flats.colliders;
+      for (const collider of colliders) {
+        if (collider.active) {
+          this.spatialGrid.insert(collider);
+        }
       }
       this.ties.forEach((tie) => {
         if (tie.target && tie.target.hasOwnProperty(tie.targetAttribute)) {
@@ -24952,7 +25013,8 @@ Defaulting to 2020, but this will stop working in the future.`);
       const layer = this.registrations["layer"];
       if (!layer)
         return;
-      const fellowColliders = layer.flats.colliders.filter((c) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
+      const candidates = layer.spatialGrid.query(this);
+      const fellowColliders = candidates.filter((c) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
       if (fellowColliders.length == 0)
         return;
       for (const fellow of fellowColliders) {
@@ -25013,8 +25075,8 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.colliding = false;
       this.collidingWith.clear();
       const layer = this.registrations.layer;
-      const colliders = layer.flats.colliders;
-      for (const other of colliders) {
+      const candidates = layer.spatialGrid.query(this);
+      for (const other of candidates) {
         if (other === this)
           continue;
         if (this.checkCollision(other)) {
