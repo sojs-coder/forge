@@ -296,7 +296,9 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             input: { type: "Part", subType: "Input", description: "The input component for the scene, used to track player input." },
             gravityScale: { type: "Vector", default: "new Vector(0, 0.5)", description: "Gravity scale applied to the character." },
             maxSpeed: { type: "number", default: 10, description: "Maximum speed of the character." },
-            jumpForce: { type: "number", default: 10, description: "Jump force applied to the character." }
+            jumpForce: { type: "number", default: 10, description: "Jump force applied to the character." },
+            waterFraction: { type: "number", default: 0.5, description: "Fraction of normal speed and jump force when in water (0-1)." },
+            landFraction: { type: "number", default: 1.0, description: "Fraction of normal speed and jump force when on land (0-1)." }
         },
         singular: true
     }

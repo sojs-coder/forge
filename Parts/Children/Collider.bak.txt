@@ -1,69 +1,11 @@
+import { getLineSegmentsIntersection } from "../../Math/LineIntersections";
 import { Vector } from "../../Math/Vector";
+import { vecEq, pointInPoly } from "../../helpers";
 import type { Camera } from "../Camera";
 import { Game } from "../Game";
 import { Part } from "../Part";
-import { MultiPolygonCollider } from "./MultiPolygonCollider";
 import type { Transform } from "./Transform";
-import * as martinez from 'martinez-polygon-clipping';
 
-/**        if (this.tag !== other.tag || other.tag == "<Untagged>" || this.tag == "<Untagged>") return;
-
-        const thisTransform = this.sibling<Transform>("Transform");
-        if (!thisTransform) {
-            this.top?.warn(`Collider <${this.name}> has no Transform sibling, cannot merge.`);
-            return;
-        }
-
-        // 1. Combine vertices from both colliders
-        const allVertices = [...this.worldVertices, ...other.worldVertices];
-
-        // 2. Compute the convex hull of the combined vertices using the Monotone Chain algorithm.
-        // This is a robust way to find the union of two convex polygons.
-        allVertices.sort((a, b) => {
-            return a.x < b.x || (a.x == b.x && a.y < b.y) ? -1 : 1;
-        });
-        const cross = (o: Vector, a: Vector, b: Vector) => {
-            return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-        };
-
-        const lower: Vector[] = [];
-        for (const p of allVertices) {
-            while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
-                lower.pop();
-            }
-            lower.push(p);
-        }
-
-        const upper: Vector[] = [];
-        for (let i = allVertices.length - 1; i >= 0; i--) {
-            const p = allVertices[i];
-            while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
-                upper.pop();
-            }
-            upper.push(p);
-        }
-
-        upper.pop();
-        lower.pop();
-
-        const hull = lower.concat(upper);
-
-        if (hull.length < 3) {
-            // The merged shape is not a valid polygon, so we inactivate the other collider
-            // and leave this one as is. This might happen in degenerate cases.
-            return;
-        }
-
-        // 3. Update the collider with the new shape
-        const newLocalVertices = hull.map(v => v.subtract(thisTransform.worldPosition));
-        this._updateVerticesAfterMerge(newLocalVertices);
-        other.inactivate(); */
-
-/** From martinez-polygon-clipping */
-export type Position = number[]
-export type Polygon = Position[]
-export type MultiPolygon = Position[][]
-export type Geometry = Polygon | MultiPolygon
 export abstract class Collider extends Part {
     colliding: boolean = false;
     collidingWith: Set<Collider> = new Set();
@@ -118,7 +60,72 @@ export abstract class Collider extends Part {
 
     abstract drawDebug(ctx: CanvasRenderingContext2D): void;
 
-        abstract _updateVerticesAfterMerge(polygons: Vector[][]): void;
+    abstract _updateVerticesAfterMerge(vertices: Vector[]): void;
+
+    private isMergedAndConcave: boolean = false;
+    private convexParts: Vector[][] = [];
+
+    private isConvex(vertices: Vector[]): boolean {
+        if (vertices.length < 4) return true;
+        let sign = 0;
+        for (let i = 0; i < vertices.length; i++) {
+            const p1 = vertices[i];
+            const p2 = vertices[(i + 1) % vertices.length];
+            const p3 = vertices[(i + 2) % vertices.length];
+            const crossProduct = (p2.x - p1.x) * (p3.y - p2.y) - (p2.y - p1.y) * (p3.x - p2.x);
+            if (Math.abs(crossProduct) > 1e-9) {
+                if (sign === 0) {
+                    sign = Math.sign(crossProduct);
+                } else if (Math.sign(crossProduct) !== sign) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private triangulate(vertices: Vector[]): Vector[][] {
+        const triangles: Vector[][] = [];
+        const polygon = [...vertices];
+    
+        while (polygon.length > 3) {
+            let earFound = false;
+            for (let i = 0; i < polygon.length; i++) {
+                const p1 = polygon[(i + polygon.length - 1) % polygon.length];
+                const p2 = polygon[i];
+                const p3 = polygon[(i + 1) % polygon.length];
+    
+                const crossProduct = (p2.x - p1.x) * (p3.y - p2.y) - (p2.y - p1.y) * (p3.x - p2.x);
+    
+                if (crossProduct < 0) continue;
+    
+                const triangle = [p1, p2, p3];
+                let isEar = true;
+    
+                for (let j = 0; j < polygon.length; j++) {
+                    if (j === i || j === (i + 1) % polygon.length || j === (i + polygon.length - 1) % polygon.length) continue;
+                    if (pointInPoly(polygon[j], triangle)) {
+                        isEar = false;
+                        break;
+                    }
+                }
+    
+                if (isEar) {
+                    triangles.push(triangle);
+                    polygon.splice(i, 1);
+                    earFound = true;
+                    break;
+                }
+            }
+            if (!earFound) {
+                break;
+            }
+        }
+        if (polygon.length === 3) {
+            triangles.push(polygon);
+        }
+        return triangles;
+    }
 
     onRegister(attribute: string, value: any) {
         super.onRegister(attribute, value);
@@ -132,23 +139,18 @@ export abstract class Collider extends Part {
         const layer = this.registrations["layer"];
         if (!layer) return;
 
-        const fellowColliders: Collider[] = layer.flats.colliders.filter((c: Collider) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
+        const fellowColliders = layer.flats.colliders.filter((c: Collider) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
         if (fellowColliders.length == 0) return;
 
         for (const fellow of fellowColliders) {
-            if (!fellow.sibling<Transform>("Transform")?.initialized) continue;
-
-            // To avoid race conditions where both colliders try to merge with each other,
-            // we establish a rule: the collider with the smaller ID merges the one with the larger ID.
-            // This creates a deterministic merge order.
             if (this.id < fellow.id && this.checkCollision(fellow, true)) {
                 this.mergeWith(fellow);
             }
         }
     }
-
-
-    abstract getGeometry(): Polygon | MultiPolygon;
+    onStart() {
+        if (this.allowMerge) this.evaluateMerging();
+    }
 
     mergeWith(other: Collider) {
         if (this.tag !== other.tag || other.tag == "<Untagged>" || this.tag == "<Untagged>") return;
@@ -159,36 +161,104 @@ export abstract class Collider extends Part {
             return;
         }
 
-        const allPolygons: Polygon[] = []; // Polygon is Position[][]
+        const poly1 = this.worldVertices;
+        const poly2 = other.worldVertices;
 
-        const g1 = this.getGeometry();
-        if (this.type === 'MultiPolygonCollider') { // Using this.type to avoid instanceof and circular dependencies
-            allPolygons.push(...(g1 as MultiPolygon));
-        } else {
-            allPolygons.push(g1 as Polygon);
+        // --- Conservative Merge Check ---
+        let sharedEdges = 0;
+        const tolerance = 1e-5;
+
+        for (let i = 0; i < poly1.length; i++) {
+            const p1_v1 = poly1[i];
+            const p1_v2 = poly1[(i + 1) % poly1.length];
+            for (let j = 0; j < poly2.length; j++) {
+                const p2_v1 = poly2[j];
+                const p2_v2 = poly2[(j + 1) % poly2.length];
+                if (p1_v1.distance(p2_v2) < tolerance && p1_v2.distance(p2_v1) < tolerance) {
+                    sharedEdges++;
+                }
+            }
         }
 
-        const g2 = other.getGeometry();
-        if (other.type === 'MultiPolygonCollider') { // Using other.type to avoid instanceof and circular dependencies
-            allPolygons.push(...(g2 as MultiPolygon));
-        } else {
-            allPolygons.push(g2 as Polygon);
+        if (sharedEdges === 0) return; // Not adjacent, abort merge
+
+        for(const p of poly1) {
+            if(pointInPoly(p, poly2) && !poly2.some(p2 => p.distance(p2) < tolerance)) return;
+        }
+        for(const p of poly2) {
+            if(pointInPoly(p, poly1) && !poly1.some(p1 => p.distance(p1) < tolerance)) return;
         }
 
-        if (allPolygons.length === 0) return;
+        // --- Edge Cancellation Merge ---
+        const getEdges = (vertices: Vector[]): Vector[][] => {
+            const edges: Vector[][] = [];
+            for (let i = 0; i < vertices.length; i++) {
+                edges.push([vertices[i], vertices[(i + 1) % vertices.length]]);
+            }
+            return edges;
+        };
 
-        const localPolygons: Vector[][] = allPolygons.map(polygon => {
-            return polygon.map(([x, y]) => thisTransform.worldToLocal(new Vector(x, y)));
-        });
+        const allEdges = [...getEdges(poly1), ...getEdges(poly2)];
+        const edgeMap = new Map<string, number>();
+        const vecToKey = (v: Vector) => `${Math.round(v.x / tolerance)},${Math.round(v.y / tolerance)}`;
 
-        this._updateVerticesAfterMerge(localPolygons);
+        for (const edge of allEdges) {
+            const key = `${vecToKey(edge[0])}->${vecToKey(edge[1])}`;
+            edgeMap.set(key, (edgeMap.get(key) || 0) + 1);
+        }
+
+        const finalEdges: Vector[][] = [];
+        for (const [key, count] of edgeMap.entries()) {
+            const [p1Key, p2Key] = key.split('->');
+            const revKey = `${p2Key}->${p1Key}`;
+            const revCount = edgeMap.get(revKey) || 0;
+            if (count > revCount) {
+                const edge = allEdges.find(e => vecToKey(e[0]) === p1Key && vecToKey(e[1]) === p2Key);
+                if (edge) {
+                    for (let i = 0; i < count - revCount; i++) {
+                        finalEdges.push(edge);
+                    }
+                }
+            }
+        }
+
+        if (finalEdges.length === 0) {
+            other.inactivate();
+            return;
+        }
+
+        const stitchMap = new Map<string, Vector>();
+        for (const edge of finalEdges) {
+            stitchMap.set(vecToKey(edge[0]), edge[1]);
+        }
+
+        const hull: Vector[] = [];
+        let current = finalEdges[0][0];
+        let startKey = vecToKey(current);
+
+        for (let i = 0; i < finalEdges.length; i++) {
+            hull.push(current);
+            const currentKey = vecToKey(current);
+            current = stitchMap.get(currentKey)!;
+            if (vecToKey(current) === startKey) break;
+        }
+
+        if (hull.length < 3) {
+            other.inactivate();
+            return;
+        }
+
+        const newLocalVertices = hull.map(v => v.subtract(thisTransform.worldPosition));
+        this._updateVerticesAfterMerge(newLocalVertices);
+
+        if (!this.isConvex(newLocalVertices)) {
+            this.isMergedAndConcave = true;
+            this.convexParts = this.triangulate(newLocalVertices);
+        }
+
         other.inactivate();
     }
-    onStart() {
-        // if (this.allowMerge) {
-        //     this.evaluateMerging();
-        // }
-    }
+
     inactivate() {
         this.active = false;
     }
@@ -208,7 +278,6 @@ export abstract class Collider extends Part {
         this.updateCollider(transform);
         this.colliding = false;
         this.collidingWith.clear();
-
 
         const layer = this.registrations.layer as Part;
         const colliders = layer.flats.colliders as Collider[];
@@ -240,6 +309,7 @@ export abstract class Collider extends Part {
             ctx.stroke();
             ctx.fill();
         }
+        this.evaluateMerging();
 
         if (this.top instanceof Game && this.top.devmode) {
             const ctx = this.top.context;
@@ -260,7 +330,33 @@ export abstract class Collider extends Part {
         this.updateCollider(thisTransform);
         other.updateCollider(otherTransform);
 
+        if (!this.active || !other.active) return false;
+
         if (!ignoreTags && other.tag === this.tag && this.tag !== "<Untagged>") return false;
+
+        const checkParts = (collider: Collider, parts: Vector[][], transform: Transform, otherCollider: Collider) => {
+            for (const part of parts) {
+                const worldPart = part.map(p => p.add(transform.worldPosition));
+                if (otherCollider.isMergedAndConcave) {
+                    const otherTransform = otherCollider.sibling<Transform>("Transform")!;
+                    for (const otherPart of otherCollider.convexParts) {
+                        const otherWorldPart = otherPart.map(p => p.add(otherTransform.worldPosition));
+                        if (this.checkVerticesAgainstVertices(worldPart, otherWorldPart)) return true;
+                    }
+                } else {
+                    if (this.checkVerticesAgainstVertices(worldPart, otherCollider.worldVertices)) return true;
+                }
+            }
+            return false;
+        }
+
+        if (this.isMergedAndConcave) {
+            return checkParts(this, this.convexParts, thisTransform, other);
+        }
+
+        if (other.isMergedAndConcave) {
+            return checkParts(other, other.convexParts, otherTransform, this);
+        }
 
         if (
             this.realWorldEnd.x < other.realWorldStart.x ||
@@ -356,22 +452,5 @@ export abstract class Collider extends Part {
 
     protected overlap(proj1: { min: number, max: number }, proj2: { min: number, max: number }): boolean {
         return proj1.max >= proj2.min && proj2.max >= proj1.min;
-    }
-
-    protected _checkPolygonVsPolygon(vertices1: Vector[], vertices2: Vector[]): boolean {
-        const axes1 = this.getAxes(vertices1);
-        const axes2 = this.getAxes(vertices2);
-
-        const axes = axes1.concat(axes2);
-
-        for (const axis of axes) {
-            const projection1 = this.project(vertices1, axis);
-            const projection2 = this.project(vertices2, axis);
-
-            if (!this.overlap(projection1, projection2)) {
-                return false;
-            }
-        }
-        return true;
     }
 }

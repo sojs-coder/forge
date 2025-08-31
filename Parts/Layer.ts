@@ -1,12 +1,11 @@
 import { GameObject } from "./GameObject";
 import { generateUID } from "../helpers";
 import { Part } from "./Part";
-import type { Game } from "./Game";
 
 export class Layer extends Part {
     constructor({ name }: { name: string }) {
-        super();
-        this.name = name;
+        super({ name });
+        this.type = "Layer";
         this.id = generateUID();
         this.debugEmoji = "🗂️"; // Default emoji for debugging the layer
     }

@@ -98,15 +98,16 @@ var require_PostgrestBuilder = __commonJS((exports) => {
 
   class PostgrestBuilder {
     constructor(builder) {
+      var _a, _b;
       this.shouldThrowOnError = false;
       this.method = builder.method;
       this.url = builder.url;
-      this.headers = builder.headers;
+      this.headers = new Headers(builder.headers);
       this.schema = builder.schema;
       this.body = builder.body;
-      this.shouldThrowOnError = builder.shouldThrowOnError;
+      this.shouldThrowOnError = (_a = builder.shouldThrowOnError) !== null && _a !== undefined ? _a : false;
       this.signal = builder.signal;
-      this.isMaybeSingle = builder.isMaybeSingle;
+      this.isMaybeSingle = (_b = builder.isMaybeSingle) !== null && _b !== undefined ? _b : false;
       if (builder.fetch) {
         this.fetch = builder.fetch;
       } else if (typeof fetch === "undefined") {
@@ -120,19 +121,18 @@ var require_PostgrestBuilder = __commonJS((exports) => {
       return this;
     }
     setHeader(name, value) {
-      this.headers = Object.assign({}, this.headers);
-      this.headers[name] = value;
+      this.headers = new Headers(this.headers);
+      this.headers.set(name, value);
       return this;
     }
     then(onfulfilled, onrejected) {
-      if (this.schema === undefined) {
-      } else if (["GET", "HEAD"].includes(this.method)) {
-        this.headers["Accept-Profile"] = this.schema;
+      if (this.schema === undefined) {} else if (["GET", "HEAD"].includes(this.method)) {
+        this.headers.set("Accept-Profile", this.schema);
       } else {
-        this.headers["Content-Profile"] = this.schema;
+        this.headers.set("Content-Profile", this.schema);
       }
       if (this.method !== "GET" && this.method !== "HEAD") {
-        this.headers["Content-Type"] = "application/json";
+        this.headers.set("Content-Type", "application/json");
       }
       const _fetch = this.fetch;
       let res = _fetch(this.url.toString(), {
@@ -141,7 +141,7 @@ var require_PostgrestBuilder = __commonJS((exports) => {
         body: JSON.stringify(this.body),
         signal: this.signal
       }).then(async (res2) => {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         let error = null;
         let data = null;
         let count = null;
@@ -150,17 +150,16 @@ var require_PostgrestBuilder = __commonJS((exports) => {
         if (res2.ok) {
           if (this.method !== "HEAD") {
             const body = await res2.text();
-            if (body === "") {
-            } else if (this.headers["Accept"] === "text/csv") {
+            if (body === "") {} else if (this.headers.get("Accept") === "text/csv") {
               data = body;
-            } else if (this.headers["Accept"] && this.headers["Accept"].includes("application/vnd.pgrst.plan+text")) {
+            } else if (this.headers.get("Accept") && ((_a = this.headers.get("Accept")) === null || _a === undefined ? undefined : _a.includes("application/vnd.pgrst.plan+text"))) {
               data = body;
             } else {
               data = JSON.parse(body);
             }
           }
-          const countHeader = (_a = this.headers["Prefer"]) === null || _a === undefined ? undefined : _a.match(/count=(exact|planned|estimated)/);
-          const contentRange = (_b = res2.headers.get("content-range")) === null || _b === undefined ? undefined : _b.split("/");
+          const countHeader = (_b = this.headers.get("Prefer")) === null || _b === undefined ? undefined : _b.match(/count=(exact|planned|estimated)/);
+          const contentRange = (_c = res2.headers.get("content-range")) === null || _c === undefined ? undefined : _c.split("/");
           if (countHeader && contentRange && contentRange.length > 1) {
             count = parseInt(contentRange[1]);
           }
@@ -192,7 +191,7 @@ var require_PostgrestBuilder = __commonJS((exports) => {
               status = 200;
               statusText = "OK";
             }
-          } catch (_d) {
+          } catch (_e) {
             if (res2.status === 404 && body === "") {
               status = 204;
               statusText = "No Content";
@@ -202,7 +201,7 @@ var require_PostgrestBuilder = __commonJS((exports) => {
               };
             }
           }
-          if (error && this.isMaybeSingle && ((_c = error === null || error === undefined ? undefined : error.details) === null || _c === undefined ? undefined : _c.includes("0 rows"))) {
+          if (error && this.isMaybeSingle && ((_d = error === null || error === undefined ? undefined : error.details) === null || _d === undefined ? undefined : _d.includes("0 rows"))) {
             error = null;
             status = 200;
             statusText = "OK";
@@ -270,10 +269,7 @@ var require_PostgrestTransformBuilder = __commonJS((exports) => {
         return c;
       }).join("");
       this.url.searchParams.set("select", cleanedColumns);
-      if (this.headers["Prefer"]) {
-        this.headers["Prefer"] += ",";
-      }
-      this.headers["Prefer"] += "return=representation";
+      this.headers.append("Prefer", "return=representation");
       return this;
     }
     order(column, { ascending = true, nullsFirst, foreignTable, referencedTable = foreignTable } = {}) {
@@ -299,24 +295,24 @@ var require_PostgrestTransformBuilder = __commonJS((exports) => {
       return this;
     }
     single() {
-      this.headers["Accept"] = "application/vnd.pgrst.object+json";
+      this.headers.set("Accept", "application/vnd.pgrst.object+json");
       return this;
     }
     maybeSingle() {
       if (this.method === "GET") {
-        this.headers["Accept"] = "application/json";
+        this.headers.set("Accept", "application/json");
       } else {
-        this.headers["Accept"] = "application/vnd.pgrst.object+json";
+        this.headers.set("Accept", "application/vnd.pgrst.object+json");
       }
       this.isMaybeSingle = true;
       return this;
     }
     csv() {
-      this.headers["Accept"] = "text/csv";
+      this.headers.set("Accept", "text/csv");
       return this;
     }
     geojson() {
-      this.headers["Accept"] = "application/geo+json";
+      this.headers.set("Accept", "application/geo+json");
       return this;
     }
     explain({ analyze = false, verbose = false, settings = false, buffers = false, wal = false, format = "text" } = {}) {
@@ -328,23 +324,24 @@ var require_PostgrestTransformBuilder = __commonJS((exports) => {
         buffers ? "buffers" : null,
         wal ? "wal" : null
       ].filter(Boolean).join("|");
-      const forMediatype = (_a = this.headers["Accept"]) !== null && _a !== undefined ? _a : "application/json";
-      this.headers["Accept"] = `application/vnd.pgrst.plan+${format}; for="${forMediatype}"; options=${options};`;
-      if (format === "json")
+      const forMediatype = (_a = this.headers.get("Accept")) !== null && _a !== undefined ? _a : "application/json";
+      this.headers.set("Accept", `application/vnd.pgrst.plan+${format}; for="${forMediatype}"; options=${options};`);
+      if (format === "json") {
         return this;
-      else
+      } else {
         return this;
+      }
     }
     rollback() {
-      var _a;
-      if (((_a = this.headers["Prefer"]) !== null && _a !== undefined ? _a : "").trim().length > 0) {
-        this.headers["Prefer"] += ",tx=rollback";
-      } else {
-        this.headers["Prefer"] = "tx=rollback";
-      }
+      this.headers.append("Prefer", "tx=rollback");
       return this;
     }
     returns() {
+      return this;
+    }
+    maxAffected(value) {
+      this.headers.append("Prefer", "handling=strict");
+      this.headers.append("Prefer", `max-affected=${value}`);
       return this;
     }
   }
@@ -517,7 +514,7 @@ var require_PostgrestQueryBuilder = __commonJS((exports) => {
   class PostgrestQueryBuilder {
     constructor(url, { headers = {}, schema, fetch: fetch3 }) {
       this.url = url;
-      this.headers = headers;
+      this.headers = new Headers(headers);
       this.schema = schema;
       this.fetch = fetch3;
     }
@@ -535,30 +532,25 @@ var require_PostgrestQueryBuilder = __commonJS((exports) => {
       }).join("");
       this.url.searchParams.set("select", cleanedColumns);
       if (count) {
-        this.headers["Prefer"] = `count=${count}`;
+        this.headers.append("Prefer", `count=${count}`);
       }
       return new PostgrestFilterBuilder_1.default({
         method,
         url: this.url,
         headers: this.headers,
         schema: this.schema,
-        fetch: this.fetch,
-        allowEmpty: false
+        fetch: this.fetch
       });
     }
     insert(values, { count, defaultToNull = true } = {}) {
+      var _a;
       const method = "POST";
-      const prefersHeaders = [];
-      if (this.headers["Prefer"]) {
-        prefersHeaders.push(this.headers["Prefer"]);
-      }
       if (count) {
-        prefersHeaders.push(`count=${count}`);
+        this.headers.append("Prefer", `count=${count}`);
       }
       if (!defaultToNull) {
-        prefersHeaders.push("missing=default");
+        this.headers.append("Prefer", `missing=default`);
       }
-      this.headers["Prefer"] = prefersHeaders.join(",");
       if (Array.isArray(values)) {
         const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
         if (columns.length > 0) {
@@ -572,25 +564,21 @@ var require_PostgrestQueryBuilder = __commonJS((exports) => {
         headers: this.headers,
         schema: this.schema,
         body: values,
-        fetch: this.fetch,
-        allowEmpty: false
+        fetch: (_a = this.fetch) !== null && _a !== undefined ? _a : fetch
       });
     }
     upsert(values, { onConflict, ignoreDuplicates = false, count, defaultToNull = true } = {}) {
+      var _a;
       const method = "POST";
-      const prefersHeaders = [`resolution=${ignoreDuplicates ? "ignore" : "merge"}-duplicates`];
+      this.headers.append("Prefer", `resolution=${ignoreDuplicates ? "ignore" : "merge"}-duplicates`);
       if (onConflict !== undefined)
         this.url.searchParams.set("on_conflict", onConflict);
-      if (this.headers["Prefer"]) {
-        prefersHeaders.push(this.headers["Prefer"]);
-      }
       if (count) {
-        prefersHeaders.push(`count=${count}`);
+        this.headers.append("Prefer", `count=${count}`);
       }
       if (!defaultToNull) {
-        prefersHeaders.push("missing=default");
+        this.headers.append("Prefer", "missing=default");
       }
-      this.headers["Prefer"] = prefersHeaders.join(",");
       if (Array.isArray(values)) {
         const columns = values.reduce((acc, x) => acc.concat(Object.keys(x)), []);
         if (columns.length > 0) {
@@ -604,66 +592,40 @@ var require_PostgrestQueryBuilder = __commonJS((exports) => {
         headers: this.headers,
         schema: this.schema,
         body: values,
-        fetch: this.fetch,
-        allowEmpty: false
+        fetch: (_a = this.fetch) !== null && _a !== undefined ? _a : fetch
       });
     }
     update(values, { count } = {}) {
+      var _a;
       const method = "PATCH";
-      const prefersHeaders = [];
-      if (this.headers["Prefer"]) {
-        prefersHeaders.push(this.headers["Prefer"]);
-      }
       if (count) {
-        prefersHeaders.push(`count=${count}`);
+        this.headers.append("Prefer", `count=${count}`);
       }
-      this.headers["Prefer"] = prefersHeaders.join(",");
       return new PostgrestFilterBuilder_1.default({
         method,
         url: this.url,
         headers: this.headers,
         schema: this.schema,
         body: values,
-        fetch: this.fetch,
-        allowEmpty: false
+        fetch: (_a = this.fetch) !== null && _a !== undefined ? _a : fetch
       });
     }
     delete({ count } = {}) {
+      var _a;
       const method = "DELETE";
-      const prefersHeaders = [];
       if (count) {
-        prefersHeaders.push(`count=${count}`);
+        this.headers.append("Prefer", `count=${count}`);
       }
-      if (this.headers["Prefer"]) {
-        prefersHeaders.unshift(this.headers["Prefer"]);
-      }
-      this.headers["Prefer"] = prefersHeaders.join(",");
       return new PostgrestFilterBuilder_1.default({
         method,
         url: this.url,
         headers: this.headers,
         schema: this.schema,
-        fetch: this.fetch,
-        allowEmpty: false
+        fetch: (_a = this.fetch) !== null && _a !== undefined ? _a : fetch
       });
     }
   }
   exports.default = PostgrestQueryBuilder;
-});
-
-// node_modules/@supabase/postgrest-js/dist/cjs/version.js
-var require_version = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.version = undefined;
-  exports.version = "0.0.0-automated";
-});
-
-// node_modules/@supabase/postgrest-js/dist/cjs/constants.js
-var require_constants = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", { value: true });
-  exports.DEFAULT_HEADERS = undefined;
-  var version_1 = require_version();
-  exports.DEFAULT_HEADERS = { "X-Client-Info": `postgrest-js/${version_1.version}` };
 });
 
 // node_modules/@supabase/postgrest-js/dist/cjs/PostgrestClient.js
@@ -674,19 +636,18 @@ var require_PostgrestClient = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var PostgrestQueryBuilder_1 = __importDefault(require_PostgrestQueryBuilder());
   var PostgrestFilterBuilder_1 = __importDefault(require_PostgrestFilterBuilder());
-  var constants_1 = require_constants();
 
   class PostgrestClient {
     constructor(url, { headers = {}, schema, fetch: fetch3 } = {}) {
       this.url = url;
-      this.headers = Object.assign(Object.assign({}, constants_1.DEFAULT_HEADERS), headers);
+      this.headers = new Headers(headers);
       this.schemaName = schema;
       this.fetch = fetch3;
     }
     from(relation) {
       const url = new URL(`${this.url}/${relation}`);
       return new PostgrestQueryBuilder_1.default(url, {
-        headers: Object.assign({}, this.headers),
+        headers: new Headers(this.headers),
         schema: this.schemaName,
         fetch: this.fetch
       });
@@ -699,6 +660,7 @@ var require_PostgrestClient = __commonJS((exports) => {
       });
     }
     rpc(fn, args = {}, { head = false, get = false, count } = {}) {
+      var _a;
       let method;
       const url = new URL(`${this.url}/rpc/${fn}`);
       let body;
@@ -711,9 +673,9 @@ var require_PostgrestClient = __commonJS((exports) => {
         method = "POST";
         body = args;
       }
-      const headers = Object.assign({}, this.headers);
+      const headers = new Headers(this.headers);
       if (count) {
-        headers["Prefer"] = `count=${count}`;
+        headers.set("Prefer", `count=${count}`);
       }
       return new PostgrestFilterBuilder_1.default({
         method,
@@ -721,8 +683,7 @@ var require_PostgrestClient = __commonJS((exports) => {
         headers,
         schema: this.schemaName,
         body,
-        fetch: this.fetch,
-        allowEmpty: false
+        fetch: (_a = this.fetch) !== null && _a !== undefined ? _a : fetch
       });
     }
   }
@@ -3938,8 +3899,7 @@ var require_showdown = __commonJS((exports, module) => {
         for (i = 0;i < rawCells.length; ++i) {
           var row = [];
           for (var ii = 0;ii < headers.length; ++ii) {
-            if (showdown.helper.isUndefined(rawCells[i][ii])) {
-            }
+            if (showdown.helper.isUndefined(rawCells[i][ii])) {}
             row.push(parseCells(rawCells[i][ii], styles[ii]));
           }
           cells.push(row);
@@ -4391,7 +4351,9 @@ var require_showdown = __commonJS((exports, module) => {
 // engine/bundle.js
 var exports_bundle = {};
 __export(exports_bundle, {
+  vecEq: () => vecEq,
   resetCamera: () => resetCamera,
+  pointInPoly: () => pointInPoly,
   minify_sync: () => minify_sync,
   minify: () => minify,
   isPointInPolygon: () => isPointInPolygon,
@@ -4597,6 +4559,24 @@ function isPointInObject(mouseX, mouseY, child) {
   }
   return false;
 }
+function vecEq(a, b) {
+  return a.x === b.x && a.y === b.y;
+}
+function pointInPoly(point, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1;i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    const onSegment = (point.y - yi) * (xj - xi) === (point.x - xi) * (yj - yi) && (Math.min(xi, xj) <= point.x && point.x <= Math.max(xi, xj)) && (Math.min(yi, yj) <= point.y && point.y <= Math.max(yi, yj));
+    if (onSegment) {
+      return true;
+    }
+    const intersect = yi > point.y !== yj > point.y && point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi;
+    if (intersect)
+      inside = !inside;
+  }
+  return inside;
+}
 
 class Part {
   id;
@@ -4702,8 +4682,7 @@ class Part {
   onMount(parent) {
     this.parent = parent;
   }
-  onRegister(attribute, value) {
-  }
+  onRegister(attribute, value) {}
   onUnregister(attribute, value, debug) {
     if (debug)
       console.log(debug, value.name);
@@ -4726,8 +4705,7 @@ class Part {
         break;
     }
   }
-  onUnmount() {
-  }
+  onUnmount() {}
   onStart() {
     this.childrenArray.forEach((child) => {
       if (typeof child.onStart === "function") {
@@ -5026,8 +5004,7 @@ class SoundManagerController {
   static instance;
   sounds = [];
   isGameRunning = false;
-  constructor() {
-  }
+  constructor() {}
   static getInstance() {
     if (!SoundManagerController.instance) {
       SoundManagerController.instance = new SoundManagerController;
@@ -5126,8 +5103,9 @@ class Vector {
   }
   normalize() {
     const len = this.length();
-    if (len === 0)
-      throw new Error("Cannot normalize zero-length vector");
+    if (len === 0) {
+      return new Vector(0, 0);
+    }
     return new Vector(this.x / len, this.y / len);
   }
   dot(other) {
@@ -5154,7 +5132,11 @@ class Vector {
     return this;
   }
   static From(scalar) {
-    return new Vector(scalar, scalar);
+    if (typeof scalar === "number") {
+      return new Vector(scalar, scalar);
+    } else {
+      return new Vector(scalar.x, scalar.y);
+    }
   }
 }
 function characters(str) {
@@ -5191,8 +5173,7 @@ function defaults(args, defs, croak) {
     }
   return ret;
 }
-function noop3() {
-}
+function noop3() {}
 function return_false() {
   return false;
 }
@@ -8690,8 +8671,7 @@ function OutputStream(options) {
           }
         }
         options.source_map.add(mapping.token.file, mapping.line, mapping.col, mapping.token.line, mapping.token.col, is_basic_identifier_string(name) ? name : undefined);
-      } catch (ex) {
-      }
+      } catch (ex) {}
     });
     mappings = [];
   } : noop3;
@@ -12209,8 +12189,7 @@ function addSegmentInternal(skipable, map, genLine, genColumn, source, sourceLin
   }
   return insert2(line, index2, name ? [genColumn, sourcesIndex, sourceLine, sourceColumn, namesIndex] : [genColumn, sourcesIndex, sourceLine, sourceColumn]);
 }
-function assert(_val) {
-}
+function assert(_val) {}
 function getIndex(arr, index2) {
   for (let i = arr.length;i <= index2; i++) {
     arr[i] = [];
@@ -12361,8 +12340,7 @@ function find_builtins(reserved) {
   var objects = {};
   var global_ref = typeof global === "object" ? global : self;
   new_globals.forEach(function(new_global) {
-    objects[new_global] = global_ref[new_global] || function() {
-    };
+    objects[new_global] = global_ref[new_global] || function() {};
   });
   [
     "null",
@@ -12480,8 +12458,7 @@ function mangle_private_properties(ast, options) {
 function find_annotated_props(ast) {
   var annotated_props = new Set;
   walk(ast, (node) => {
-    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {
-    } else if (node instanceof AST_ObjectKeyVal) {
+    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {} else if (node instanceof AST_ObjectKeyVal) {
       if (typeof node.key == "string" && has_annotation(node, _MANGLEPROP)) {
         annotated_props.add(node.key);
       }
@@ -12540,8 +12517,7 @@ function mangle_properties(ast, options, annotated_props = find_annotated_props(
   cache.forEach((mangled_name) => unmangleable.add(mangled_name));
   var keep_quoted = !!options.keep_quoted;
   ast.walk(new TreeWalker(function(node) {
-    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {
-    } else if (node instanceof AST_ObjectKeyVal) {
+    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {} else if (node instanceof AST_ObjectKeyVal) {
       if (typeof node.key == "string" && (!keep_quoted || !node.quote)) {
         add(node.key);
       }
@@ -12574,8 +12550,7 @@ function mangle_properties(ast, options, annotated_props = find_annotated_props(
     }
   }));
   return ast.transform(new TreeTransformer(function(node) {
-    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {
-    } else if (node instanceof AST_ObjectKeyVal) {
+    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {} else if (node instanceof AST_ObjectKeyVal) {
       if (typeof node.key == "string" && (!keep_quoted || !node.quote)) {
         node.key = mangle(node.key);
       }
@@ -12881,8 +12856,7 @@ function* minify_sync_or_async(files, options, _fs_module) {
   }
   if (timings)
     timings.rename = Date.now();
-  if (0) {
-  }
+  if (0) {}
   if (timings)
     timings.compress = Date.now();
   if (options.compress) {
@@ -13345,8 +13319,7 @@ async function run_cli({ program, packageJson, fs, path }) {
       var dir = path.dirname(glob);
       try {
         var entries = fs.readdirSync(dir);
-      } catch (ex) {
-      }
+      } catch (ex) {}
       if (entries) {
         var pattern = "^" + path.basename(glob).replace(/[.+^$[\]\\(){}]/g, "\\$&").replace(/\*/g, "[^/\\\\]*").replace(/\?/g, "[^/\\\\]") + "$";
         var mod = process.platform === "win32" ? "i" : "";
@@ -13508,7 +13481,7 @@ var __create2, __getProtoOf2, __defProp2, __getOwnPropNames2, __hasOwnProp2, __t
         enumerable: true
       });
   return to;
-}, __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports), require_matter, require_resolve_uri_umd, require_acorn, Scene, SoundManager, Game, Layer, GameObject, Camera, Input, Renderer, AnimatedSprite, Collider, PolygonCollider, BoxCollider, Button, ColorRender, SpriteRender, TextRender, Transform, Sound, Health, Timer2, Spawner, Follow, CharacterMovement, ParallaxLayer, import_matter_js, PhysicsEngine, Rotator, Scaler, Projectile, AreaTrigger, Particle, ParticleEmitter, WaypointFollower, CameraShake, HealthBar, import_matter_js2, PhysicsBody, GravityCharacterMovement, DefaultsError, MAP, lineTerminatorEscape, re_safe_regexp, regexp_is_safe = (source) => re_safe_regexp.test(source), all_flags = "dgimsuyv", LATEST_RAW = "", TEMPLATE_RAWS, KEYWORDS = "break case catch class const continue debugger default delete do else export extends finally for function if in instanceof let new return switch throw try typeof var void while with", KEYWORDS_ATOM = "false null true", RESERVED_WORDS, ALL_RESERVED_WORDS, KEYWORDS_BEFORE_EXPRESSION = "return new delete throw else case yield await", OPERATOR_CHARS, RE_HEX_NUMBER, RE_OCT_NUMBER, RE_ES6_OCT_NUMBER, RE_BIN_NUMBER, RE_DEC_NUMBER, RE_BIG_INT, OPERATORS, WHITESPACE_CHARS, NEWLINE_CHARS, PUNC_AFTER_EXPRESSION, PUNC_BEFORE_EXPRESSION, PUNC_CHARS, UNICODE, BASIC_IDENT, JS_Parse_Error, EX_EOF, UNARY_PREFIX, UNARY_POSTFIX, ASSIGNMENT, LOGICAL_ASSIGNMENT, PRECEDENCE, ATOMIC_START_TOKEN, has_tok_flag = (tok, flag) => Boolean(tok.flags & flag), set_tok_flag = (tok, flag, truth) => {
+}, __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports), require_matter, require_resolve_uri_umd, require_acorn, Scene, SoundManager, Game, Layer, GameObject, Camera, Input, Renderer, AnimatedSprite, Collider, MultiPolygonCollider, PolygonCollider, BoxCollider, Button, ColorRender, SpriteRender, TextRender, Transform, Sound, Health, Timer2, Spawner, Follow, CharacterMovement, ParallaxLayer, import_matter_js, PhysicsEngine, Rotator, Scaler, Projectile, AreaTrigger, Particle, ParticleEmitter, WaypointFollower, CameraShake, HealthBar, import_matter_js2, PhysicsBody, GravityCharacterMovement, DefaultsError, MAP, lineTerminatorEscape, re_safe_regexp, regexp_is_safe = (source) => re_safe_regexp.test(source), all_flags = "dgimsuyv", LATEST_RAW = "", TEMPLATE_RAWS, KEYWORDS = "break case catch class const continue debugger default delete do else export extends finally for function if in instanceof let new return switch throw try typeof var void while with", KEYWORDS_ATOM = "false null true", RESERVED_WORDS, ALL_RESERVED_WORDS, KEYWORDS_BEFORE_EXPRESSION = "return new delete throw else case yield await", OPERATOR_CHARS, RE_HEX_NUMBER, RE_OCT_NUMBER, RE_ES6_OCT_NUMBER, RE_BIN_NUMBER, RE_DEC_NUMBER, RE_BIG_INT, OPERATORS, WHITESPACE_CHARS, NEWLINE_CHARS, PUNC_AFTER_EXPRESSION, PUNC_BEFORE_EXPRESSION, PUNC_CHARS, UNICODE, BASIC_IDENT, JS_Parse_Error, EX_EOF, UNARY_PREFIX, UNARY_POSTFIX, ASSIGNMENT, LOGICAL_ASSIGNMENT, PRECEDENCE, ATOMIC_START_TOKEN, has_tok_flag = (tok, flag) => Boolean(tok.flags & flag), set_tok_flag = (tok, flag, truth) => {
   if (truth) {
     tok.flags |= flag;
   } else {
@@ -13704,8 +13677,7 @@ var __create2, __getProtoOf2, __defProp2, __getOwnPropNames2, __hasOwnProp2, __t
   eachMapping(callback, context) {
     eachMapping(this._map, context ? callback.bind(context) : callback);
   }
-  destroy() {
-  }
+  destroy() {}
 }, SourceMapGenerator = class _SourceMapGenerator {
   constructor(opts) {
     this._map = opts instanceof GenMapping ? opts : new GenMapping(opts);
@@ -20658,8 +20630,7 @@ Defaulting to 2020, but this will stop working in the future.`);
         this.context.push(statementParens ? types3.p_stat : types3.p_expr);
         this.exprAllowed = true;
       };
-      types$1.incDec.updateContext = function() {
-      };
+      types$1.incDec.updateContext = function() {};
       types$1._function.updateContext = types$1._class.updateContext = function(prevType) {
         if (prevType.beforeExpr && prevType !== types$1._else && !(prevType === types$1.semi && this.curContext() !== types3.p_stat) && !(prevType === types$1._return && lineBreak.test(this.input.slice(this.lastTokEnd, this.start))) && !((prevType === types$1.colon || prevType === types$1.braceL) && this.curContext() === types3.b_stat)) {
           this.context.push(types3.f_expr);
@@ -22165,8 +22136,7 @@ Defaulting to 2020, but this will stop working in the future.`);
         }
       };
       pp$1.regexp_alternative = function(state2) {
-        while (state2.pos < state2.source.length && this.regexp_eatTerm(state2)) {
-        }
+        while (state2.pos < state2.source.length && this.regexp_eatTerm(state2)) {}
       };
       pp$1.regexp_eatTerm = function(state2) {
         if (this.regexp_eatAssertion(state2)) {
@@ -23479,8 +23449,7 @@ Defaulting to 2020, but this will stop working in the future.`);
         var value = null;
         try {
           value = new RegExp(pattern, flags);
-        } catch (e) {
-        }
+        } catch (e) {}
         return this.finishToken(types$1.regexp, { pattern, flags, value });
       };
       pp.readInt = function(radix, len, maybeLegacyOctalNumericLiteral) {
@@ -23968,10 +23937,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     childrenArray;
     devmode;
     context;
-    showtoolTips = false;
     hovering;
-    tooltipLocked;
-    lastMousePosition = { x: 0, y: 0 };
     scaleFactor = 1;
     canvasOffset = { x: 0, y: 0 };
     messageHook;
@@ -23988,9 +23954,8 @@ Defaulting to 2020, but this will stop working in the future.`);
     _animationFrameId;
     _lastUpdateTime = 0;
     constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false, showFrameStats = "BASIC" }) {
-      super();
-      this.name = name;
-      this.showtoolTips = showtoolTips;
+      super({ name });
+      this.type = "Game";
       this.childrenArray = [];
       this.showFrameStats = showFrameStats;
       this.canvas = typeof canvas === "string" ? document.getElementById(canvas) : canvas;
@@ -23999,30 +23964,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.changeCanvasSize(width, height);
       this.context.imageSmoothingEnabled = !disableAntiAliasing;
       this.debugEmoji = "\uD83C\uDFAE";
-      this.tooltipLocked = false;
       this.top = this;
-      if (this.devmode) {
-        let tooltip2 = document.getElementById("debug-tooltip");
-        if (!tooltip2) {
-          tooltip2 = this.createDebugTooltip();
-        }
-        document.addEventListener("mousemove", (event) => {
-          const rect = this.canvas.getBoundingClientRect();
-          const clientX = event.clientX - rect.left;
-          const clientY = event.clientY - rect.top;
-          this.lastMousePosition = {
-            x: clientX / this.scaleFactor - this.canvasOffset.x / this.scaleFactor,
-            y: clientY / this.scaleFactor - this.canvasOffset.y / this.scaleFactor
-          };
-        });
-        document.addEventListener("click", (event) => {
-          if (tooltip2 && !this.tooltipLocked) {
-            this.tooltipLocked = true;
-          } else if (tooltip2) {
-            this.tooltipLocked = false;
-          }
-        });
-      }
     }
     clone(memo = new Map) {
       if (memo.has(this)) {
@@ -24034,8 +23976,7 @@ Defaulting to 2020, but this will stop working in the future.`);
         devmode: this.devmode,
         width: this.width,
         height: this.height,
-        disableAntiAliasing: !this.context.imageSmoothingEnabled,
-        showtoolTips: this.showtoolTips
+        disableAntiAliasing: !this.context.imageSmoothingEnabled
       });
       memo.set(this, clonedGame);
       this._cloneProperties(clonedGame, memo);
@@ -24043,8 +23984,6 @@ Defaulting to 2020, but this will stop working in the future.`);
       clonedGame.context = undefined;
       clonedGame.currentScene = undefined;
       clonedGame.hovering = undefined;
-      clonedGame.tooltipLocked = undefined;
-      clonedGame.lastMousePosition = { x: 0, y: 0 };
       clonedGame.scaleFactor = 1;
       clonedGame.canvasOffset = { x: 0, y: 0 };
       clonedGame.messageHook = undefined;
@@ -24073,20 +24012,6 @@ Defaulting to 2020, but this will stop working in the future.`);
     }
     get height() {
       return this._height;
-    }
-    createDebugTooltip() {
-      const tooltip2 = document.createElement("div");
-      tooltip2.id = "debug-tooltip";
-      tooltip2.style.position = "absolute";
-      tooltip2.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-      tooltip2.style.color = "white";
-      tooltip2.style.padding = "5px";
-      tooltip2.style.display = "none";
-      tooltip2.style.borderRadius = "5px";
-      tooltip2.style.pointerEvents = "none";
-      tooltip2.style.zIndex = "1000";
-      document.body.appendChild(tooltip2);
-      return tooltip2;
     }
     addChild(scene) {
       this.currentScene = this.currentScene || scene;
@@ -24155,18 +24080,24 @@ Defaulting to 2020, but this will stop working in the future.`);
         this._animationFrameId = window.requestAnimationFrame(this.loop.bind(this));
       }
     }
-    getColliderCount() {
+    getColliderCount(activeOnly = false) {
       const layers = this.currentScene?.childrenArray || [];
       let c = 0;
       for (const layer of layers) {
-        const colliders = layer.flats.colliders.length;
-        c += colliders;
+        if (!activeOnly) {
+          const colliders = layer.flats.colliders.length;
+          c += colliders;
+        } else {
+          const colliders = layer.flats.colliders.filter((col) => col.active).length;
+          c += colliders;
+        }
       }
       return c;
     }
     renderFrameStats() {
       if (!this.showFrameStats)
         return;
+      const FADE_BACKGROUND = 0.5;
       const avgDelta = this.frameBuffer.reduce((a, b) => a + b, 0) / this.frameBuffer.length;
       const avgFPS = 1000 / avgDelta;
       const sorted = [...this.frameBuffer].sort((a, b) => a - b);
@@ -24174,56 +24105,82 @@ Defaulting to 2020, but this will stop working in the future.`);
       const p99 = sorted[Math.floor(sorted.length * 0.99)];
       const minFrameTime = sorted[0];
       const maxFrameTime = sorted[sorted.length - 1];
-      this.context.fillStyle = "white";
-      this.context.font = "12px Arial";
-      let y = 20;
+      let lines = [];
       const levels = ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"];
       const levelIndex = levels.indexOf(this.showFrameStats);
-      if (levelIndex >= 0) {
-        this.context.fillText(`FPS: ${avgFPS.toFixed(2)}`, 10, y);
-        y += 20;
-      }
-      if (levelIndex >= 1) {
-        this.context.fillText(`Frame Time: ${avgDelta.toFixed(2)} ms`, 10, y);
-        y += 20;
-      }
+      if (levelIndex >= 0)
+        lines.push(`FPS: ${avgFPS.toFixed(2)}`);
+      if (levelIndex >= 1)
+        lines.push(`Frame Time: ${avgDelta.toFixed(2)} ms`);
       if (levelIndex >= 2) {
-        this.context.fillText(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`, 10, y);
-        y += 20;
-        this.context.fillText(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`, 10, y);
-        y += 20;
+        lines.push(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`);
+        lines.push(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`);
       }
       if (levelIndex >= 3) {
-        this.context.fillText(`p95 Frame: ${p95.toFixed(2)} ms`, 10, y);
-        y += 20;
-        this.context.fillText(`p99 Frame: ${p99.toFixed(2)} ms`, 10, y);
-        y += 20;
+        lines.push(`p95 Frame: ${p95.toFixed(2)} ms`);
+        lines.push(`p99 Frame: ${p99.toFixed(2)} ms`);
         const droppedPct = this._droppedFrames / (this.frameBuffer.length || 1) * 100;
-        this.context.fillText(`Dropped Frames: ${droppedPct.toFixed(1)}%`, 10, y);
-        y += 20;
+        lines.push(`Dropped Frames: ${droppedPct.toFixed(1)}%`);
         const perfMem = performance.memory;
         if (perfMem) {
           const usedMB = (perfMem.usedJSHeapSize / 1048576).toFixed(1);
           const totalMB = (perfMem.totalJSHeapSize / 1048576).toFixed(1);
-          this.context.fillText(`Heap: ${usedMB} MB / ${totalMB} MB`, 10, y);
-          y += 20;
+          lines.push(`Heap: ${usedMB} MB / ${totalMB} MB`);
         }
         if (this.currentScene) {
-          this.context.fillText(`Colliders: ${this.getColliderCount()}`, 10, y);
-          y += 20;
+          lines.push(`Colliders: ${this.getColliderCount()}`);
+          lines.push(`Active colliders: ${this.getColliderCount(true)}`);
         }
+      }
+      const fontSize = 12;
+      const lineHeight = 20;
+      const padding = 8;
+      this.context.font = `${fontSize}px Arial`;
+      let maxWidth = 0;
+      for (const line of lines) {
+        const width = this.context.measureText(line).width;
+        if (width > maxWidth)
+          maxWidth = width;
+      }
+      let boxHeight = lines.length * lineHeight + padding * 2;
+      let boxWidth = maxWidth + padding * 2;
+      let boxX = 6;
+      let boxY = 6;
+      this.context.globalAlpha = FADE_BACKGROUND;
+      this.context.fillStyle = "#000";
+      this.context.fillRect(boxX, boxY, boxWidth, boxHeight);
+      this.context.globalAlpha = 1;
+      this.context.fillStyle = "white";
+      let y = boxY + padding + fontSize;
+      for (const line of lines) {
+        this.context.fillText(line, boxX + padding, y);
+        y += lineHeight;
+      }
+      if (levelIndex >= 3) {
         const chartWidth = 200;
         const chartHeight = 80;
-        const chartX = 10;
-        const chartY = y + 10;
-        const maxFrameTime2 = Math.max(...this.frameBuffer);
+        const chartX = boxX + padding;
+        const chartY = boxY + boxHeight + 10;
+        const minFrameTimeChart = Math.min(...this.frameBuffer);
+        const maxFrameTimeChart = Math.max(...this.frameBuffer);
+        const margin = Math.max(2, (maxFrameTimeChart - minFrameTimeChart) * 0.2);
+        const chartMin = Math.max(0, minFrameTimeChart - margin);
+        const chartMax = maxFrameTimeChart + margin;
+        const range = Math.max(1, chartMax - chartMin);
+        this.context.globalAlpha = FADE_BACKGROUND;
+        this.context.fillStyle = "#000";
+        this.context.fillRect(chartX - padding, chartY - padding, chartWidth + padding * 2, chartHeight + padding * 2);
+        this.context.globalAlpha = 1;
         this.context.strokeStyle = "white";
         this.context.beginPath();
-        this.context.moveTo(chartX, chartY + chartHeight);
         this.frameBuffer.forEach((frameTime, index2) => {
-          const x = chartX + index2 / this.maxFrameBufferLength * chartWidth;
-          const yVal = chartY + chartHeight - frameTime / maxFrameTime2 * chartHeight;
-          this.context.lineTo(x, yVal);
+          const x = chartX + index2 / (this.maxFrameBufferLength - 1) * chartWidth;
+          const yVal = chartY + chartHeight - (frameTime - chartMin) / range * chartHeight;
+          if (index2 === 0) {
+            this.context.moveTo(x, yVal);
+          } else {
+            this.context.lineTo(x, yVal);
+          }
         });
         this.context.stroke();
       }
@@ -24316,32 +24273,11 @@ Defaulting to 2020, but this will stop working in the future.`);
         return false;
       }
     }
-    updateDebugToolTip() {
-      const tooltip2 = document.getElementById("debug-tooltip");
-      if (!tooltip2) {
-        this.warn("Debug tooltip not found. Ensure it is created in devmode.");
-        return;
-      }
-      if (this.hovering) {
-        if (tooltip2 && this.showtoolTips) {
-          try {
-            tooltip2.style.left = `${this.lastMousePosition.x * this.scaleFactor + this.canvasOffset.x + 10}px`;
-            tooltip2.style.top = `${this.lastMousePosition.y * this.scaleFactor + this.canvasOffset.y + 10}px`;
-            tooltip2.style.display = "block";
-            tooltip2.innerHTML = getDebugInfo(this.hovering, 0);
-          } catch (err) {
-            throw new Error(`Error updating debug tooltip: ${err}`);
-          }
-        }
-      } else {
-        tooltip2.style.display = "none";
-      }
-    }
   };
   Layer = class Layer extends Part {
     constructor({ name }) {
-      super();
-      this.name = name;
+      super({ name });
+      this.type = "Layer";
       this.id = generateUID();
       this.debugEmoji = "\uD83D\uDDC2️";
     }
@@ -24373,9 +24309,9 @@ Defaulting to 2020, but this will stop working in the future.`);
   };
   GameObject = class GameObject extends Part {
     layer;
-    constructor({ name, render }) {
-      super({ name, render });
-      this.name = name;
+    constructor({ name, render = true }) {
+      super({ name, render: !!render });
+      this.type = "GameObject";
       this.debugEmoji = "\uD83D\uDD79️";
     }
   };
@@ -24453,14 +24389,10 @@ Defaulting to 2020, but this will stop working in the future.`);
         return memo.get(this);
       }
       const clonedInput = new Input({
-        key: this.key || (() => {
-        }),
-        keyup: this.keyup || (() => {
-        }),
-        mousemove: this.mousemove || (() => {
-        }),
-        click: this.click || (() => {
-        })
+        key: this.key || (() => {}),
+        keyup: this.keyup || (() => {}),
+        mousemove: this.mousemove || (() => {}),
+        click: this.click || (() => {})
       });
       memo.set(this, clonedInput);
       this._cloneProperties(clonedInput, memo);
@@ -24979,14 +24911,23 @@ Defaulting to 2020, but this will stop working in the future.`);
     realWorldStart;
     realWorldEnd;
     vertices;
-    constructor({ tag }) {
+    active = true;
+    allowMerge;
+    randomTestingColors;
+    constructor({ tag, allowMerge }) {
       super({ name: "Collider" });
       this.type = "Collider";
       this.base = "Collider";
       this.tag = tag || "<Untagged>";
       this.radius = 0;
       this.realWorldStart = new Vector(0, 0);
+      this.allowMerge = allowMerge !== undefined ? allowMerge : true;
       this.realWorldEnd = new Vector(0, 0);
+      this.randomTestingColors = [
+        Math.random() * 255,
+        Math.random() * 255,
+        Math.random() * 255
+      ];
       this.vertices = [];
     }
     setTag(tag) {
@@ -25007,8 +24948,61 @@ Defaulting to 2020, but this will stop working in the future.`);
         value.flats.colliders.push(this);
       }
     }
+    evaluateMerging() {
+      const layer = this.registrations["layer"];
+      if (!layer)
+        return;
+      const fellowColliders = layer.flats.colliders.filter((c) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
+      if (fellowColliders.length == 0)
+        return;
+      for (const fellow of fellowColliders) {
+        if (!fellow.sibling("Transform")?.initialized)
+          continue;
+        if (this.id < fellow.id && this.checkCollision(fellow, true)) {
+          this.mergeWith(fellow);
+        }
+      }
+    }
+    mergeWith(other) {
+      if (this.tag !== other.tag || other.tag == "<Untagged>" || this.tag == "<Untagged>")
+        return;
+      const thisTransform = this.sibling("Transform");
+      if (!thisTransform) {
+        this.top?.warn(`Collider <${this.name}> has no Transform sibling, cannot merge.`);
+        return;
+      }
+      const allPolygons = [];
+      const g1 = this.getGeometry();
+      if (this.type === "MultiPolygonCollider") {
+        allPolygons.push(...g1);
+      } else {
+        allPolygons.push(g1);
+      }
+      const g2 = other.getGeometry();
+      if (other.type === "MultiPolygonCollider") {
+        allPolygons.push(...g2);
+      } else {
+        allPolygons.push(g2);
+      }
+      if (allPolygons.length === 0)
+        return;
+      const localPolygons = allPolygons.map((polygon) => {
+        return polygon.map(([x, y]) => thisTransform.worldToLocal(new Vector(x, y)));
+      });
+      this._updateVerticesAfterMerge(localPolygons);
+      other.inactivate();
+    }
+    onStart() {}
+    inactivate() {
+      this.active = false;
+    }
+    activate() {
+      this.active = true;
+    }
     act(delta) {
       super.act(delta);
+      if (!this.active)
+        return;
       if (!this.registrations?.layer) {
         throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked.`);
       }
@@ -25029,15 +25023,36 @@ Defaulting to 2020, but this will stop working in the future.`);
         }
       }
       this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(", ")} objects`;
+      const fill = this.active;
+      const ctx = this.top instanceof Game ? this.top.context : null;
+      if (ctx) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgb(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]})`;
+        ctx.fillStyle = fill ? `rgba(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]}, 0.5)` : "transparent";
+        ctx.moveTo(this.worldVertices[0].x, this.worldVertices[0].y);
+        for (const vertex of this.worldVertices) {
+          ctx.lineTo(vertex.x, vertex.y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+      }
       if (this.top instanceof Game && this.top.devmode) {
-        const ctx = this.top.context;
-        if (ctx) {
-          this.drawDebug(ctx);
+        const ctx2 = this.top.context;
+        if (ctx2) {
+          this.drawDebug(ctx2);
         }
       }
     }
-    checkCollision(other) {
-      if (other.tag === this.tag && this.tag !== "<Untagged>")
+    checkCollision(other, ignoreTags = false) {
+      const thisTransform = this.sibling("Transform");
+      const otherTransform = other.sibling("Transform");
+      if (!thisTransform || !otherTransform) {
+        return false;
+      }
+      this.updateCollider(thisTransform);
+      other.updateCollider(otherTransform);
+      if (!ignoreTags && other.tag === this.tag && this.tag !== "<Untagged>")
         return false;
       if (this.realWorldEnd.x < other.realWorldStart.x || this.realWorldStart.x > other.realWorldEnd.x || this.realWorldEnd.y < other.realWorldStart.y || this.realWorldStart.y > other.realWorldEnd.y) {
         return false;
@@ -25069,9 +25084,15 @@ Defaulting to 2020, but this will stop working in the future.`);
     }
     checkVerticesAgainstVertices(vertices1, vertices2) {
       const axes1 = this.getAxes(vertices1);
+      for (const axis of axes1) {
+        const projection1 = this.project(vertices1, axis);
+        const projection2 = this.project(vertices2, axis);
+        if (!this.overlap(projection1, projection2)) {
+          return false;
+        }
+      }
       const axes2 = this.getAxes(vertices2);
-      const axes = axes1.concat(axes2);
-      for (const axis of axes) {
+      for (const axis of axes2) {
         const projection1 = this.project(vertices1, axis);
         const projection2 = this.project(vertices2, axis);
         if (!this.overlap(projection1, projection2)) {
@@ -25107,12 +25128,155 @@ Defaulting to 2020, but this will stop working in the future.`);
     overlap(proj1, proj2) {
       return proj1.max >= proj2.min && proj2.max >= proj1.min;
     }
+    _checkPolygonVsPolygon(vertices1, vertices2) {
+      const axes1 = this.getAxes(vertices1);
+      const axes2 = this.getAxes(vertices2);
+      const axes = axes1.concat(axes2);
+      for (const axis of axes) {
+        const projection1 = this.project(vertices1, axis);
+        const projection2 = this.project(vertices2, axis);
+        if (!this.overlap(projection1, projection2)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  };
+  MultiPolygonCollider = class MultiPolygonCollider extends Collider {
+    polygons;
+    _worldPolygons = [];
+    unioned = [];
+    constructor({ polygons, tag = "<Untagged>" }) {
+      super({ tag, allowMerge: tag !== "<Untagged>" });
+      this.name = "MultiPolygonCollider";
+      this.polygons = polygons;
+      this.type = "MultiPolygonCollider";
+      let maxDist = 0;
+      const allVertices = polygons.flat();
+      for (let i = 0;i < allVertices.length; i++) {
+        for (let j = i + 1;j < allVertices.length; j++) {
+          const dist = allVertices[i].distance(allVertices[j]);
+          if (dist > maxDist) {
+            maxDist = dist;
+          }
+        }
+      }
+      this.radius = maxDist;
+    }
+    getGeometry() {
+      return this._worldPolygons.map((polygon) => {
+        return polygon.map((v) => v.toArray());
+      });
+    }
+    get worldVertices() {
+      const allVertices = this._worldPolygons.flat();
+      allVertices.sort((a, b) => {
+        return a.x < b.x || a.x == b.x && a.y < b.y ? -1 : 1;
+      });
+      const cross = (o, a, b) => {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+      };
+      const lower = [];
+      for (const p of allVertices) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+          lower.pop();
+        }
+        lower.push(p);
+      }
+      const upper = [];
+      for (let i = allVertices.length - 1;i >= 0; i--) {
+        const p = allVertices[i];
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+          upper.pop();
+        }
+        upper.push(p);
+      }
+      upper.pop();
+      lower.pop();
+      return lower.concat(upper);
+    }
+    act(delta) {
+      super.act(delta);
+    }
+    _updateVerticesAfterMerge(polygons) {
+      this.polygons = polygons;
+    }
+    updateCollider(transform) {
+      const position = transform.worldPosition;
+      const rotation = transform.rotation;
+      const scale = transform.scale;
+      this._worldPolygons = this.polygons.map((polygon) => {
+        return polygon.map((vertex) => {
+          let scaledVertex = vertex.multiply(scale);
+          if (rotation !== 0) {
+            const cos = Math.cos(rotation);
+            const sin = Math.sin(rotation);
+            scaledVertex = new Vector(scaledVertex.x * cos - scaledVertex.y * sin, scaledVertex.x * sin + scaledVertex.y * cos);
+          }
+          return position.add(scaledVertex);
+        });
+      });
+      const allWorldVertices = this._worldPolygons.flat();
+      const xs = allWorldVertices.map((v) => v.x);
+      const ys = allWorldVertices.map((v) => v.y);
+      this.realWorldStart.set(Math.min(...xs), Math.min(...ys));
+      this.realWorldEnd.set(Math.max(...xs), Math.max(...ys));
+    }
+    narrowPhaseCheck(other) {
+      if (other instanceof MultiPolygonCollider) {
+        for (const p1 of this._worldPolygons) {
+          for (const p2 of other._worldPolygons) {
+            if (this._checkPolygonVsPolygon(p1, p2)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      for (const polygon of this._worldPolygons) {
+        if (this._checkPolygonVsPolygon(polygon, other.worldVertices)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    drawDebug(ctx) {
+      ctx.save();
+      ctx.strokeStyle = this.colliding ? "rgba(255, 0, 100, 0.8)" : "rgba(0, 255, 100, 0.8)";
+      ctx.lineWidth = 1;
+      for (const polygon of this._worldPolygons) {
+        ctx.beginPath();
+        ctx.moveTo(polygon[0].x, polygon[0].y);
+        for (let i = 1;i < polygon.length; i++) {
+          ctx.lineTo(polygon[i].x, polygon[i].y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    clone(memo = new Map) {
+      if (memo.has(this)) {
+        return memo.get(this);
+      }
+      const clonedMultiPolygonCollider = new MultiPolygonCollider({
+        polygons: this.polygons.map((p) => p.map((v) => v.clone())),
+        tag: this.tag
+      });
+      memo.set(this, clonedMultiPolygonCollider);
+      this._cloneProperties(clonedMultiPolygonCollider, memo);
+      clonedMultiPolygonCollider.colliding = false;
+      clonedMultiPolygonCollider.base = this.base;
+      clonedMultiPolygonCollider.type = this.type;
+      clonedMultiPolygonCollider.collidingWith = new Set;
+      return clonedMultiPolygonCollider;
+    }
   };
   PolygonCollider = class PolygonCollider extends Collider {
     localVertices;
     _worldVertices = [];
-    constructor({ vertices, tag }) {
-      super({ tag });
+    constructor({ vertices, tag = "<Untagged>" }) {
+      super({ tag, allowMerge: tag !== "<Untagged>" });
       this.name = "PolygonCollider";
       this.localVertices = vertices;
       this.vertices = vertices;
@@ -25131,8 +25295,21 @@ Defaulting to 2020, but this will stop working in the future.`);
     get worldVertices() {
       return this._worldVertices;
     }
+    getGeometry() {
+      return [this.worldVertices.map((v) => v.toArray())];
+    }
     act(delta) {
       super.act(delta);
+    }
+    _updateVerticesAfterMerge(polygons) {
+      const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
+      newCollider.active = this.active;
+      newCollider.allowMerge = this.allowMerge;
+      const parent = this.parent;
+      if (parent) {
+        parent.removeChild(this);
+        parent.addChild(newCollider);
+      }
     }
     updateCollider(transform) {
       const position = transform.worldPosition;
@@ -25157,22 +25334,14 @@ Defaulting to 2020, but this will stop working in the future.`);
         return this.checkPolygonVsBox(this, other);
       } else if (other instanceof PolygonCollider) {
         return this.checkPolygonVsPolygon(this, other);
+      } else if (other instanceof MultiPolygonCollider) {
+        return other.narrowPhaseCheck(this);
       }
       this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
       return false;
     }
     checkPolygonVsPolygon(poly1, poly2) {
-      const axes1 = this.getAxes(poly1.worldVertices);
-      const axes2 = this.getAxes(poly2.worldVertices);
-      const axes = axes1.concat(axes2);
-      for (const axis of axes) {
-        const projection1 = this.project(poly1.worldVertices, axis);
-        const projection2 = this.project(poly2.worldVertices, axis);
-        if (!this.overlap(projection1, projection2)) {
-          return false;
-        }
-      }
-      return true;
+      return this._checkPolygonVsPolygon(poly1.worldVertices, poly2.worldVertices);
     }
     checkPolygonVsBox(poly, box) {
       const boxVertices = box.worldVertices;
@@ -25227,8 +25396,8 @@ Defaulting to 2020, but this will stop working in the future.`);
     cachedAxes = [];
     lastRotation = NaN;
     lastScale = new Vector(NaN, NaN);
-    constructor({ width, height, tag }) {
-      super({ tag });
+    constructor({ width, height, tag = "<Untagged>" }) {
+      super({ tag, allowMerge: tag !== "<Untagged>" });
       this.name = "BoxCollider";
       this.width = width;
       this.height = height;
@@ -25243,6 +25412,9 @@ Defaulting to 2020, but this will stop working in the future.`);
     }
     get worldVertices() {
       return this.rotatedCorners;
+    }
+    getGeometry() {
+      return [this.worldVertices.map((v) => v.toArray())];
     }
     updateCollider(transform) {
       const cos = Math.cos(transform.rotation);
@@ -25282,7 +25454,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     narrowPhaseCheck(other) {
       if (other instanceof BoxCollider) {
         return this.checkBoxVsBox(this, other);
-      } else if (other instanceof PolygonCollider) {
+      } else if (other instanceof PolygonCollider || other instanceof MultiPolygonCollider) {
         return other.narrowPhaseCheck(this);
       }
       this.top?.warn(`Collision with unsupported collider type: ${other.type}`);
@@ -25297,6 +25469,16 @@ Defaulting to 2020, but this will stop working in the future.`);
           return false;
       }
       return true;
+    }
+    _updateVerticesAfterMerge(polygons) {
+      const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
+      newCollider.active = this.active;
+      newCollider.allowMerge = this.allowMerge;
+      const parent = this.parent;
+      if (parent) {
+        parent.removeChild(this);
+        parent.addChild(newCollider);
+      }
     }
     act(delta) {
       super.act(delta);
@@ -25485,14 +25667,10 @@ Defaulting to 2020, but this will stop working in the future.`);
       if (scene) {
         if (!scene.child("Input")) {
           const input = new Input({
-            key: () => {
-            },
-            keyup: () => {
-            },
-            mousemove: () => {
-            },
-            click: () => {
-            }
+            key: () => {},
+            keyup: () => {},
+            mousemove: () => {},
+            click: () => {}
           });
           scene.addChild(input);
         }
@@ -25617,9 +25795,6 @@ Defaulting to 2020, but this will stop working in the future.`);
       super.act(delta);
       if (!this.top) {
         throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);
-      }
-      if (!(this.top instanceof Game)) {
-        throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a Game instance. Ensure it is added to a Game, Scene, or Layer with a game ancestor.`);
       }
       const transform = this.sibling("Transform");
       if (!transform) {
@@ -25793,6 +25968,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     worldPosition;
     rotation;
     scale;
+    initialized;
     constructor({ position, rotation, scale } = {}) {
       super({ name: "Transform" });
       this.position = position || Vector.From(0);
@@ -25802,15 +25978,11 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.scale = scale || new Vector(1, 1);
       this.debugEmoji = "\uD83D\uDCD0";
       this.type = "Transform";
+      this.initialized = false;
     }
     onMount(parent) {
       super.onMount(parent);
-      const grandparentTransform = parent.sibling("Transform");
-      if (grandparentTransform) {
-        this.worldPosition.set(this.position.add(grandparentTransform.worldPosition));
-      } else {
-        this.worldPosition.set(this.position);
-      }
+      this.updateWorldPosition();
       if (parent.superficialWidth && parent.superficialHeight) {
         this.superficialWidth = parent.superficialWidth;
         this.superficialHeight = parent.superficialHeight;
@@ -25833,16 +26005,32 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.rotation = rotation % (2 * Math.PI);
       this.updateWorldPosition();
     }
+    worldToLocal(position) {
+      const translated = position.subtract(this.worldPosition);
+      const cos = Math.cos(-this.rotation);
+      const sin = Math.sin(-this.rotation);
+      const rotated = new Vector(translated.x * cos - translated.y * sin, translated.x * sin + translated.y * cos);
+      const scaled = new Vector(rotated.x / this.scale.x, rotated.y / this.scale.y);
+      return scaled;
+    }
+    preFrame() {
+      super.preFrame();
+      this.updateWorldPosition();
+    }
     updateWorldPosition() {
-      const parentTransform = this.parent?.sibling("Transform");
+      const parentTransform = this.parent?.parent?.child("Transform");
       if (parentTransform) {
-        this.worldPosition.set(this.position.add(parentTransform.worldPosition));
+        const scaledPosition = this.position.multiply(parentTransform.scale);
+        const cos = Math.cos(parentTransform.rotation);
+        const sin = Math.sin(parentTransform.rotation);
+        const rotatedPosition = new Vector(scaledPosition.x * cos - scaledPosition.y * sin, scaledPosition.x * sin + scaledPosition.y * cos);
+        this.worldPosition.set(rotatedPosition.add(parentTransform.worldPosition));
       } else {
         this.worldPosition.set(this.position);
       }
+      this.initialized = true;
     }
     act(_delta) {
-      this.updateWorldPosition();
       this.hoverbug = `${this.position.toString()} | ${this.worldPosition.toString()} | ${(this.rotation / Math.PI).toFixed(2)}pi | ${this.scale.toString()}`;
     }
   };
@@ -26025,8 +26213,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     currentHealth;
     onDeath;
     isDead = false;
-    constructor({ maxHealth = 100, onDeath = () => {
-    } }) {
+    constructor({ maxHealth = 100, onDeath = () => {} }) {
       super({ name: "Health" });
       this.maxHealth = maxHealth;
       this.currentHealth = maxHealth;
@@ -26936,13 +27123,17 @@ Defaulting to 2020, but this will stop working in the future.`);
     velocity;
     jumpForce;
     facing;
+    waterFraction;
+    landFraction;
     constructor({
       speed = 5,
       movementType = "WASD",
       input,
       gravityScale,
       maxSpeed,
-      jumpForce
+      jumpForce,
+      waterFraction,
+      landFraction
     }) {
       super({ name: "GravityCharacterMovement" });
       this.speed = speed;
@@ -26954,6 +27145,8 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.velocity = new Vector(0, 0);
       this.jumpForce = jumpForce;
       this.facing = new Vector(1, 1);
+      this.waterFraction = waterFraction || 0.5;
+      this.landFraction = landFraction || 0.9;
     }
     getStandingGround() {
       const myCollider = this.siblingOf("Collider", "BoxCollider", "PolygonCollider");
@@ -26998,9 +27191,9 @@ Defaulting to 2020, but this will stop working in the future.`);
       const groundCollider = this.getStandingGround();
       const onGround = !!groundCollider;
       const inWater = this.isInWater();
-      const speedMultiplier = inWater ? 0.5 : 1;
-      const gravityMultiplier = inWater ? 0.5 : 1;
-      const jumpForceMultiplier = inWater ? 0.8 : 1;
+      const speedMultiplier = inWater ? this.waterFraction : onGround ? this.landFraction : 1;
+      const gravityMultiplier = inWater ? this.gravityScale.y : 1;
+      const jumpForceMultiplier = inWater ? this.jumpForce * this.waterFraction : this.jumpForce;
       let dx = 0;
       if (this.movementType === "WASD" || this.movementType === "BOTH") {
         if (keys.has("a")) {
@@ -27308,8 +27501,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     walk: function(visitor) {
       return this._walk(visitor);
     },
-    _children_backwards: () => {
-    }
+    _children_backwards: () => {}
   }, null);
   AST_Statement = DEFNODE("Statement", null, function AST_Statement2(props) {
     if (props) {
@@ -29789,8 +29981,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     this.flags = 0;
   }, {
     $documentation: "The `undefined` value",
-    value: function() {
-    }()
+    value: function() {}()
   }, AST_Atom);
   AST_Hole = DEFNODE("Hole", null, function AST_Hole2(props) {
     if (props) {
@@ -29800,8 +29991,7 @@ Defaulting to 2020, but this will stop working in the future.`);
     this.flags = 0;
   }, {
     $documentation: "A hole in an array",
-    value: function() {
-    }()
+    value: function() {}()
   }, AST_Atom);
   AST_Infinity = DEFNODE("Infinity", null, function AST_Infinity2(props) {
     if (props) {
@@ -35080,8 +35270,7 @@ Defaulting to 2020, but this will stop working in the future.`);
   });
   def_eval(AST_Function, function(compressor) {
     if (compressor.option("unsafe")) {
-      var fn = function() {
-      };
+      var fn = function() {};
       fn.node = this;
       fn.toString = () => this.print_to_string();
       return fn;
@@ -35397,8 +35586,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       }
       try {
         return val[key].apply(val, args);
-      } catch (ex) {
-      }
+      } catch (ex) {}
     }
     return this;
   });
@@ -49911,7 +50099,9 @@ var nodeDefinitions = {
       input: { type: "Part", subType: "Input", description: "The input component for the scene, used to track player input." },
       gravityScale: { type: "Vector", default: "new Vector(0, 0.5)", description: "Gravity scale applied to the character." },
       maxSpeed: { type: "number", default: 10, description: "Maximum speed of the character." },
-      jumpForce: { type: "number", default: 10, description: "Jump force applied to the character." }
+      jumpForce: { type: "number", default: 10, description: "Jump force applied to the character." },
+      waterFraction: { type: "number", default: 0.5, description: "Fraction of normal speed and jump force when in water (0-1)." },
+      landFraction: { type: "number", default: 1, description: "Fraction of normal speed and jump force when on land (0-1)." }
     },
     singular: true
   }
@@ -50147,30 +50337,96 @@ var {
   PostgrestError
 } = import_cjs.default;
 
-// node_modules/isows/_esm/utils.js
-function getNativeWebSocket() {
-  if (typeof WebSocket !== "undefined")
-    return WebSocket;
-  if (typeof global.WebSocket !== "undefined")
-    return global.WebSocket;
-  if (typeof window.WebSocket !== "undefined")
-    return window.WebSocket;
-  if (typeof self.WebSocket !== "undefined")
-    return self.WebSocket;
-  throw new Error("`WebSocket` is not supported in this environment");
-}
+// node_modules/@supabase/realtime-js/dist/module/lib/websocket-factory.js
+class WebSocketFactory {
+  static detectEnvironment() {
+    var _a;
+    if (typeof WebSocket !== "undefined") {
+      return { type: "native", constructor: WebSocket };
+    }
+    if (typeof globalThis !== "undefined" && typeof globalThis.WebSocket !== "undefined") {
+      return { type: "native", constructor: globalThis.WebSocket };
+    }
+    if (typeof global !== "undefined" && typeof global.WebSocket !== "undefined") {
+      return { type: "native", constructor: global.WebSocket };
+    }
+    if (typeof globalThis !== "undefined" && typeof globalThis.WebSocketPair !== "undefined" && typeof globalThis.WebSocket === "undefined") {
+      return {
+        type: "cloudflare",
+        error: "Cloudflare Workers detected. WebSocket clients are not supported in Cloudflare Workers.",
+        workaround: "Use Cloudflare Workers WebSocket API for server-side WebSocket handling, or deploy to a different runtime."
+      };
+    }
+    if (typeof globalThis !== "undefined" && globalThis.EdgeRuntime || typeof navigator !== "undefined" && ((_a = navigator.userAgent) === null || _a === undefined ? undefined : _a.includes("Vercel-Edge"))) {
+      return {
+        type: "unsupported",
+        error: "Edge runtime detected (Vercel Edge/Netlify Edge). WebSockets are not supported in edge functions.",
+        workaround: "Use serverless functions or a different deployment target for WebSocket functionality."
+      };
+    }
+    if (typeof process !== "undefined" && process.versions && process.versions.node) {
+      const nodeVersion = parseInt(process.versions.node.split(".")[0]);
+      if (nodeVersion >= 22) {
+        if (typeof globalThis.WebSocket !== "undefined") {
+          return { type: "native", constructor: globalThis.WebSocket };
+        }
+        return {
+          type: "unsupported",
+          error: `Node.js ${nodeVersion} detected but native WebSocket not found.`,
+          workaround: "Provide a WebSocket implementation via the transport option."
+        };
+      }
+      return {
+        type: "unsupported",
+        error: `Node.js ${nodeVersion} detected without native WebSocket support.`,
+        workaround: `For Node.js < 22, install "ws" package and provide it via the transport option:
+` + `import ws from "ws"
+` + "new RealtimeClient(url, { transport: ws })"
+      };
+    }
+    return {
+      type: "unsupported",
+      error: "Unknown JavaScript runtime without WebSocket support.",
+      workaround: "Ensure you're running in a supported environment (browser, Node.js, Deno) or provide a custom WebSocket implementation."
+    };
+  }
+  static getWebSocketConstructor() {
+    const env = this.detectEnvironment();
+    if (env.constructor) {
+      return env.constructor;
+    }
+    let errorMessage = env.error || "WebSocket not supported in this environment.";
+    if (env.workaround) {
+      errorMessage += `
 
-// node_modules/isows/_esm/native.js
-var WebSocket2 = getNativeWebSocket();
+Suggested solution: ${env.workaround}`;
+    }
+    throw new Error(errorMessage);
+  }
+  static createWebSocket(url, protocols) {
+    const WS = this.getWebSocketConstructor();
+    return new WS(url, protocols);
+  }
+  static isWebSocketSupported() {
+    try {
+      const env = this.detectEnvironment();
+      return env.type === "native" || env.type === "ws";
+    } catch (_a) {
+      return false;
+    }
+  }
+}
+var websocket_factory_default = WebSocketFactory;
 
 // node_modules/@supabase/realtime-js/dist/module/lib/version.js
-var version = "2.11.15";
+var version = "2.15.4";
 
 // node_modules/@supabase/realtime-js/dist/module/lib/constants.js
 var DEFAULT_VERSION = `realtime-js/${version}`;
 var VSN = "1.0.0";
 var DEFAULT_TIMEOUT = 1e4;
 var WS_CLOSE_NORMAL = 1000;
+var MAX_PUSH_BUFFER_SIZE = 100;
 var SOCKET_STATES;
 (function(SOCKET_STATES2) {
   SOCKET_STATES2[SOCKET_STATES2["connecting"] = 0] = "connecting";
@@ -50252,6 +50508,7 @@ class Timer {
   reset() {
     this.tries = 0;
     clearTimeout(this.timer);
+    this.timer = undefined;
   }
   scheduleTimeout() {
     clearTimeout(this.timer);
@@ -50408,7 +50665,7 @@ var httpEndpointURL = (socketUrl) => {
   let url = socketUrl;
   url = url.replace(/^ws/i, "http");
   url = url.replace(/(\/socket\/websocket|\/socket|\/websocket)\/?$/i, "");
-  return url.replace(/\/+$/, "");
+  return url.replace(/\/+$/, "") + "/api/broadcast";
 };
 
 // node_modules/@supabase/realtime-js/dist/module/lib/push.js
@@ -50516,13 +50773,11 @@ class RealtimePresence {
     this.state = {};
     this.pendingDiffs = [];
     this.joinRef = null;
+    this.enabled = false;
     this.caller = {
-      onJoin: () => {
-      },
-      onLeave: () => {
-      },
-      onSync: () => {
-      }
+      onJoin: () => {},
+      onLeave: () => {},
+      onSync: () => {}
     };
     const events = (opts === null || opts === undefined ? undefined : opts.events) || {
       state: "presence_state",
@@ -50602,12 +50857,10 @@ class RealtimePresence {
       leaves: this.transformState(diff.leaves)
     };
     if (!onJoin) {
-      onJoin = () => {
-      };
+      onJoin = () => {};
     }
     if (!onLeave) {
-      onLeave = () => {
-      };
+      onLeave = () => {};
     }
     this.map(joins, (key, newPresences) => {
       var _a;
@@ -50704,7 +50957,7 @@ class RealtimeChannel {
     this.subTopic = topic.replace(/^realtime:/i, "");
     this.params.config = Object.assign({
       broadcast: { ack: false, self: false },
-      presence: { key: "" },
+      presence: { key: "", enabled: false },
       private: false
     }, params.config);
     this.timeout = this.socket.timeout;
@@ -50738,39 +50991,49 @@ class RealtimeChannel {
       this.state = CHANNEL_STATES.errored;
       this.rejoinTimer.scheduleTimeout();
     });
+    this.joinPush.receive("error", (reason) => {
+      if (this._isLeaving() || this._isClosed()) {
+        return;
+      }
+      this.socket.log("channel", `error ${this.topic}`, reason);
+      this.state = CHANNEL_STATES.errored;
+      this.rejoinTimer.scheduleTimeout();
+    });
     this._on(CHANNEL_EVENTS.reply, {}, (payload, ref) => {
       this._trigger(this._replyEventName(ref), payload);
     });
     this.presence = new RealtimePresence(this);
-    this.broadcastEndpointURL = httpEndpointURL(this.socket.endPoint) + "/api/broadcast";
+    this.broadcastEndpointURL = httpEndpointURL(this.socket.endPoint);
     this.private = this.params.config.private || false;
   }
   subscribe(callback, timeout = this.timeout) {
-    var _a, _b;
+    var _a, _b, _c;
     if (!this.socket.isConnected()) {
       this.socket.connect();
     }
     if (this.state == CHANNEL_STATES.closed) {
       const { config: { broadcast, presence, private: isPrivate } } = this.params;
-      this._onError((e) => callback === null || callback === undefined ? undefined : callback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, e));
-      this._onClose(() => callback === null || callback === undefined ? undefined : callback(REALTIME_SUBSCRIBE_STATES.CLOSED));
+      const postgres_changes = (_b = (_a = this.bindings.postgres_changes) === null || _a === undefined ? undefined : _a.map((r) => r.filter)) !== null && _b !== undefined ? _b : [];
+      const presence_enabled = !!this.bindings[REALTIME_LISTEN_TYPES.PRESENCE] && this.bindings[REALTIME_LISTEN_TYPES.PRESENCE].length > 0 || ((_c = this.params.config.presence) === null || _c === undefined ? undefined : _c.enabled) === true;
       const accessTokenPayload = {};
       const config = {
         broadcast,
-        presence,
-        postgres_changes: (_b = (_a = this.bindings.postgres_changes) === null || _a === undefined ? undefined : _a.map((r) => r.filter)) !== null && _b !== undefined ? _b : [],
+        presence: Object.assign(Object.assign({}, presence), { enabled: presence_enabled }),
+        postgres_changes,
         private: isPrivate
       };
       if (this.socket.accessTokenValue) {
         accessTokenPayload.access_token = this.socket.accessTokenValue;
       }
+      this._onError((e) => callback === null || callback === undefined ? undefined : callback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, e));
+      this._onClose(() => callback === null || callback === undefined ? undefined : callback(REALTIME_SUBSCRIBE_STATES.CLOSED));
       this.updateJoinPayload(Object.assign({ config }, accessTokenPayload));
       this.joinedOnce = true;
       this._rejoin(timeout);
-      this.joinPush.receive("ok", async ({ postgres_changes }) => {
+      this.joinPush.receive("ok", async ({ postgres_changes: postgres_changes2 }) => {
         var _a2;
         this.socket.setAuth();
-        if (postgres_changes === undefined) {
+        if (postgres_changes2 === undefined) {
           callback === null || callback === undefined || callback(REALTIME_SUBSCRIBE_STATES.SUBSCRIBED);
           return;
         } else {
@@ -50780,7 +51043,7 @@ class RealtimeChannel {
           for (let i = 0;i < bindingsLen; i++) {
             const clientPostgresBinding = clientPostgresBindings[i];
             const { filter: { event, schema, table, filter } } = clientPostgresBinding;
-            const serverPostgresFilter = postgres_changes && postgres_changes[i];
+            const serverPostgresFilter = postgres_changes2 && postgres_changes2[i];
             if (serverPostgresFilter && serverPostgresFilter.event === event && serverPostgresFilter.schema === schema && serverPostgresFilter.table === table && serverPostgresFilter.filter === filter) {
               newPostgresBindings.push(Object.assign(Object.assign({}, clientPostgresBinding), { id: serverPostgresFilter.id }));
             } else {
@@ -50822,6 +51085,10 @@ class RealtimeChannel {
     }, opts);
   }
   on(type, filter, callback) {
+    if (this.state === CHANNEL_STATES.joined && type === REALTIME_LISTEN_TYPES.PRESENCE) {
+      this.socket.log("channel", `resubscribe to ${this.topic} due to change in presence callbacks on joined channel`);
+      this.unsubscribe().then(() => this.subscribe());
+    }
     return this._on(type, filter, callback);
   }
   async send(args, opts = {}) {
@@ -50903,8 +51170,11 @@ class RealtimeChannel {
   }
   teardown() {
     this.pushBuffer.forEach((push) => push.destroy());
-    this.rejoinTimer && clearTimeout(this.rejoinTimer.timer);
+    this.pushBuffer = [];
+    this.rejoinTimer.reset();
     this.joinPush.destroy();
+    this.state = CHANNEL_STATES.closed;
+    this.bindings = {};
   }
   async _fetchWithTimeout(url, options, timeout) {
     const controller = new AbortController;
@@ -50921,10 +51191,20 @@ class RealtimeChannel {
     if (this._canPush()) {
       pushEvent.send();
     } else {
-      pushEvent.startTimeout();
-      this.pushBuffer.push(pushEvent);
+      this._addToPushBuffer(pushEvent);
     }
     return pushEvent;
+  }
+  _addToPushBuffer(pushEvent) {
+    pushEvent.startTimeout();
+    this.pushBuffer.push(pushEvent);
+    if (this.pushBuffer.length > MAX_PUSH_BUFFER_SIZE) {
+      const removedPush = this.pushBuffer.shift();
+      if (removedPush) {
+        removedPush.destroy();
+        this.socket.log("channel", `discarded push due to buffer overflow: ${removedPush.event}`, removedPush.payload);
+      }
+    }
   }
   _onMessage(_event, payload, _ref) {
     return payload;
@@ -51017,10 +51297,12 @@ class RealtimeChannel {
   }
   _off(type, filter) {
     const typeLower = type.toLocaleLowerCase();
-    this.bindings[typeLower] = this.bindings[typeLower].filter((bind) => {
-      var _a;
-      return !(((_a = bind.type) === null || _a === undefined ? undefined : _a.toLocaleLowerCase()) === typeLower && RealtimeChannel.isEqual(bind.filter, filter));
-    });
+    if (this.bindings[typeLower]) {
+      this.bindings[typeLower] = this.bindings[typeLower].filter((bind) => {
+        var _a;
+        return !(((_a = bind.type) === null || _a === undefined ? undefined : _a.toLocaleLowerCase()) === typeLower && RealtimeChannel.isEqual(bind.filter, filter));
+      });
+    }
     return this;
   }
   static isEqual(obj1, obj2) {
@@ -51073,8 +51355,14 @@ class RealtimeChannel {
 }
 
 // node_modules/@supabase/realtime-js/dist/module/RealtimeClient.js
-var noop2 = () => {
+var noop2 = () => {};
+var CONNECTION_TIMEOUTS = {
+  HEARTBEAT_INTERVAL: 25000,
+  RECONNECT_DELAY: 10,
+  HEARTBEAT_TIMEOUT_FALLBACK: 100
 };
+var RECONNECT_INTERVALS = [1000, 2000, 5000, 1e4];
+var DEFAULT_RECONNECT_FALLBACK = 1e4;
 var WORKER_SCRIPT = `
   addEventListener("message", (e) => {
     if (e.data.event === "start") {
@@ -51093,11 +51381,13 @@ class RealtimeClient {
     this.headers = {};
     this.params = {};
     this.timeout = DEFAULT_TIMEOUT;
-    this.heartbeatIntervalMs = 25000;
+    this.transport = null;
+    this.heartbeatIntervalMs = CONNECTION_TIMEOUTS.HEARTBEAT_INTERVAL;
     this.heartbeatTimer = undefined;
     this.pendingHeartbeatRef = null;
     this.heartbeatCallback = noop2;
     this.ref = 0;
+    this.reconnectTimer = null;
     this.logger = noop2;
     this.conn = null;
     this.sendBuffer = [];
@@ -51109,91 +51399,91 @@ class RealtimeClient {
       message: []
     };
     this.accessToken = null;
+    this._connectionState = "disconnected";
+    this._wasManualDisconnect = false;
+    this._authPromise = null;
     this._resolveFetch = (customFetch) => {
       let _fetch;
       if (customFetch) {
         _fetch = customFetch;
       } else if (typeof fetch === "undefined") {
-        _fetch = (...args) => Promise.resolve().then(() => (init_browser(), exports_browser)).then(({ default: fetch3 }) => fetch3(...args));
+        _fetch = (...args) => Promise.resolve().then(() => (init_browser(), exports_browser)).then(({ default: fetch3 }) => fetch3(...args)).catch((error) => {
+          throw new Error(`Failed to load @supabase/node-fetch: ${error.message}. This is required for HTTP requests in Node.js environments without native fetch.`);
+        });
       } else {
         _fetch = fetch;
       }
       return (...args) => _fetch(...args);
     };
+    if (!((_a = options === null || options === undefined ? undefined : options.params) === null || _a === undefined ? undefined : _a.apikey)) {
+      throw new Error("API key is required to connect to Realtime");
+    }
+    this.apiKey = options.params.apikey;
     this.endPoint = `${endPoint}/${TRANSPORTS.websocket}`;
     this.httpEndpoint = httpEndpointURL(endPoint);
-    if (options === null || options === undefined ? undefined : options.transport) {
-      this.transport = options.transport;
-    } else {
-      this.transport = null;
-    }
-    if (options === null || options === undefined ? undefined : options.params)
-      this.params = options.params;
-    if (options === null || options === undefined ? undefined : options.timeout)
-      this.timeout = options.timeout;
-    if (options === null || options === undefined ? undefined : options.logger)
-      this.logger = options.logger;
-    if ((options === null || options === undefined ? undefined : options.logLevel) || (options === null || options === undefined ? undefined : options.log_level)) {
-      this.logLevel = options.logLevel || options.log_level;
-      this.params = Object.assign(Object.assign({}, this.params), { log_level: this.logLevel });
-    }
-    if (options === null || options === undefined ? undefined : options.heartbeatIntervalMs)
-      this.heartbeatIntervalMs = options.heartbeatIntervalMs;
-    const accessTokenValue = (_a = options === null || options === undefined ? undefined : options.params) === null || _a === undefined ? undefined : _a.apikey;
-    if (accessTokenValue) {
-      this.accessTokenValue = accessTokenValue;
-      this.apiKey = accessTokenValue;
-    }
-    this.reconnectAfterMs = (options === null || options === undefined ? undefined : options.reconnectAfterMs) ? options.reconnectAfterMs : (tries) => {
-      return [1000, 2000, 5000, 1e4][tries - 1] || 1e4;
-    };
-    this.encode = (options === null || options === undefined ? undefined : options.encode) ? options.encode : (payload, callback) => {
-      return callback(JSON.stringify(payload));
-    };
-    this.decode = (options === null || options === undefined ? undefined : options.decode) ? options.decode : this.serializer.decode.bind(this.serializer);
-    this.reconnectTimer = new Timer(async () => {
-      this.disconnect();
-      this.connect();
-    }, this.reconnectAfterMs);
+    this._initializeOptions(options);
+    this._setupReconnectionTimer();
     this.fetch = this._resolveFetch(options === null || options === undefined ? undefined : options.fetch);
-    if (options === null || options === undefined ? undefined : options.worker) {
-      if (typeof window !== "undefined" && !window.Worker) {
-        throw new Error("Web Worker is not supported");
-      }
-      this.worker = (options === null || options === undefined ? undefined : options.worker) || false;
-      this.workerUrl = options === null || options === undefined ? undefined : options.workerUrl;
-    }
-    this.accessToken = (options === null || options === undefined ? undefined : options.accessToken) || null;
   }
   connect() {
-    if (this.conn) {
+    if (this.isConnecting() || this.isDisconnecting() || this.conn !== null && this.isConnected()) {
       return;
     }
-    if (!this.transport) {
-      this.transport = WebSocket2;
+    this._setConnectionState("connecting");
+    this._setAuthSafely("connect");
+    if (this.transport) {
+      this.conn = new this.transport(this.endpointURL());
+    } else {
+      try {
+        this.conn = websocket_factory_default.createWebSocket(this.endpointURL());
+      } catch (error) {
+        this._setConnectionState("disconnected");
+        const errorMessage = error.message;
+        if (errorMessage.includes("Node.js")) {
+          throw new Error(`${errorMessage}
+
+To use Realtime in Node.js, you need to provide a WebSocket implementation:
+
+Option 1: Use Node.js 22+ which has native WebSocket support
+Option 2: Install and provide the "ws" package:
+
+  npm install ws
+
+  import ws from "ws"
+  const client = new RealtimeClient(url, {
+    ...options,
+    transport: ws
+  })`);
+        }
+        throw new Error(`WebSocket not available: ${errorMessage}`);
+      }
     }
-    if (!this.transport) {
-      throw new Error("No transport provided");
-    }
-    this.conn = new this.transport(this.endpointURL());
-    this.setupConnection();
+    this._setupConnectionHandlers();
   }
   endpointURL() {
     return this._appendParams(this.endPoint, Object.assign({}, this.params, { vsn: VSN }));
   }
   disconnect(code2, reason) {
+    if (this.isDisconnecting()) {
+      return;
+    }
+    this._setConnectionState("disconnecting", true);
     if (this.conn) {
-      this.conn.onclose = function() {
+      const fallbackTimer = setTimeout(() => {
+        this._setConnectionState("disconnected");
+      }, 100);
+      this.conn.onclose = () => {
+        clearTimeout(fallbackTimer);
+        this._setConnectionState("disconnected");
       };
       if (code2) {
         this.conn.close(code2, reason !== null && reason !== undefined ? reason : "");
       } else {
         this.conn.close();
       }
-      this.conn = null;
-      this.heartbeatTimer && clearInterval(this.heartbeatTimer);
-      this.reconnectTimer.reset();
-      this.channels.forEach((channel) => channel.teardown());
+      this._teardownConnection();
+    } else {
+      this._setConnectionState("disconnected");
     }
   }
   getChannels() {
@@ -51230,6 +51520,12 @@ class RealtimeClient {
   isConnected() {
     return this.connectionState() === CONNECTION_STATE.Open;
   }
+  isConnecting() {
+    return this._connectionState === "connecting";
+  }
+  isDisconnecting() {
+    return this._connectionState === "disconnecting";
+  }
   channel(topic, params = { config: {} }) {
     const realtimeTopic = `realtime:${topic}`;
     const exists = this.getChannels().find((c) => c.topic === realtimeTopic);
@@ -51257,34 +51553,39 @@ class RealtimeClient {
     }
   }
   async setAuth(token = null) {
-    let tokenToSend = token || this.accessToken && await this.accessToken() || this.accessTokenValue;
-    if (this.accessTokenValue != tokenToSend) {
-      this.accessTokenValue = tokenToSend;
-      this.channels.forEach((channel) => {
-        const payload = {
-          access_token: tokenToSend,
-          version: DEFAULT_VERSION
-        };
-        tokenToSend && channel.updateJoinPayload(payload);
-        if (channel.joinedOnce && channel._isJoined()) {
-          channel._push(CHANNEL_EVENTS.access_token, {
-            access_token: tokenToSend
-          });
-        }
-      });
+    this._authPromise = this._performAuth(token);
+    try {
+      await this._authPromise;
+    } finally {
+      this._authPromise = null;
     }
   }
   async sendHeartbeat() {
     var _a;
     if (!this.isConnected()) {
-      this.heartbeatCallback("disconnected");
+      try {
+        this.heartbeatCallback("disconnected");
+      } catch (e) {
+        this.log("error", "error in heartbeat callback", e);
+      }
       return;
     }
     if (this.pendingHeartbeatRef) {
       this.pendingHeartbeatRef = null;
       this.log("transport", "heartbeat timeout. Attempting to re-establish connection");
-      this.heartbeatCallback("timeout");
-      (_a = this.conn) === null || _a === undefined || _a.close(WS_CLOSE_NORMAL, "hearbeat timeout");
+      try {
+        this.heartbeatCallback("timeout");
+      } catch (e) {
+        this.log("error", "error in heartbeat callback", e);
+      }
+      this._wasManualDisconnect = false;
+      (_a = this.conn) === null || _a === undefined || _a.close(WS_CLOSE_NORMAL, "heartbeat timeout");
+      setTimeout(() => {
+        var _a2;
+        if (!this.isConnected()) {
+          (_a2 = this.reconnectTimer) === null || _a2 === undefined || _a2.scheduleTimeout();
+        }
+      }, CONNECTION_TIMEOUTS.HEARTBEAT_TIMEOUT_FALLBACK);
       return;
     }
     this.pendingHeartbeatRef = this._makeRef();
@@ -51294,8 +51595,12 @@ class RealtimeClient {
       payload: {},
       ref: this.pendingHeartbeatRef
     });
-    this.heartbeatCallback("sent");
-    await this.setAuth();
+    try {
+      this.heartbeatCallback("sent");
+    } catch (e) {
+      this.log("error", "error in heartbeat callback", e);
+    }
+    this._setAuthSafely("heartbeat");
   }
   onHeartbeat(callback) {
     this.heartbeatCallback = callback;
@@ -51325,33 +51630,66 @@ class RealtimeClient {
   _remove(channel) {
     this.channels = this.channels.filter((c) => c.topic !== channel.topic);
   }
-  setupConnection() {
-    if (this.conn) {
-      this.conn.binaryType = "arraybuffer";
-      this.conn.onopen = () => this._onConnOpen();
-      this.conn.onerror = (error) => this._onConnError(error);
-      this.conn.onmessage = (event) => this._onConnMessage(event);
-      this.conn.onclose = (event) => this._onConnClose(event);
-    }
-  }
   _onConnMessage(rawMessage) {
     this.decode(rawMessage.data, (msg) => {
-      let { topic, event, payload, ref } = msg;
-      if (topic === "phoenix" && event === "phx_reply") {
-        this.heartbeatCallback(msg.payload.status == "ok" ? "ok" : "error");
+      if (msg.topic === "phoenix" && msg.event === "phx_reply") {
+        try {
+          this.heartbeatCallback(msg.payload.status === "ok" ? "ok" : "error");
+        } catch (e) {
+          this.log("error", "error in heartbeat callback", e);
+        }
       }
-      if (ref && ref === this.pendingHeartbeatRef) {
+      if (msg.ref && msg.ref === this.pendingHeartbeatRef) {
         this.pendingHeartbeatRef = null;
       }
-      this.log("receive", `${payload.status || ""} ${topic} ${event} ${ref && "(" + ref + ")" || ""}`, payload);
-      Array.from(this.channels).filter((channel) => channel._isMember(topic)).forEach((channel) => channel._trigger(event, payload, ref));
-      this.stateChangeCallbacks.message.forEach((callback) => callback(msg));
+      const { topic, event, payload, ref } = msg;
+      const refString = ref ? `(${ref})` : "";
+      const status = payload.status || "";
+      this.log("receive", `${status} ${topic} ${event} ${refString}`.trim(), payload);
+      this.channels.filter((channel) => channel._isMember(topic)).forEach((channel) => channel._trigger(event, payload, ref));
+      this._triggerStateCallbacks("message", msg);
     });
   }
+  _clearTimer(timer) {
+    var _a;
+    if (timer === "heartbeat" && this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
+    } else if (timer === "reconnect") {
+      (_a = this.reconnectTimer) === null || _a === undefined || _a.reset();
+    }
+  }
+  _clearAllTimers() {
+    this._clearTimer("heartbeat");
+    this._clearTimer("reconnect");
+  }
+  _setupConnectionHandlers() {
+    if (!this.conn)
+      return;
+    if ("binaryType" in this.conn) {
+      this.conn.binaryType = "arraybuffer";
+    }
+    this.conn.onopen = () => this._onConnOpen();
+    this.conn.onerror = (error) => this._onConnError(error);
+    this.conn.onmessage = (event) => this._onConnMessage(event);
+    this.conn.onclose = (event) => this._onConnClose(event);
+  }
+  _teardownConnection() {
+    if (this.conn) {
+      this.conn.onopen = null;
+      this.conn.onerror = null;
+      this.conn.onmessage = null;
+      this.conn.onclose = null;
+      this.conn = null;
+    }
+    this._clearAllTimers();
+    this.channels.forEach((channel) => channel.teardown());
+  }
   _onConnOpen() {
+    this._setConnectionState("connected");
     this.log("transport", `connected to ${this.endpointURL()}`);
     this.flushSendBuffer();
-    this.reconnectTimer.reset();
+    this._clearTimer("reconnect");
     if (!this.worker) {
       this._startHeartbeat();
     } else {
@@ -51359,7 +51697,7 @@ class RealtimeClient {
         this._startWorkerHeartbeat();
       }
     }
-    this.stateChangeCallbacks.open.forEach((callback) => callback());
+    this._triggerStateCallbacks("open");
   }
   _startHeartbeat() {
     this.heartbeatTimer && clearInterval(this.heartbeatTimer);
@@ -51388,16 +51726,21 @@ class RealtimeClient {
     });
   }
   _onConnClose(event) {
+    var _a;
+    this._setConnectionState("disconnected");
     this.log("transport", "close", event);
     this._triggerChanError();
-    this.heartbeatTimer && clearInterval(this.heartbeatTimer);
-    this.reconnectTimer.scheduleTimeout();
-    this.stateChangeCallbacks.close.forEach((callback) => callback(event));
+    this._clearTimer("heartbeat");
+    if (!this._wasManualDisconnect) {
+      (_a = this.reconnectTimer) === null || _a === undefined || _a.scheduleTimeout();
+    }
+    this._triggerStateCallbacks("close", event);
   }
   _onConnError(error) {
+    this._setConnectionState("disconnected");
     this.log("transport", `${error}`);
     this._triggerChanError();
-    this.stateChangeCallbacks.error.forEach((callback) => callback(error));
+    this._triggerStateCallbacks("error", error);
   }
   _triggerChanError() {
     this.channels.forEach((channel) => channel._trigger(CHANNEL_EVENTS.error));
@@ -51419,6 +51762,102 @@ class RealtimeClient {
       result_url = URL.createObjectURL(blob);
     }
     return result_url;
+  }
+  _setConnectionState(state2, manual = false) {
+    this._connectionState = state2;
+    if (state2 === "connecting") {
+      this._wasManualDisconnect = false;
+    } else if (state2 === "disconnecting") {
+      this._wasManualDisconnect = manual;
+    }
+  }
+  async _performAuth(token = null) {
+    let tokenToSend;
+    if (token) {
+      tokenToSend = token;
+    } else if (this.accessToken) {
+      tokenToSend = await this.accessToken();
+    } else {
+      tokenToSend = this.accessTokenValue;
+    }
+    if (this.accessTokenValue != tokenToSend) {
+      this.accessTokenValue = tokenToSend;
+      this.channels.forEach((channel) => {
+        const payload = {
+          access_token: tokenToSend,
+          version: DEFAULT_VERSION
+        };
+        tokenToSend && channel.updateJoinPayload(payload);
+        if (channel.joinedOnce && channel._isJoined()) {
+          channel._push(CHANNEL_EVENTS.access_token, {
+            access_token: tokenToSend
+          });
+        }
+      });
+    }
+  }
+  async _waitForAuthIfNeeded() {
+    if (this._authPromise) {
+      await this._authPromise;
+    }
+  }
+  _setAuthSafely(context = "general") {
+    this.setAuth().catch((e) => {
+      this.log("error", `error setting auth in ${context}`, e);
+    });
+  }
+  _triggerStateCallbacks(event, data) {
+    try {
+      this.stateChangeCallbacks[event].forEach((callback) => {
+        try {
+          callback(data);
+        } catch (e) {
+          this.log("error", `error in ${event} callback`, e);
+        }
+      });
+    } catch (e) {
+      this.log("error", `error triggering ${event} callbacks`, e);
+    }
+  }
+  _setupReconnectionTimer() {
+    this.reconnectTimer = new Timer(async () => {
+      setTimeout(async () => {
+        await this._waitForAuthIfNeeded();
+        if (!this.isConnected()) {
+          this.connect();
+        }
+      }, CONNECTION_TIMEOUTS.RECONNECT_DELAY);
+    }, this.reconnectAfterMs);
+  }
+  _initializeOptions(options) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    this.transport = (_a = options === null || options === undefined ? undefined : options.transport) !== null && _a !== undefined ? _a : null;
+    this.timeout = (_b = options === null || options === undefined ? undefined : options.timeout) !== null && _b !== undefined ? _b : DEFAULT_TIMEOUT;
+    this.heartbeatIntervalMs = (_c = options === null || options === undefined ? undefined : options.heartbeatIntervalMs) !== null && _c !== undefined ? _c : CONNECTION_TIMEOUTS.HEARTBEAT_INTERVAL;
+    this.worker = (_d = options === null || options === undefined ? undefined : options.worker) !== null && _d !== undefined ? _d : false;
+    this.accessToken = (_e = options === null || options === undefined ? undefined : options.accessToken) !== null && _e !== undefined ? _e : null;
+    this.heartbeatCallback = (_f = options === null || options === undefined ? undefined : options.heartbeatCallback) !== null && _f !== undefined ? _f : noop2;
+    if (options === null || options === undefined ? undefined : options.params)
+      this.params = options.params;
+    if (options === null || options === undefined ? undefined : options.logger)
+      this.logger = options.logger;
+    if ((options === null || options === undefined ? undefined : options.logLevel) || (options === null || options === undefined ? undefined : options.log_level)) {
+      this.logLevel = options.logLevel || options.log_level;
+      this.params = Object.assign(Object.assign({}, this.params), { log_level: this.logLevel });
+    }
+    this.reconnectAfterMs = (_g = options === null || options === undefined ? undefined : options.reconnectAfterMs) !== null && _g !== undefined ? _g : (tries) => {
+      return RECONNECT_INTERVALS[tries - 1] || DEFAULT_RECONNECT_FALLBACK;
+    };
+    this.encode = (_h = options === null || options === undefined ? undefined : options.encode) !== null && _h !== undefined ? _h : (payload, callback) => {
+      return callback(JSON.stringify(payload));
+    };
+    this.decode = (_j = options === null || options === undefined ? undefined : options.decode) !== null && _j !== undefined ? _j : this.serializer.decode.bind(this.serializer);
+    if (this.worker) {
+      if (typeof window !== "undefined" && !window.Worker) {
+        throw new Error("Web Worker is not supported");
+      }
+      this.workerUrl = options === null || options === undefined ? undefined : options.workerUrl;
+    }
   }
 }
 
@@ -51578,6 +52017,9 @@ var _getRequestParams = (method, options, parameters, body) => {
     params.body = JSON.stringify(body);
   } else {
     params.body = body;
+  }
+  if (options === null || options === undefined ? undefined : options.duplex) {
+    params.duplex = options.duplex;
   }
   return Object.assign(Object.assign({}, params), parameters);
 };
@@ -51958,6 +52400,20 @@ class StorageFileApi {
       }
     });
   }
+  listV2(options, parameters) {
+    return __awaiter4(this, undefined, undefined, function* () {
+      try {
+        const body = Object.assign({}, options);
+        const data = yield post(this.fetch, `${this.url}/object/list-v2/${this.bucketId}`, body, { headers: this.headers }, parameters);
+        return { data, error: null };
+      } catch (error) {
+        if (isStorageError(error)) {
+          return { data: null, error };
+        }
+        throw error;
+      }
+    });
+  }
   encodeMetadata(metadata) {
     return JSON.stringify(metadata);
   }
@@ -51995,7 +52451,7 @@ class StorageFileApi {
 }
 
 // node_modules/@supabase/storage-js/dist/module/lib/version.js
-var version2 = "2.10.4";
+var version2 = "2.11.0";
 
 // node_modules/@supabase/storage-js/dist/module/lib/constants.js
 var DEFAULT_HEADERS = { "X-Client-Info": `storage-js/${version2}` };
@@ -52147,7 +52603,7 @@ class StorageClient extends StorageBucketApi {
   }
 }
 // node_modules/@supabase/supabase-js/dist/module/lib/version.js
-var version3 = "2.53.0";
+var version3 = "2.56.1";
 
 // node_modules/@supabase/supabase-js/dist/module/lib/constants.js
 var JS_ENV = "";
@@ -52644,8 +53100,7 @@ function parseParametersFromURL(href) {
       hashSearchParams.forEach((value, key) => {
         result[key] = value;
       });
-    } catch (e) {
-    }
+    } catch (e) {}
   }
   url.searchParams.forEach((value, key) => {
     result[key] = value;
@@ -54030,8 +54485,7 @@ class GoTrueClient {
         this.pendingInLock.push((async () => {
           try {
             await result;
-          } catch (e) {
-          }
+          } catch (e) {}
         })());
         return result;
       }
@@ -54043,8 +54497,7 @@ class GoTrueClient {
           this.pendingInLock.push((async () => {
             try {
               await result;
-            } catch (e) {
-            }
+            } catch (e) {}
           })());
           await result;
           while (this.pendingInLock.length) {
@@ -54735,8 +55188,7 @@ class GoTrueClient {
         await setItemAsync(this.userStorage, this.storageKey + "-user", {
           user: sessionToProcess.user
         });
-      } else if (userIsProxy) {
-      }
+      } else if (userIsProxy) {}
       const mainSessionData = Object.assign({}, sessionToProcess);
       delete mainSessionData.user;
       const clonedMainSessionData = deepClone(mainSessionData);
@@ -55260,7 +55712,7 @@ class SupabaseClient {
         return yield this.accessToken();
       }
       const { data } = yield this.auth.getSession();
-      return (_b = (_a = data.session) === null || _a === undefined ? undefined : _a.access_token) !== null && _b !== undefined ? _b : null;
+      return (_b = (_a = data.session) === null || _a === undefined ? undefined : _a.access_token) !== null && _b !== undefined ? _b : this.supabaseKey;
     });
   }
   _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, storageKey, flowType, lock, debug }, headers, fetch3) {
@@ -55308,10 +55760,17 @@ var createClient = (supabaseUrl, supabaseKey, options) => {
   return new SupabaseClient(supabaseUrl, supabaseKey, options);
 };
 function shouldShowDeprecationWarning() {
-  if (typeof window !== "undefined" || typeof process === "undefined" || process.version === undefined || process.version === null) {
+  if (typeof window !== "undefined") {
     return false;
   }
-  const versionMatch = process.version.match(/^v(\d+)\./);
+  if (typeof process === "undefined") {
+    return false;
+  }
+  const processVersion = process["version"];
+  if (processVersion === undefined || processVersion === null) {
+    return false;
+  }
+  const versionMatch = processVersion.match(/^v(\d+)\./);
   if (!versionMatch) {
     return false;
   }

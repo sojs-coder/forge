@@ -3,14 +3,15 @@ import { Part } from "../Part";
 import { Collider } from "./Collider";
 import type { Transform } from "./Transform";
 import { Game } from "../Game";
+import { MultiPolygonCollider } from "./MultiPolygonCollider";
 import { BoxCollider } from "./BoxCollider";
-
+import type { Polygon } from "martinez-polygon-clipping";
 export class PolygonCollider extends Collider {
     localVertices: Vector[];
     _worldVertices: Vector[] = [];
 
-    constructor({ vertices, tag }: { vertices: Vector[], tag?: string }) {
-        super({ tag: tag });
+    constructor({ vertices, tag = "<Untagged>" }: { vertices: Vector[], tag?: string }) {
+        super({ tag, allowMerge: tag !== '<Untagged>' });
         this.name = "PolygonCollider";
         this.localVertices = vertices;
         this.vertices = vertices;
@@ -32,8 +33,25 @@ export class PolygonCollider extends Collider {
         return this._worldVertices;
     }
 
+    getGeometry(): Polygon {
+        return [this.worldVertices.map(v => v.toArray())];
+    }
+
     act(delta: number) {
         super.act(delta);
+    }
+
+    override _updateVerticesAfterMerge(polygons: Vector[][][]): void {
+        const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
+
+        newCollider.active = this.active;
+        newCollider.allowMerge = this.allowMerge;
+        
+        const parent = this.parent;
+        if (parent) {
+            parent.removeChild(this);
+            parent.addChild(newCollider);
+        }
     }
 
     updateCollider(transform: Transform) {
@@ -66,26 +84,15 @@ export class PolygonCollider extends Collider {
             return this.checkPolygonVsBox(this, other);
         } else if (other instanceof PolygonCollider) {
             return this.checkPolygonVsPolygon(this, other);
+        } else if (other instanceof MultiPolygonCollider) {
+            return other.narrowPhaseCheck(this);
         }
         this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
         return false;
     }
 
     private checkPolygonVsPolygon(poly1: PolygonCollider, poly2: PolygonCollider): boolean {
-        const axes1 = this.getAxes(poly1.worldVertices);
-        const axes2 = this.getAxes(poly2.worldVertices);
-
-        const axes = axes1.concat(axes2);
-
-        for (const axis of axes) {
-            const projection1 = this.project(poly1.worldVertices, axis);
-            const projection2 = this.project(poly2.worldVertices, axis);
-
-            if (!this.overlap(projection1, projection2)) {
-                return false;
-            }
-        }
-        return true;
+        return this._checkPolygonVsPolygon(poly1.worldVertices, poly2.worldVertices);
     }
 
     private checkPolygonVsBox(poly: PolygonCollider, box: BoxCollider): boolean {

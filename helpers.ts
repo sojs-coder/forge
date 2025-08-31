@@ -1,3 +1,4 @@
+import type { Point } from "./Math/LineIntersections";
 import type { Vector } from "./Math/Vector";
 import type { Camera } from "./Parts/Camera";
 import { BoxCollider } from "./Parts/Children/BoxCollider";
@@ -205,95 +206,30 @@ export function isPointInObject(mouseX: number, mouseY: number, child: Part): bo
     return false;
 }
 
-// require("fs").writeFileSync("monster.json", JSON.stringify(convertTexturePackerToSpriteSheetData({"frames": [
 
-// {
-// 	"filename": "idle/idle-0",
-// 	"frame": {"x":100,"y":1,"w":17,"h":26},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":26},
-// 	"sourceSize": {"w":17,"h":26}
-// },
-// {
-// 	"filename": "idle/idle-1",
-// 	"frame": {"x":21,"y":1,"w":17,"h":27},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":27},
-// 	"sourceSize": {"w":17,"h":27}
-// },
-// {
-// 	"filename": "idle/idle-2",
-// 	"frame": {"x":1,"y":1,"w":18,"h":27},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":18,"h":27},
-// 	"sourceSize": {"w":18,"h":27}
-// },
-// {
-// 	"filename": "idle/idle-3",
-// 	"frame": {"x":78,"y":1,"w":20,"h":26},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":20,"h":26},
-// 	"sourceSize": {"w":20,"h":26}
-// },
-// {
-// 	"filename": "walk/walk-0",
-// 	"frame": {"x":177,"y":1,"w":17,"h":25},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":25},
-// 	"sourceSize": {"w":17,"h":25}
-// },
-// {
-// 	"filename": "walk/walk-1",
-// 	"frame": {"x":119,"y":1,"w":17,"h":26},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":26},
-// 	"sourceSize": {"w":17,"h":26}
-// },
-// {
-// 	"filename": "walk/walk-2",
-// 	"frame": {"x":40,"y":1,"w":17,"h":27},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":27},
-// 	"sourceSize": {"w":17,"h":27}
-// },
-// {
-// 	"filename": "walk/walk-3",
-// 	"frame": {"x":157,"y":1,"w":18,"h":25},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":18,"h":25},
-// 	"sourceSize": {"w":18,"h":25}
-// },
-// {
-// 	"filename": "walk/walk-4",
-// 	"frame": {"x":138,"y":1,"w":17,"h":26},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":26},
-// 	"sourceSize": {"w":17,"h":26}
-// },
-// {
-// 	"filename": "walk/walk-5",
-// 	"frame": {"x":59,"y":1,"w":17,"h":27},
-// 	"rotated": false,
-// 	"trimmed": false,
-// 	"spriteSourceSize": {"x":0,"y":0,"w":17,"h":27},
-// 	"sourceSize": {"w":17,"h":27}
-// }],
-// "meta": {
-// 	"app": "https://www.codeandweb.com/texturepacker",
-// 	"version": "1.0",
-// 	"image": "sprite_test.png",
-// 	"format": "RGBA8888",
-// 	"size": {"w":195,"h":29},
-// 	"scale": "1",
-// 	"smartupdate": "$TexturePacker:SmartUpdate:a644d106dc7284a35edd312ffb5969fa:6d80dcba90cb53bd0891529221374b5c:e2c998ad5b48a6da356a9a84831ec759$"
-// }
-// }) as SpriteSheetData, null, 4));
+export function vecEq(a: Vector, b: Vector): boolean {
+    return a.x === b.x && a.y === b.y;
+}
+
+export function pointInPoly(point: Point, poly: Point[]): boolean {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i].x, yi = poly[i].y;
+        const xj = poly[j].x, yj = poly[j].y;
+
+        // Check if the point is on the segment
+        const onSegment = (point.y - yi) * (xj - xi) === (point.x - xi) * (yj - yi) &&
+            (Math.min(xi, xj) <= point.x && point.x <= Math.max(xi, xj)) &&
+            (Math.min(yi, yj) <= point.y && point.y <= Math.max(yi, yj));
+
+        if (onSegment) {
+            return true; // Point is on the boundary
+        }
+
+        const intersect = ((yi > point.y) !== (yj > point.y))
+            && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+
+    return inside;
+}

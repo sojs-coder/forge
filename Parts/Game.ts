@@ -1,4 +1,3 @@
-import { getDebugInfo } from "../helpers";
 import { Part } from "./Part";
 import { Scene } from "./Scene";
 import { SoundManager } from "./SoundManager";
@@ -9,10 +8,7 @@ export class Game extends Part {
     childrenArray: Scene[];
     devmode: boolean;
     context: CanvasRenderingContext2D;
-    showtoolTips: boolean = false;
     hovering?: Part;
-    tooltipLocked?: boolean;
-    lastMousePosition: { x: number, y: number } = { x: 0, y: 0 };
     scaleFactor: number = 1;
     canvasOffset: { x: number, y: number } = { x: 0, y: 0 };
     messageHook?: (type: "warn" | "error" | "debug", ...args: any[]) => void;
@@ -30,10 +26,9 @@ export class Game extends Part {
     private _animationFrameId?: number;
     private _lastUpdateTime: number = 0;
 
-    constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false, showFrameStats = "BASIC" }: { name: string, canvas: HTMLCanvasElement | string, devmode?: boolean, width: number, height: number, disableAntiAliasing?: boolean, showtoolTips?: boolean, showFrameStats?: "BASIC" | "EXTENDED" | "ADVANCED" }) {
-        super();
-        this.name = name;
-        this.showtoolTips = showtoolTips;
+    constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false, showFrameStats = "BASIC" }: { name: string, canvas: HTMLCanvasElement | string, devmode?: boolean, width: number, height: number, disableAntiAliasing?: boolean, showtoolTips?: boolean, showFrameStats?: "BASIC" | "EXTENDED" | "ADVANCED" | "PERFORMANCE_HUD"}) {
+        super({ name });
+        this.type = "Game";
         this.childrenArray = [];
         this.showFrameStats = showFrameStats;
         this.canvas = typeof canvas === "string" ? document.getElementById(canvas) as HTMLCanvasElement : canvas;
@@ -43,30 +38,7 @@ export class Game extends Part {
 
         this.context.imageSmoothingEnabled = !disableAntiAliasing;
         this.debugEmoji = "🎮";
-        this.tooltipLocked = false;
         this.top = this;
-        if (this.devmode) {
-            let tooltip = document.getElementById("debug-tooltip");
-            if (!tooltip) {
-                tooltip = this.createDebugTooltip();
-            }
-            document.addEventListener("mousemove", (event) => {
-                const rect = this.canvas.getBoundingClientRect();
-                const clientX = event.clientX - rect.left;
-                const clientY = event.clientY - rect.top;
-                this.lastMousePosition = {
-                    x: (clientX / this.scaleFactor) - (this.canvasOffset.x / this.scaleFactor),
-                    y: (clientY / this.scaleFactor) - (this.canvasOffset.y / this.scaleFactor)
-                };
-            });
-            document.addEventListener("click", (event) => {
-                if (tooltip && !this.tooltipLocked) {
-                    this.tooltipLocked = true;
-                } else if (tooltip) {
-                    this.tooltipLocked = false;
-                }
-            });
-        }
     }
 
     clone(memo = new Map()): this {
@@ -84,7 +56,6 @@ export class Game extends Part {
             width: this.width,
             height: this.height,
             disableAntiAliasing: !this.context.imageSmoothingEnabled, // Infer from original context
-            showtoolTips: this.showtoolTips
         });
 
         memo.set(this, clonedGame);
@@ -97,8 +68,6 @@ export class Game extends Part {
         clonedGame.currentScene = undefined; // Will be set by start() or setScene()
         // clonedGame.childrenArray is handled by _cloneProperties
         clonedGame.hovering = undefined; // Reset hovering part
-        clonedGame.tooltipLocked = undefined; // Reset tooltip lock
-        clonedGame.lastMousePosition = { x: 0, y: 0 }; // Reset mouse position
         clonedGame.scaleFactor = 1; // Reset scale factor
         clonedGame.canvasOffset = { x: 0, y: 0 }; // Reset canvas offset
         clonedGame.messageHook = undefined; // Clear message hook
@@ -135,20 +104,6 @@ export class Game extends Part {
         return this._height;
     }
 
-    createDebugTooltip() {
-        const tooltip = document.createElement("div");
-        tooltip.id = "debug-tooltip";
-        tooltip.style.position = "absolute";
-        tooltip.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-        tooltip.style.color = "white";
-        tooltip.style.padding = "5px";
-        tooltip.style.display = 'none';
-        tooltip.style.borderRadius = "5px";
-        tooltip.style.pointerEvents = "none";
-        tooltip.style.zIndex = "1000";
-        document.body.appendChild(tooltip);
-        return tooltip;
-    }
 
     addChild(scene: Scene) {
         this.currentScene = this.currentScene || scene;
@@ -230,21 +185,26 @@ export class Game extends Part {
         }
     }
 
-    getColliderCount(): number {
+    getColliderCount(activeOnly: boolean = false): number {
         const layers = this.currentScene?.childrenArray || [];
         let c = 0;
         for (const layer of layers) {
-            const colliders = layer.flats.colliders.length;
-            c += colliders;
+            if (!activeOnly) {
+                const colliders = layer.flats.colliders.length;
+                c += colliders;
+            } else {
+                const colliders = layer.flats.colliders.filter(col => col.active).length;
+                c += colliders;
+            }
         }
 
         return c;
-        
+
     }
 
     private renderFrameStats() {
         if (!this.showFrameStats) return;
-
+        const FADE_BACKGROUND = 0.5;
         const avgDelta = this.frameBuffer.reduce((a, b) => a + b, 0) / this.frameBuffer.length;
         const avgFPS = 1000 / avgDelta;
         const sorted = [...this.frameBuffer].sort((a, b) => a - b);
@@ -252,57 +212,103 @@ export class Game extends Part {
         const p99 = sorted[Math.floor(sorted.length * 0.99)];
         const minFrameTime = sorted[0];
         const maxFrameTime = sorted[sorted.length - 1];
-        this.context.fillStyle = "white";
-        this.context.font = "12px Arial";
-        let y = 20;
 
+        // Prepare stats lines
+        let lines: string[] = [];
         const levels = ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"];
         const levelIndex = levels.indexOf(this.showFrameStats);
 
-        if (levelIndex >= 0) {
-            this.context.fillText(`FPS: ${avgFPS.toFixed(2)}`, 10, y); y += 20;
-        }
-        if (levelIndex >= 1) {
-            this.context.fillText(`Frame Time: ${avgDelta.toFixed(2)} ms`, 10, y); y += 20;
-        }
+        if (levelIndex >= 0) lines.push(`FPS: ${avgFPS.toFixed(2)}`);
+        if (levelIndex >= 1) lines.push(`Frame Time: ${avgDelta.toFixed(2)} ms`);
         if (levelIndex >= 2) {
-            this.context.fillText(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`, 10, y); y += 20;
-            this.context.fillText(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`, 10, y); y += 20;
+            lines.push(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`);
+            lines.push(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`);
         }
         if (levelIndex >= 3) {
-            // --- PERFORMANCE HUD ---
-            this.context.fillText(`p95 Frame: ${p95.toFixed(2)} ms`, 10, y); y += 20;
-            this.context.fillText(`p99 Frame: ${p99.toFixed(2)} ms`, 10, y); y += 20;
+            lines.push(`p95 Frame: ${p95.toFixed(2)} ms`);
+            lines.push(`p99 Frame: ${p99.toFixed(2)} ms`);
             const droppedPct = (this._droppedFrames / (this.frameBuffer.length || 1)) * 100;
-            this.context.fillText(`Dropped Frames: ${droppedPct.toFixed(1)}%`, 10, y); y += 20;
-
-            // Memory usage (if available)
+            lines.push(`Dropped Frames: ${droppedPct.toFixed(1)}%`);
             const perfMem = (performance as any).memory;
             if (perfMem) {
                 const usedMB = (perfMem.usedJSHeapSize / 1048576).toFixed(1);
                 const totalMB = (perfMem.totalJSHeapSize / 1048576).toFixed(1);
-                this.context.fillText(`Heap: ${usedMB} MB / ${totalMB} MB`, 10, y); y += 20;
+                lines.push(`Heap: ${usedMB} MB / ${totalMB} MB`);
             }
-
-            // Scene stats
             if (this.currentScene) {
-                this.context.fillText(`Colliders: ${this.getColliderCount()}`, 10, y); y += 20;
-                // (Optionally count draw calls if you track them)
+                lines.push(`Colliders: ${this.getColliderCount()}`);
+                lines.push(`Active colliders: ${this.getColliderCount(true)}`);
             }
+        }
 
-            // Small frame time chart
+        // Calculate box size
+        const fontSize = 12;
+        const lineHeight = 20;
+        const padding = 8;
+        this.context.font = `${fontSize}px Arial`;
+        let maxWidth = 0;
+        for (const line of lines) {
+            const width = this.context.measureText(line).width;
+            if (width > maxWidth) maxWidth = width;
+        }
+        let boxHeight = lines.length * lineHeight + padding * 2;
+        let boxWidth = maxWidth + padding * 2;
+        let boxX = 6;
+        let boxY = 6;
+
+        // Draw background box
+        this.context.globalAlpha = FADE_BACKGROUND;
+        this.context.fillStyle = "#000";
+        this.context.fillRect(boxX, boxY, boxWidth, boxHeight);
+        this.context.globalAlpha = 1.0;
+
+        // Draw text
+        this.context.fillStyle = "white";
+        let y = boxY + padding + fontSize;
+        for (const line of lines) {
+            this.context.fillText(line, boxX + padding, y);
+            y += lineHeight;
+        }
+
+
+        // Draw chart if PERFORMANCE_HUD
+        if (levelIndex >= 3) {
             const chartWidth = 200;
             const chartHeight = 80;
-            const chartX = 10;
-            const chartY = y + 10;
-            const maxFrameTime = Math.max(...this.frameBuffer);
+            const chartX = boxX + padding;
+            const chartY = boxY + boxHeight + 10;
+
+            // Find min and max for scaling, but zoom out a bit to reduce minor oscillations
+            const minFrameTimeChart = Math.min(...this.frameBuffer);
+            const maxFrameTimeChart = Math.max(...this.frameBuffer);
+
+            // Add a margin to "zoom out" the chart
+            const margin = Math.max(2, (maxFrameTimeChart - minFrameTimeChart) * 0.2);
+            const chartMin = Math.max(0, minFrameTimeChart - margin);
+            const chartMax = maxFrameTimeChart + margin;
+
+            // Add a small epsilon to avoid division by zero
+            const range = Math.max(1, chartMax - chartMin);
+
+            // Draw background
+            this.context.globalAlpha = FADE_BACKGROUND;
+            this.context.fillStyle = "#000";
+            this.context.fillRect(chartX - padding, chartY - padding, chartWidth + padding * 2, chartHeight + padding * 2);
+            this.context.globalAlpha = 1;
+
+
+            // Draw frame time line
             this.context.strokeStyle = "white";
             this.context.beginPath();
-            this.context.moveTo(chartX, chartY + chartHeight);
             this.frameBuffer.forEach((frameTime, index) => {
-                const x = chartX + (index / this.maxFrameBufferLength) * chartWidth;
-                const yVal = chartY + chartHeight - (frameTime / maxFrameTime) * chartHeight;
-                this.context.lineTo(x, yVal);
+                const x = chartX + (index / (this.maxFrameBufferLength - 1)) * chartWidth;
+                // Scale so that chartMin is at bottom, chartMax is at top
+                const yVal = chartY + chartHeight - ((frameTime - chartMin) / range) * chartHeight;
+                if (index === 0) {
+                    this.context.moveTo(x, yVal);
+                } else {
+                    this.context.lineTo(x, yVal);
+                }
             });
             this.context.stroke();
         }
@@ -401,27 +407,6 @@ export class Game extends Part {
         } else {
             console.debug(`[${this.name}]`, ...args);
             return false;
-        }
-    }
-    updateDebugToolTip() {
-        const tooltip = document.getElementById("debug-tooltip");
-        if (!tooltip) {
-            this.warn("Debug tooltip not found. Ensure it is created in devmode.");
-            return;
-        }
-        if (this.hovering) {
-            if (tooltip && this.showtoolTips) {
-                try {
-                    tooltip.style.left = `${(this.lastMousePosition!.x * this.scaleFactor) + this.canvasOffset.x + 10}px`;
-                    tooltip.style.top = `${(this.lastMousePosition!.y * this.scaleFactor) + this.canvasOffset.y + 10}px`;
-                    tooltip.style.display = "block";
-                    tooltip.innerHTML = getDebugInfo(this.hovering, 0);
-                } catch (err) {
-                    throw new Error(`Error updating debug tooltip: ${err}`);
-                }
-            }
-        } else {
-            tooltip.style.display = "none";
         }
     }
 }
