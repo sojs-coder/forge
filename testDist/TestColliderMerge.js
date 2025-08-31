@@ -26708,7 +26708,7 @@ for (let x = 0;x < 50; x++) {
     const center = new Vector(0, 0);
     const vertices = [];
     for (let i = 0;i < n; i++) {
-      const angle = i * angleStep + Math.random() * (angleStep * 0.3 - angleStep * 0.15);
+      const angle = i * angleStep + Math.random() * (angleStep * 0.15);
       const r = radius * (0.7 + Math.random() * 0.6);
       vertices.push(new Vector(Math.cos(angle) * r, Math.sin(angle) * r));
     }
@@ -26795,7 +26795,7 @@ var playerRenderer = new ColorRender({
   color: "blue"
 });
 var playerMovement = new CharacterMovement({
-  speed: 5 / 10,
+  speed: 0.5,
   input
 });
 var camera = new Camera({ name: "Cam" });
