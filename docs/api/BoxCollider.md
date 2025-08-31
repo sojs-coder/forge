@@ -6,13 +6,16 @@ A `BoxCollider` is a rectangular-shaped collider. It's the most common and compu
 
 ## Constructor
 
-`new BoxCollider({ width, height })`
+`new BoxCollider({ width, height, tag })`
 
 -   `width: number`
     The width of the collision box.
 
 -   `height: number`
     The height of the collision box.
+
+-   `tag?: string`
+    An optional tag for the collider. Defaults to `"<Untagged>"`.
 
 ## Properties
 

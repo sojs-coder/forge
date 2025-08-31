@@ -6,7 +6,7 @@ The `SpriteRender` component is used to draw a static (non-animated) image to th
 
 ## Constructor
 
-`new SpriteRender({ imageSource, width, height })`
+`new SpriteRender({ imageSource, width, height, disableAntiAliasing, facing })`
 
 -   `imageSource: string`
     The file path to the image you want to display.
@@ -16,6 +16,12 @@ The `SpriteRender` component is used to draw a static (non-animated) image to th
 
 -   `height: number`
     The height to draw the image.
+
+-   `disableAntiAliasing?: boolean`
+    If `true`, disables anti-aliasing for this sprite. Defaults to `false`.
+
+-   `facing?: Vector`
+    The direction the renderer is facing. Defaults to `new Vector(1, 1)`.
 
 ## Properties
 

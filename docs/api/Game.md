@@ -6,7 +6,7 @@ The `Game` class is the heart of your application. It's the top-level container 
 
 ## Constructor
 
-`new Game({ name, canvas, devmode, width, height, disableAntiAliasing, showtoolTips })`
+`new Game({ name, canvas, devmode, width, height, disableAntiAliasing, showtoolTips, showFrameStats })`
 
 -   `name: string`
     The name of the game.
@@ -28,6 +28,9 @@ The `Game` class is the heart of your application. It's the top-level container 
 
 -   `showtoolTips?: boolean`
     When set to `true`, shows tooltips in devmode. Defaults to `false`.
+
+-   `showFrameStats?: "BASIC" | "EXTENDED" | "ADVANCED" | "PERFORMANCE_HUD"`
+    Shows frame rate statistics. Defaults to `"BASIC"`.
 
 ## Properties
 

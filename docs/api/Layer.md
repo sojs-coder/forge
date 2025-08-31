@@ -8,10 +8,13 @@ For example, you would typically have a `Background` layer, a `Gameplay` layer, 
 
 ## Constructor
 
-`new Layer({ name })`
+`new Layer({ name, spatialGridDefinition })`
 
 -   `name: string`
     The name of the layer.
+
+-   `spatialGridDefinition?: number`
+    The cell size for the spatial grid used for broad-phase collision detection. Defaults to `100`.
 
 ## Properties
 

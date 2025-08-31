@@ -11294,12 +11294,12 @@ class SpatialGrid {
 // Parts/Layer.ts
 class Layer extends Part {
   spatialGrid;
-  constructor({ name }) {
+  constructor({ name, spatialGridDefinition }) {
     super({ name });
     this.type = "Layer";
     this.id = generateUID();
     this.debugEmoji = "\uD83D\uDDC2️";
-    this.spatialGrid = new SpatialGrid(50);
+    this.spatialGrid = new SpatialGrid(spatialGridDefinition || 100);
   }
   addChild(part) {
     part.setAll("layer", this);
@@ -13680,17 +13680,20 @@ class ParallaxLayer extends Layer {
 }
 // Parts/PhysicsEngine.ts
 var import_matter_js = __toESM(require_matter(), 1);
-
 class PhysicsEngine extends Part {
   engine;
   world;
-  constructor({ gravity }) {
+  gravity;
+  scale;
+  constructor({ gravity, scale }) {
     super({ name: "PhysicsEngine" });
+    this.gravity = gravity?.toObject() || new Vector(0, 1).toObject();
+    this.scale = scale || 0.001;
     this.engine = import_matter_js.Engine.create({
-      gravity: gravity || {
-        x: 0,
-        y: 1,
-        scale: 0.001
+      gravity: {
+        x: this.gravity.x,
+        y: this.gravity.y,
+        scale: this.scale
       }
     });
     this.world = this.engine.world;
@@ -13702,7 +13705,8 @@ class PhysicsEngine extends Part {
       return memo.get(this);
     }
     const clonedEngine = new PhysicsEngine({
-      gravity: this.engine.gravity
+      gravity: new Vector(this.gravity.x, this.gravity.y),
+      scale: this.scale
     });
     memo.set(this, clonedEngine);
     this._cloneProperties(clonedEngine, memo);

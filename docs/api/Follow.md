@@ -6,7 +6,10 @@ The `Follow` component is used to make a `GameObject` follow another `Part` in t
 
 ## Constructor
 
-`new Follow({ target, offset, interpolationSpeed })`
+`new Follow({ name, target, offset, interpolationSpeed })`
+
+-   `name?: string`
+    The name of the follow component.
 
 -   `target: Transform`
     The `Transform` component of the `Part` to follow.

@@ -24328,12 +24328,12 @@ Defaulting to 2020, but this will stop working in the future.`);
   };
   Layer = class Layer extends Part {
     spatialGrid;
-    constructor({ name }) {
+    constructor({ name, spatialGridDefinition }) {
       super({ name });
       this.type = "Layer";
       this.id = generateUID();
       this.debugEmoji = "\uD83D\uDDC2️";
-      this.spatialGrid = new SpatialGrid(50);
+      this.spatialGrid = new SpatialGrid(spatialGridDefinition || 100);
     }
     addChild(part) {
       part.setAll("layer", this);
@@ -26595,13 +26595,17 @@ Defaulting to 2020, but this will stop working in the future.`);
   PhysicsEngine = class PhysicsEngine extends Part {
     engine;
     world;
-    constructor({ gravity }) {
+    gravity;
+    scale;
+    constructor({ gravity, scale }) {
       super({ name: "PhysicsEngine" });
+      this.gravity = gravity?.toObject() || new Vector(0, 1).toObject();
+      this.scale = scale || 0.001;
       this.engine = import_matter_js.Engine.create({
-        gravity: gravity || {
-          x: 0,
-          y: 1,
-          scale: 0.001
+        gravity: {
+          x: this.gravity.x,
+          y: this.gravity.y,
+          scale: this.scale
         }
       });
       this.world = this.engine.world;
@@ -26613,7 +26617,8 @@ Defaulting to 2020, but this will stop working in the future.`);
         return memo.get(this);
       }
       const clonedEngine = new PhysicsEngine({
-        gravity: this.engine.gravity
+        gravity: new Vector(this.gravity.x, this.gravity.y),
+        scale: this.scale
       });
       memo.set(this, clonedEngine);
       this._cloneProperties(clonedEngine, memo);
@@ -49875,6 +49880,7 @@ var nodeDefinitions = {
       width: { type: "number", default: 800, description: "Width of the game canvas in pixels." },
       height: { type: "number", default: 600, description: "Height of the game canvas in pixels." },
       devmode: { type: "boolean", default: true, description: "Enable developer mode." },
+      showtoolTips: { type: "boolean", default: false, description: "Show tooltips in devmode." },
       disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for every object." },
       starterScene: { type: "Part", subType: "Scene", description: "The scene that will be loaded when the game starts." },
       showFrameStats: { type: "enum", default: "BASIC", options: ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"], description: "Show frame statistics." }
@@ -49889,7 +49895,8 @@ var nodeDefinitions = {
   },
   Layer: {
     properties: {
-      name: { type: "text", default: "NewLayer", description: "The name of the layer." }
+      name: { type: "text", default: "NewLayer", description: "The name of the layer." },
+      spatialGridDefinition: { type: "number", default: 100, description: "Cell size for the spatial grid used for broad-phase collision detection." }
     },
     children: ["GameObject"]
   },
@@ -49898,7 +49905,7 @@ var nodeDefinitions = {
       name: { type: "text", default: "NewGameObject", description: "The name of the game object." },
       render: { type: "boolean", default: true, description: "Whether this GameObject should be rendered. If false, no child Parts will be ran." }
     },
-    children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody", "GravityCharacterMovement"]
+    children: ["Transform", "BoxCollider", "PolygonCollider", "MultiPolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody", "GravityCharacterMovement"]
   },
   Camera: {
     properties: {
@@ -49941,12 +49948,21 @@ var nodeDefinitions = {
     },
     singular: true
   },
+  MultiPolygonCollider: {
+    properties: {
+      name: { type: "text", default: "MultiPolygonCollider", description: "The name of the multi-polygon collider." },
+      tag: { type: "text", default: "<Untagged>", description: "The tag of the collider." },
+      polygons: { type: "list", subType: "list", tertiaryType: "Vector", default: [], description: "List of polygons (each a list of vectors)." }
+    },
+    singular: true
+  },
   ColorRender: {
     properties: {
       name: { type: "text", default: "ColorRender", description: "The name of the color renderer." },
       width: { type: "number", default: 50, description: "Width of the color renderer." },
       height: { type: "number", default: 50, description: "Height of the color renderer." },
-      color: { type: "color", default: "#FF0000", description: "Color of the renderer." }
+      color: { type: "color", default: "#FF0000", description: "Color of the renderer." },
+      vertices: { type: "list", subType: "Vector", default: [], description: "Vertices of a polygon to render. If not provided, a rectangle is rendered." }
     },
     singular: true
   },
@@ -49971,7 +49987,9 @@ var nodeDefinitions = {
       startingAnimation: { type: "text", default: "", description: "Starting animation name." },
       disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for this sprite." },
       facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." },
-      webEngine: { type: "boolean", default: true, description: "Set to true if this is running in a web engine context.", dontShow: true }
+      webEngine: { type: "boolean", default: true, description: "Set to true if this is running in a web engine context.", dontShow: true },
+      loop: { type: "boolean", default: true, description: "Override spritesheet data and loop immediately." },
+      bounce: { type: "boolean", default: false, description: "Override spritesheet data and bounce immediately." }
     },
     singular: true
   },
@@ -50069,7 +50087,8 @@ var nodeDefinitions = {
   PhysicsEngine: {
     properties: {
       name: { type: "text", default: "PhysicsEngine", description: "The name of the physics engine." },
-      gravity: { type: "Vector", default: "new Vector(0, 1)", description: "Gravity vector applied to all physics bodies." }
+      gravity: { type: "Vector", default: "new Vector(0, 1)", description: "Gravity vector applied to all physics bodies." },
+      scale: { type: "number", default: 0.001, description: "Scale for the physics engine." }
     },
     singular: true
   },

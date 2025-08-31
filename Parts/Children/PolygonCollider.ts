@@ -41,7 +41,7 @@ export class PolygonCollider extends Collider {
         super.act(delta);
     }
 
-    override _updateVerticesAfterMerge(polygons: Vector[][][]): void {
+    override _updateVerticesAfterMerge(polygons: Vector[][]): void {
         const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
 
         newCollider.active = this.active;

@@ -5924,12 +5924,12 @@ class SpatialGrid {
 // Parts/Layer.ts
 class Layer extends Part {
   spatialGrid;
-  constructor({ name }) {
+  constructor({ name, spatialGridDefinition }) {
     super({ name });
     this.type = "Layer";
     this.id = generateUID();
     this.debugEmoji = "\uD83D\uDDC2️";
-    this.spatialGrid = new SpatialGrid(50);
+    this.spatialGrid = new SpatialGrid(spatialGridDefinition || 100);
   }
   addChild(part) {
     part.setAll("layer", this);
@@ -6065,6 +6065,62 @@ class Vector {
       return new Vector(scalar, scalar);
     } else {
       return new Vector(scalar.x, scalar.y);
+    }
+  }
+}
+
+// Parts/Camera.ts
+class Camera extends Part {
+  zoom;
+  constructor({ name, zoom }) {
+    super({ name });
+    this.zoom = Vector.From(1);
+    this.debugEmoji = "\uD83D\uDCF7";
+    this.type = "Camera";
+  }
+  onMount(parent) {
+    super.onMount(parent);
+    let currentParent = this.parent;
+    while (currentParent) {
+      if (currentParent instanceof Scene) {
+        currentParent.activeCamera = this;
+        return;
+      }
+      currentParent = currentParent.parent;
+    }
+    throw new Error("Camera must be mounted to a Scene (or a child of a Scene) to be registered.");
+  }
+  setActive() {
+    if (this.registrations.layer && this.registrations.layer.parent) {
+      this.registrations.layer.parent.activeCamera = this;
+    } else {
+      throw new Error("Camera must be mounted to a Layer with a parent Scene to be set active.");
+    }
+  }
+  getViewMatrix() {
+    const transform = this.child("Transform");
+    if (!transform) {
+      if (!this.warned.has("TransformMissing")) {
+        const seen = this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. View matrix will not be calculated.`);
+        if (seen)
+          this.warned.add("TransformMissing");
+      }
+      return { offset: Vector.From(0), scale: this.zoom };
+    }
+    return {
+      offset: transform.worldPosition.multiply(-1),
+      scale: this.zoom
+    };
+  }
+  act(delta) {
+    super.act(delta);
+    const transform = this.child("Transform");
+    if (transform) {
+      this.zoom = transform.scale;
+    } else {
+      if (!this.warned.has("TransformMissing")) {
+        this.top?.warn(`Camera <${this.name}> (${this.id}) does not have a Transform component. Camera zoom will not be updated.`) && this.warned.add("TransformMissing");
+      }
     }
   }
 }
@@ -26633,29 +26689,38 @@ var l1 = new Layer({
 });
 s1.addChild(l1);
 game.addChild(s1);
-for (let x = 0;x < 59; x++) {
-  for (let y = 0;y < 59; y++) {
+for (let x = 0;x < 50; x++) {
+  for (let y = 0;y < 50; y++) {
     if ((x == 0 || y === 0) && Math.random() > 0.2)
       continue;
     const testObject = new GameObject({
       name: `Test Object (${x + 1}, ${y + 1})`
     });
+    const wh = Math.floor(Math.random() * 500) + 10;
     const testTransform = new Transform({
-      position: new Vector(30 + x * 80, 500 + y * 80),
+      position: new Vector(30 + x * wh, 500 + y * wh),
       rotation: 0,
       scale: Vector.From(1)
     });
-    const boxCollider = new BoxCollider({
-      width: 80,
-      height: 80,
-      tag: "testObjects"
+    const n = Math.floor(Math.random() * 6) + 3;
+    const angleStep = Math.PI * 2 / n;
+    const radius = wh / 2;
+    const center = new Vector(0, 0);
+    const vertices = [];
+    for (let i = 0;i < n; i++) {
+      const angle = i * angleStep + Math.random() * (angleStep * 0.3 - angleStep * 0.15);
+      const r = radius * (0.7 + Math.random() * 0.6);
+      vertices.push(new Vector(Math.cos(angle) * r, Math.sin(angle) * r));
+    }
+    const polyCollider = new PolygonCollider({
+      vertices
     });
     const colorRender = new ColorRender({
       color: `red`,
-      width: 50,
-      height: 50
+      width: wh,
+      height: wh
     });
-    testObject.addChildren(testTransform, boxCollider, colorRender);
+    testObject.addChildren(testTransform, polyCollider);
     l1.addChild(testObject);
   }
 }
@@ -26730,9 +26795,18 @@ var playerRenderer = new ColorRender({
   color: "blue"
 });
 var playerMovement = new CharacterMovement({
-  speed: 5,
+  speed: 5 / 10,
   input
 });
+var camera = new Camera({ name: "Cam" });
+var follow = new Follow({
+  target: playerTransform,
+  interpolationSpeed: 0.01
+});
+camera.addChild(follow);
+var cameraTransform = new Transform({ position: new Vector(0, 0) });
+camera.addChild(cameraTransform);
+s1.addChild(camera);
 var colorChanger = new CollisionColorChanger;
 player.addChildren(playerTransform, playerCollider, playerRenderer, playerMovement, colorChanger);
 l1.addChild(player);

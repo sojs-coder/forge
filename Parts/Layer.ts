@@ -7,12 +7,12 @@ import type { Collider } from "./Children/Collider";
 export class Layer extends Part {
     spatialGrid: SpatialGrid;
 
-    constructor({ name }: { name: string }) {
+    constructor({ name, spatialGridDefinition }: { name: string, spatialGridDefinition?: number }) {
         super({ name });
         this.type = "Layer";
         this.id = generateUID();
         this.debugEmoji = "🗂️"; // Default emoji for debugging the layer
-        this.spatialGrid = new SpatialGrid(50);
+        this.spatialGrid = new SpatialGrid(spatialGridDefinition || 100);
     }
 
     addChild(part: Part) {

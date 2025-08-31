@@ -8,6 +8,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             width: { type: "number", default: 800, description: "Width of the game canvas in pixels." },
             height: { type: "number", default: 600, description: "Height of the game canvas in pixels." },
             devmode: { type: "boolean", default: true, description: "Enable developer mode." },
+            showtoolTips: { type: "boolean", default: false, description: "Show tooltips in devmode." },
             disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for every object." },
             starterScene: { type: "Part", subType: "Scene", description: "The scene that will be loaded when the game starts." },
             showFrameStats: { type: "enum", default: "BASIC", options: ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"], description: "Show frame statistics." }
@@ -22,7 +23,8 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
     },
     "Layer": {
         properties: {
-            name: { type: "text", default: "NewLayer", description: "The name of the layer." }
+            name: { type: "text", default: "NewLayer", description: "The name of the layer." },
+            spatialGridDefinition: { type: "number", default: 100, description: "Cell size for the spatial grid used for broad-phase collision detection." }
         },
         children: ["GameObject"]
     },
@@ -31,7 +33,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             name: { type: "text", default: "NewGameObject", description: "The name of the game object." },
             render: { type: "boolean", default: true, description: "Whether this GameObject should be rendered. If false, no child Parts will be ran." }
         },
-        children: ["Transform", "BoxCollider", "PolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody", "GravityCharacterMovement"]
+        children: ["Transform", "BoxCollider", "PolygonCollider", "MultiPolygonCollider", "ColorRender", "SpriteRender", "AnimatedSprite", "TextRender", "Button", "Sound", "Health", "Timer", "Spawner", "Follow", "CharacterMovement", "PhysicsEngine", "Rotator", "Scaler", "Projectile", "AreaTrigger", "ParticleEmitter", "WaypointFollower", "CameraShake", "HealthBar", "PhysicsBody", "GravityCharacterMovement"]
     },
     "Camera": {
         properties: {
@@ -74,12 +76,21 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         },
         singular: true
     },
+    "MultiPolygonCollider": {
+        properties: {
+            name: { type: "text", default: "MultiPolygonCollider", description: "The name of the multi-polygon collider." },
+            tag: { type: "text", default: "<Untagged>", description: "The tag of the collider." },
+            polygons: { type: "list", subType: "list", tertiaryType: "Vector", default: [], description: "List of polygons (each a list of vectors)." }
+        },
+        singular: true
+    },
     "ColorRender": {
         properties: {
             name: { type: "text", default: "ColorRender", description: "The name of the color renderer." },
             width: { type: "number", default: 50, description: "Width of the color renderer." },
             height: { type: "number", default: 50, description: "Height of the color renderer." },
-            color: { type: "color", default: "#FF0000", description: "Color of the renderer." }
+            color: { type: "color", default: "#FF0000", description: "Color of the renderer." },
+            vertices: { type: "list", subType: "Vector", default: [], description: "Vertices of a polygon to render. If not provided, a rectangle is rendered." }
         },
         singular: true
     },
@@ -106,6 +117,8 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
             disableAntiAliasing: { type: "boolean", default: false, description: "Disable anti-aliasing for this sprite." },
             facing: { type: "Vector", default: "new Vector(1, 1)", description: "Direction to face. Use -1 to flip." },
             webEngine: { type: "boolean", default: true, description: "Set to true if this is running in a web engine context.", dontShow: true },
+            loop: { type: "boolean", default: true, description: "Override spritesheet data and loop immediately." },
+            bounce: { type: "boolean", default: false, description: "Override spritesheet data and bounce immediately." }
         },
         singular: true
     },
@@ -204,6 +217,7 @@ export const nodeDefinitions: Record<string, NodeDefinition> = {
         properties: {
             name: { type: "text", default: "PhysicsEngine", description: "The name of the physics engine." },
             gravity: { type: "Vector", default: "new Vector(0, 1)", description: "Gravity vector applied to all physics bodies." },
+            scale: { type: "number", default: 0.001, description: "Scale for the physics engine." }
         },
         singular: true
     },

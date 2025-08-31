@@ -25,8 +25,10 @@
       - [Collider](api/Collider.md)
       - [BoxCollider](api/BoxCollider.md)
       - [PolygonCollider](api/PolygonCollider.md)
+      - [MultiPolygonCollider](api/MultiPolygonCollider.md)
     - **Utility Components**
       - [CharacterMovement](api/CharacterMovement.md)
+      - [GravityCharacterMovement](api/GravityCharacterMovement.md)
       - [Rotator](api/Rotator.md)
       - [Scaler](api/Scaler.md)
       - [Projectile](api/Projectile.md)
@@ -46,6 +48,8 @@
   - **Math**
     - [Vector](api/Vector.md)
 - [Engine Internals](engine-internals.md)
+- **Tools**
+  - [Sprite Builder](spriteBuilder.md)
 - **Tutorials**
   - [Setting up the Physics Engine](tutorials/physics-engine.md)
   - [Integrating Physics with PhysicsBody](tutorials/physics-body.md)
