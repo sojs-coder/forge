@@ -12,7 +12,7 @@ export class Layer extends Part {
         this.type = "Layer";
         this.id = generateUID();
         this.debugEmoji = "🗂️"; // Default emoji for debugging the layer
-        this.spatialGrid = new SpatialGrid(100);
+        this.spatialGrid = new SpatialGrid(50);
     }
 
     addChild(part: Part) {

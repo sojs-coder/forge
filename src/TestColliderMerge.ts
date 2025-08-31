@@ -28,21 +28,21 @@ game.addChild(s1);
 
 
 // Missing borders
-for (let x = 0; x < 5; x++) {
-    for (let y = 0; y < 5; y++) {
+for (let x = 0; x < 59; x++) {
+    for (let y = 0; y < 59; y++) {
         if ((x == 0 || y === 0) && Math.random() > 0.2) continue;
         const testObject = new GameObject({
             name: `Test Object (${x + 1}, ${y + 1})`
         });
 
         const testTransform = new Transform({
-            position: new Vector(30+x * 50, 500 + y * 50),
+            position: new Vector(30+x * 80, 500 + y * 80),
             rotation: 0,
             scale: Vector.From(1)
         });
         const boxCollider = new BoxCollider({
-            width: 50,
-            height: 50,
+            width: 80,
+            height: 80,
             tag: "testObjects",
         });
         const colorRender = new ColorRender({

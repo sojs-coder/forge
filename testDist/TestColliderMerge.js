@@ -5929,7 +5929,7 @@ class Layer extends Part {
     this.type = "Layer";
     this.id = generateUID();
     this.debugEmoji = "\uD83D\uDDC2️";
-    this.spatialGrid = new SpatialGrid(100);
+    this.spatialGrid = new SpatialGrid(50);
   }
   addChild(part) {
     part.setAll("layer", this);
@@ -7624,7 +7624,7 @@ class CharacterMovement extends Part {
     this.input = input;
     this.type = "CharacterMovement";
   }
-  act(_delta) {
+  act(delta) {
     if (!this.input) {
       if (!this.warned.has("MissingInput"))
         this.top?.warn(`CharacterMovement <${this.name}> (${this.id}) is missing an input property. Please create an input on the scene and pass it.`) && this.warned.add("MissingInput");
@@ -7634,6 +7634,7 @@ class CharacterMovement extends Part {
     if (!transform) {
       return;
     }
+    const speed = this.speed * delta;
     const keys = this.input.downkeys;
     let dx = 0;
     let dy = 0;
@@ -7670,7 +7671,7 @@ class CharacterMovement extends Part {
       dy *= Math.SQRT1_2;
     }
     if (dx !== 0 || dy !== 0) {
-      transform.move(new Vector(dx * this.speed, dy * this.speed));
+      transform.move(new Vector(dx * speed, dy * speed));
     }
   }
 }
@@ -26632,21 +26633,21 @@ var l1 = new Layer({
 });
 s1.addChild(l1);
 game.addChild(s1);
-for (let x = 0;x < 5; x++) {
-  for (let y = 0;y < 5; y++) {
+for (let x = 0;x < 59; x++) {
+  for (let y = 0;y < 59; y++) {
     if ((x == 0 || y === 0) && Math.random() > 0.2)
       continue;
     const testObject = new GameObject({
       name: `Test Object (${x + 1}, ${y + 1})`
     });
     const testTransform = new Transform({
-      position: new Vector(30 + x * 50, 500 + y * 50),
+      position: new Vector(30 + x * 80, 500 + y * 80),
       rotation: 0,
       scale: Vector.From(1)
     });
     const boxCollider = new BoxCollider({
-      width: 50,
-      height: 50,
+      width: 80,
+      height: 80,
       tag: "testObjects"
     });
     const colorRender = new ColorRender({

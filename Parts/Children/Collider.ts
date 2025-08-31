@@ -2,6 +2,7 @@ import { Vector } from "../../Math/Vector";
 import type { Camera } from "../Camera";
 import { Game } from "../Game";
 import { Part } from "../Part";
+import type { Layer } from "../Layer";
 import { MultiPolygonCollider } from "./MultiPolygonCollider";
 import type { Transform } from "./Transform";
 import * as martinez from 'martinez-polygon-clipping';
@@ -212,7 +213,7 @@ export abstract class Collider extends Part {
         this.collidingWith.clear();
 
 
-        const layer = this.registrations.layer as import("../Layer").Layer;
+        const layer = this.registrations.layer as Layer;
         const candidates = layer.spatialGrid.query(this);
 
         for (const other of candidates) {

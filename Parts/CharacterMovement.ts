@@ -16,7 +16,7 @@ export class CharacterMovement extends Part {
         this.type = "CharacterMovement";
     }
 
-    act(_delta: number): void {
+    act(delta: number): void {
         if (!this.input) {
             if (!this.warned.has("MissingInput")) this.top?.warn(`CharacterMovement <${this.name}> (${this.id}) is missing an input property. Please create an input on the scene and pass it.`) ? this.warned.add("MissingInput") : null;
             return;
@@ -26,7 +26,7 @@ export class CharacterMovement extends Part {
         if (!transform) {
             return;
         }
-
+        const speed = this.speed * delta;
         const keys = this.input.downkeys;
         let dx = 0;
         let dy = 0;
@@ -66,7 +66,7 @@ export class CharacterMovement extends Part {
             dy *= Math.SQRT1_2;
         }
         if (dx !== 0 || dy !== 0) {
-            transform.move(new Vector(dx * this.speed, dy * this.speed));
+            transform.move(new Vector(dx * speed, dy * speed));
         }
     }
 }
