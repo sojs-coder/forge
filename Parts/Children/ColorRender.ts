@@ -67,9 +67,6 @@ export class ColorRender extends Renderer {
         if (!this.top) {
             throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);
         }
-        if (!(this.top instanceof Game)) {
-            throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a Game instance. Ensure it is added to a Game, Scene, or Layer with a game ancestor.`);
-        }
         const transform = this.sibling<Transform>("Transform");
         if (!transform) {
             this.top?.warn(`ColorRender <${this.parent?.name}.${this.name}> does not have a Transform sibling. Skipping rendering.`);

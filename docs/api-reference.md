@@ -33,6 +33,7 @@ This section provides a detailed reference for the core classes and components i
 -   [Collider](./api/Collider.md) (Base class)
 -   [BoxCollider](./api/BoxCollider.md)
 -   [PolygonCollider](./api/PolygonCollider.md)
+-   [MultiPolygonCollider](./api/MultiPolygonCollider.md)
 -   [AreaTrigger](./api/AreaTrigger.md)
 
 
@@ -41,6 +42,7 @@ This section provides a detailed reference for the core classes and components i
 
 -   [CameraShake](./api/CameraShake.md)
 -   [CharacterMovement](./api/CharacterMovement.md)
+-   [GravityCharacterMovement](./api/GravityCharacterMovement.md)
 -   [Follow](./api/Follow.md)
 -   [Health](./api/Health.md)
 -   [HealthBar](./api/HealthBar.md)

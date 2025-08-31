@@ -22,12 +22,14 @@
     "build:nominengine": "bun build ./engine/engine-core.ts --outfile ./engine/bundle.js --watch"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.53.0",
+    "@supabase/supabase-js": "^2.56.1",
     "@types/google-one-tap": "^1.2.6",
     "@types/node": "^24.1.0",
     "@types/showdown": "^2.0.6",
     "jszip": "^3.10.1",
+    "martinez-polygon-clipping": "^0.7.4",
     "matter-js": "^0.20.0",
+    "polygon-clipping": "^0.15.7",
     "rfdc": "^1.4.1",
     "showdown": "^2.1.0",
     "terser": "^5.43.1"

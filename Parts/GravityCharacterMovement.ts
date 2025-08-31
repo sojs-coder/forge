@@ -14,20 +14,26 @@ export class GravityCharacterMovement extends Part {
     velocity: Vector;
     jumpForce: number;
     facing: Vector;
+    waterFraction: number;
+    landFraction: number;
     constructor({
         speed = 5,
         movementType = 'WASD',
         input,
         gravityScale,
         maxSpeed,
-        jumpForce
+        jumpForce,
+        waterFraction,
+        landFraction
     }: {
         speed?: number,
         movementType?: 'WASD' | 'ArrowKeys' | 'BOTH',
         input?: Input,
         gravityScale: Vector,
         maxSpeed: number,
-        jumpForce: number
+        jumpForce: number,
+        waterFraction?: number,
+        landFraction?: number;
     }) {
         super({ name: 'GravityCharacterMovement' });
         this.speed = speed;
@@ -39,6 +45,8 @@ export class GravityCharacterMovement extends Part {
         this.velocity = new Vector(0, 0);
         this.jumpForce = jumpForce;
         this.facing = new Vector(1, 1);
+        this.waterFraction = waterFraction || 0.5; 
+        this.landFraction = landFraction || 0.9;
     }
 
     private getStandingGround(): Collider | null {
@@ -92,9 +100,9 @@ export class GravityCharacterMovement extends Part {
         const onGround = !!groundCollider;
         const inWater = this.isInWater();
 
-        const speedMultiplier = inWater ? 0.5 : 1.0;
-        const gravityMultiplier = inWater ? 0.5 : 1.0;
-        const jumpForceMultiplier = inWater ? 0.8 : 1.0;
+        const speedMultiplier = inWater ? this.waterFraction : (onGround ? this.landFraction : 1.0);
+        const gravityMultiplier = inWater ? this.gravityScale.y : 1.0;
+        const jumpForceMultiplier = inWater ? this.jumpForce * this.waterFraction : this.jumpForce;
 
         // --- Horizontal Movement ---
         let dx = 0;

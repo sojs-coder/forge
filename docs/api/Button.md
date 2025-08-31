@@ -6,7 +6,7 @@ The `Button` component creates a clickable UI button with different visual state
 
 ## Constructor
 
-`new Button({ label, onClick, styles, clickSound, hoverSound, activeSound })`
+`new Button({ label, onClick, styles, clickSound, hoverSound, activeSound, width, height, backgroundColor, color, font, borderRadius, borderWidth, borderColor, hoverBackground, hoverColor, activeBackground, activeColor })`
 
 -   `label: string`
     The text to display on the button.
@@ -25,6 +25,9 @@ The `Button` component creates a clickable UI button with different visual state
 
 -   `activeSound?: Sound`
     A `Sound` to play when the button is pressed.
+
+-   `width?: number`, `height?: number`, `backgroundColor?: string`, `color?: string`, `font?: string`, `borderRadius?: number`, `borderWidth?: number`, `borderColor?: string`, `hoverBackground?: string`, `hoverColor?: string`, `activeBackground?: string`, `activeColor?: string`
+    Optional individual style properties that can be provided instead of a `styles` object.
 
 ## Properties
 

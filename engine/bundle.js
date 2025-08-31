@@ -6944,8 +6944,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       this.context.push(statementParens ? types.p_stat : types.p_expr);
       this.exprAllowed = true;
     };
-    types$1.incDec.updateContext = function() {
-    };
+    types$1.incDec.updateContext = function() {};
     types$1._function.updateContext = types$1._class.updateContext = function(prevType) {
       if (prevType.beforeExpr && prevType !== types$1._else && !(prevType === types$1.semi && this.curContext() !== types.p_stat) && !(prevType === types$1._return && lineBreak.test(this.input.slice(this.lastTokEnd, this.start))) && !((prevType === types$1.colon || prevType === types$1.braceL) && this.curContext() === types.b_stat)) {
         this.context.push(types.f_expr);
@@ -8451,8 +8450,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       }
     };
     pp$1.regexp_alternative = function(state) {
-      while (state.pos < state.source.length && this.regexp_eatTerm(state)) {
-      }
+      while (state.pos < state.source.length && this.regexp_eatTerm(state)) {}
     };
     pp$1.regexp_eatTerm = function(state) {
       if (this.regexp_eatAssertion(state)) {
@@ -9765,8 +9763,7 @@ Defaulting to 2020, but this will stop working in the future.`);
       var value = null;
       try {
         value = new RegExp(pattern, flags);
-      } catch (e) {
-      }
+      } catch (e) {}
       return this.finishToken(types$1.regexp, { pattern, flags, value });
     };
     pp.readInt = function(radix, len, maybeLegacyOctalNumericLiteral) {
@@ -10352,6 +10349,24 @@ function isPointInObject(mouseX, mouseY, child) {
   }
   return false;
 }
+function vecEq(a, b) {
+  return a.x === b.x && a.y === b.y;
+}
+function pointInPoly(point, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1;i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    const onSegment = (point.y - yi) * (xj - xi) === (point.x - xi) * (yj - yi) && (Math.min(xi, xj) <= point.x && point.x <= Math.max(xi, xj)) && (Math.min(yi, yj) <= point.y && point.y <= Math.max(yi, yj));
+    if (onSegment) {
+      return true;
+    }
+    const intersect = yi > point.y !== yj > point.y && point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi;
+    if (intersect)
+      inside = !inside;
+  }
+  return inside;
+}
 
 // Parts/Part.ts
 class Part {
@@ -10458,8 +10473,7 @@ class Part {
   onMount(parent) {
     this.parent = parent;
   }
-  onRegister(attribute, value) {
-  }
+  onRegister(attribute, value) {}
   onUnregister(attribute, value, debug) {
     if (debug)
       console.log(debug, value.name);
@@ -10482,8 +10496,7 @@ class Part {
         break;
     }
   }
-  onUnmount() {
-  }
+  onUnmount() {}
   onStart() {
     this.childrenArray.forEach((child) => {
       if (typeof child.onStart === "function") {
@@ -10839,8 +10852,7 @@ class SoundManagerController {
   static instance;
   sounds = [];
   isGameRunning = false;
-  constructor() {
-  }
+  constructor() {}
   static getInstance() {
     if (!SoundManagerController.instance) {
       SoundManagerController.instance = new SoundManagerController;
@@ -10889,10 +10901,7 @@ class Game extends Part {
   childrenArray;
   devmode;
   context;
-  showtoolTips = false;
   hovering;
-  tooltipLocked;
-  lastMousePosition = { x: 0, y: 0 };
   scaleFactor = 1;
   canvasOffset = { x: 0, y: 0 };
   messageHook;
@@ -10909,9 +10918,8 @@ class Game extends Part {
   _animationFrameId;
   _lastUpdateTime = 0;
   constructor({ name, canvas, devmode = false, width, height, disableAntiAliasing = false, showtoolTips = false, showFrameStats = "BASIC" }) {
-    super();
-    this.name = name;
-    this.showtoolTips = showtoolTips;
+    super({ name });
+    this.type = "Game";
     this.childrenArray = [];
     this.showFrameStats = showFrameStats;
     this.canvas = typeof canvas === "string" ? document.getElementById(canvas) : canvas;
@@ -10920,30 +10928,7 @@ class Game extends Part {
     this.changeCanvasSize(width, height);
     this.context.imageSmoothingEnabled = !disableAntiAliasing;
     this.debugEmoji = "\uD83C\uDFAE";
-    this.tooltipLocked = false;
     this.top = this;
-    if (this.devmode) {
-      let tooltip = document.getElementById("debug-tooltip");
-      if (!tooltip) {
-        tooltip = this.createDebugTooltip();
-      }
-      document.addEventListener("mousemove", (event) => {
-        const rect = this.canvas.getBoundingClientRect();
-        const clientX = event.clientX - rect.left;
-        const clientY = event.clientY - rect.top;
-        this.lastMousePosition = {
-          x: clientX / this.scaleFactor - this.canvasOffset.x / this.scaleFactor,
-          y: clientY / this.scaleFactor - this.canvasOffset.y / this.scaleFactor
-        };
-      });
-      document.addEventListener("click", (event) => {
-        if (tooltip && !this.tooltipLocked) {
-          this.tooltipLocked = true;
-        } else if (tooltip) {
-          this.tooltipLocked = false;
-        }
-      });
-    }
   }
   clone(memo = new Map) {
     if (memo.has(this)) {
@@ -10955,8 +10940,7 @@ class Game extends Part {
       devmode: this.devmode,
       width: this.width,
       height: this.height,
-      disableAntiAliasing: !this.context.imageSmoothingEnabled,
-      showtoolTips: this.showtoolTips
+      disableAntiAliasing: !this.context.imageSmoothingEnabled
     });
     memo.set(this, clonedGame);
     this._cloneProperties(clonedGame, memo);
@@ -10964,8 +10948,6 @@ class Game extends Part {
     clonedGame.context = undefined;
     clonedGame.currentScene = undefined;
     clonedGame.hovering = undefined;
-    clonedGame.tooltipLocked = undefined;
-    clonedGame.lastMousePosition = { x: 0, y: 0 };
     clonedGame.scaleFactor = 1;
     clonedGame.canvasOffset = { x: 0, y: 0 };
     clonedGame.messageHook = undefined;
@@ -10994,20 +10976,6 @@ class Game extends Part {
   }
   get height() {
     return this._height;
-  }
-  createDebugTooltip() {
-    const tooltip = document.createElement("div");
-    tooltip.id = "debug-tooltip";
-    tooltip.style.position = "absolute";
-    tooltip.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-    tooltip.style.color = "white";
-    tooltip.style.padding = "5px";
-    tooltip.style.display = "none";
-    tooltip.style.borderRadius = "5px";
-    tooltip.style.pointerEvents = "none";
-    tooltip.style.zIndex = "1000";
-    document.body.appendChild(tooltip);
-    return tooltip;
   }
   addChild(scene) {
     this.currentScene = this.currentScene || scene;
@@ -11076,18 +11044,24 @@ class Game extends Part {
       this._animationFrameId = window.requestAnimationFrame(this.loop.bind(this));
     }
   }
-  getColliderCount() {
+  getColliderCount(activeOnly = false) {
     const layers = this.currentScene?.childrenArray || [];
     let c = 0;
     for (const layer of layers) {
-      const colliders = layer.flats.colliders.length;
-      c += colliders;
+      if (!activeOnly) {
+        const colliders = layer.flats.colliders.length;
+        c += colliders;
+      } else {
+        const colliders = layer.flats.colliders.filter((col) => col.active).length;
+        c += colliders;
+      }
     }
     return c;
   }
   renderFrameStats() {
     if (!this.showFrameStats)
       return;
+    const FADE_BACKGROUND = 0.5;
     const avgDelta = this.frameBuffer.reduce((a, b) => a + b, 0) / this.frameBuffer.length;
     const avgFPS = 1000 / avgDelta;
     const sorted = [...this.frameBuffer].sort((a, b) => a - b);
@@ -11095,56 +11069,82 @@ class Game extends Part {
     const p99 = sorted[Math.floor(sorted.length * 0.99)];
     const minFrameTime = sorted[0];
     const maxFrameTime = sorted[sorted.length - 1];
-    this.context.fillStyle = "white";
-    this.context.font = "12px Arial";
-    let y = 20;
+    let lines = [];
     const levels = ["BASIC", "EXTENDED", "ADVANCED", "PERFORMANCE_HUD"];
     const levelIndex = levels.indexOf(this.showFrameStats);
-    if (levelIndex >= 0) {
-      this.context.fillText(`FPS: ${avgFPS.toFixed(2)}`, 10, y);
-      y += 20;
-    }
-    if (levelIndex >= 1) {
-      this.context.fillText(`Frame Time: ${avgDelta.toFixed(2)} ms`, 10, y);
-      y += 20;
-    }
+    if (levelIndex >= 0)
+      lines.push(`FPS: ${avgFPS.toFixed(2)}`);
+    if (levelIndex >= 1)
+      lines.push(`Frame Time: ${avgDelta.toFixed(2)} ms`);
     if (levelIndex >= 2) {
-      this.context.fillText(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`, 10, y);
-      y += 20;
-      this.context.fillText(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`, 10, y);
-      y += 20;
+      lines.push(`Min: ${minFrameTime.toFixed(2)} (${this._minFrameTime.toFixed(2)} AT) ms`);
+      lines.push(`Max: ${maxFrameTime.toFixed(2)} (${this._maxFrameTime.toFixed(2)} AT) ms`);
     }
     if (levelIndex >= 3) {
-      this.context.fillText(`p95 Frame: ${p95.toFixed(2)} ms`, 10, y);
-      y += 20;
-      this.context.fillText(`p99 Frame: ${p99.toFixed(2)} ms`, 10, y);
-      y += 20;
+      lines.push(`p95 Frame: ${p95.toFixed(2)} ms`);
+      lines.push(`p99 Frame: ${p99.toFixed(2)} ms`);
       const droppedPct = this._droppedFrames / (this.frameBuffer.length || 1) * 100;
-      this.context.fillText(`Dropped Frames: ${droppedPct.toFixed(1)}%`, 10, y);
-      y += 20;
+      lines.push(`Dropped Frames: ${droppedPct.toFixed(1)}%`);
       const perfMem = performance.memory;
       if (perfMem) {
         const usedMB = (perfMem.usedJSHeapSize / 1048576).toFixed(1);
         const totalMB = (perfMem.totalJSHeapSize / 1048576).toFixed(1);
-        this.context.fillText(`Heap: ${usedMB} MB / ${totalMB} MB`, 10, y);
-        y += 20;
+        lines.push(`Heap: ${usedMB} MB / ${totalMB} MB`);
       }
       if (this.currentScene) {
-        this.context.fillText(`Colliders: ${this.getColliderCount()}`, 10, y);
-        y += 20;
+        lines.push(`Colliders: ${this.getColliderCount()}`);
+        lines.push(`Active colliders: ${this.getColliderCount(true)}`);
       }
+    }
+    const fontSize = 12;
+    const lineHeight = 20;
+    const padding = 8;
+    this.context.font = `${fontSize}px Arial`;
+    let maxWidth = 0;
+    for (const line of lines) {
+      const width = this.context.measureText(line).width;
+      if (width > maxWidth)
+        maxWidth = width;
+    }
+    let boxHeight = lines.length * lineHeight + padding * 2;
+    let boxWidth = maxWidth + padding * 2;
+    let boxX = 6;
+    let boxY = 6;
+    this.context.globalAlpha = FADE_BACKGROUND;
+    this.context.fillStyle = "#000";
+    this.context.fillRect(boxX, boxY, boxWidth, boxHeight);
+    this.context.globalAlpha = 1;
+    this.context.fillStyle = "white";
+    let y = boxY + padding + fontSize;
+    for (const line of lines) {
+      this.context.fillText(line, boxX + padding, y);
+      y += lineHeight;
+    }
+    if (levelIndex >= 3) {
       const chartWidth = 200;
       const chartHeight = 80;
-      const chartX = 10;
-      const chartY = y + 10;
-      const maxFrameTime2 = Math.max(...this.frameBuffer);
+      const chartX = boxX + padding;
+      const chartY = boxY + boxHeight + 10;
+      const minFrameTimeChart = Math.min(...this.frameBuffer);
+      const maxFrameTimeChart = Math.max(...this.frameBuffer);
+      const margin = Math.max(2, (maxFrameTimeChart - minFrameTimeChart) * 0.2);
+      const chartMin = Math.max(0, minFrameTimeChart - margin);
+      const chartMax = maxFrameTimeChart + margin;
+      const range = Math.max(1, chartMax - chartMin);
+      this.context.globalAlpha = FADE_BACKGROUND;
+      this.context.fillStyle = "#000";
+      this.context.fillRect(chartX - padding, chartY - padding, chartWidth + padding * 2, chartHeight + padding * 2);
+      this.context.globalAlpha = 1;
       this.context.strokeStyle = "white";
       this.context.beginPath();
-      this.context.moveTo(chartX, chartY + chartHeight);
       this.frameBuffer.forEach((frameTime, index) => {
-        const x = chartX + index / this.maxFrameBufferLength * chartWidth;
-        const yVal = chartY + chartHeight - frameTime / maxFrameTime2 * chartHeight;
-        this.context.lineTo(x, yVal);
+        const x = chartX + index / (this.maxFrameBufferLength - 1) * chartWidth;
+        const yVal = chartY + chartHeight - (frameTime - chartMin) / range * chartHeight;
+        if (index === 0) {
+          this.context.moveTo(x, yVal);
+        } else {
+          this.context.lineTo(x, yVal);
+        }
       });
       this.context.stroke();
     }
@@ -11237,35 +11237,69 @@ class Game extends Part {
       return false;
     }
   }
-  updateDebugToolTip() {
-    const tooltip = document.getElementById("debug-tooltip");
-    if (!tooltip) {
-      this.warn("Debug tooltip not found. Ensure it is created in devmode.");
-      return;
-    }
-    if (this.hovering) {
-      if (tooltip && this.showtoolTips) {
-        try {
-          tooltip.style.left = `${this.lastMousePosition.x * this.scaleFactor + this.canvasOffset.x + 10}px`;
-          tooltip.style.top = `${this.lastMousePosition.y * this.scaleFactor + this.canvasOffset.y + 10}px`;
-          tooltip.style.display = "block";
-          tooltip.innerHTML = getDebugInfo(this.hovering, 0);
-        } catch (err) {
-          throw new Error(`Error updating debug tooltip: ${err}`);
+}
+// Math/SpatialGrid.ts
+class SpatialGrid {
+  cells;
+  cellSize;
+  constructor(cellSize) {
+    this.cells = new Map;
+    this.cellSize = cellSize;
+  }
+  getKey(x, y) {
+    return `${Math.floor(x / this.cellSize)}_${Math.floor(y / this.cellSize)}`;
+  }
+  clear() {
+    this.cells.clear();
+  }
+  insert(collider) {
+    const start = collider.realWorldStart;
+    const end = collider.realWorldEnd;
+    const startX = Math.floor(start.x / this.cellSize);
+    const startY = Math.floor(start.y / this.cellSize);
+    const endX = Math.floor(end.x / this.cellSize);
+    const endY = Math.floor(end.y / this.cellSize);
+    for (let x = startX;x <= endX; x++) {
+      for (let y = startY;y <= endY; y++) {
+        const key = `${x}_${y}`;
+        if (!this.cells.has(key)) {
+          this.cells.set(key, []);
         }
+        this.cells.get(key).push(collider);
       }
-    } else {
-      tooltip.style.display = "none";
     }
   }
+  query(collider) {
+    const candidates = new Set;
+    const start = collider.realWorldStart;
+    const end = collider.realWorldEnd;
+    const startX = Math.floor(start.x / this.cellSize);
+    const startY = Math.floor(start.y / this.cellSize);
+    const endX = Math.floor(end.x / this.cellSize);
+    const endY = Math.floor(end.y / this.cellSize);
+    for (let x = startX;x <= endX; x++) {
+      for (let y = startY;y <= endY; y++) {
+        const key = `${x}_${y}`;
+        if (this.cells.has(key)) {
+          for (const other of this.cells.get(key)) {
+            candidates.add(other);
+          }
+        }
+      }
+    }
+    return Array.from(candidates);
+  }
 }
+
 // Parts/Layer.ts
 class Layer extends Part {
-  constructor({ name }) {
-    super();
-    this.name = name;
+  spatialGrid;
+  constructor({ name, spatialGridDefinition }) {
+    super({ name });
+    this.type = "Layer";
     this.id = generateUID();
     this.debugEmoji = "\uD83D\uDDC2️";
+    this.spatialGrid = new SpatialGrid(spatialGridDefinition || 100);
   }
   addChild(part) {
     part.setAll("layer", this);
@@ -11282,6 +11316,13 @@ class Layer extends Part {
     if (!this.ready) {
       return;
     }
+    this.spatialGrid.clear();
+    const colliders = this.flats.colliders;
+    for (const collider of colliders) {
+      if (collider.active) {
+        this.spatialGrid.insert(collider);
+      }
+    }
     this.ties.forEach((tie) => {
       if (tie.target && tie.target.hasOwnProperty(tie.targetAttribute)) {
         const value = this.attr(tie.localAttribute);
@@ -11296,9 +11337,9 @@ class Layer extends Part {
 // Parts/GameObject.ts
 class GameObject extends Part {
   layer;
-  constructor({ name, render }) {
-    super({ name, render });
-    this.name = name;
+  constructor({ name, render = true }) {
+    super({ name, render: !!render });
+    this.type = "GameObject";
     this.debugEmoji = "\uD83D\uDD79️";
   }
 }
@@ -11361,8 +11402,9 @@ class Vector {
   }
   normalize() {
     const len = this.length();
-    if (len === 0)
-      throw new Error("Cannot normalize zero-length vector");
+    if (len === 0) {
+      return new Vector(0, 0);
+    }
     return new Vector(this.x / len, this.y / len);
   }
   dot(other) {
@@ -11389,7 +11431,11 @@ class Vector {
     return this;
   }
   static From(scalar) {
-    return new Vector(scalar, scalar);
+    if (typeof scalar === "number") {
+      return new Vector(scalar, scalar);
+    } else {
+      return new Vector(scalar.x, scalar.y);
+    }
   }
 }
 
@@ -11469,14 +11515,10 @@ class Input extends Part {
       return memo.get(this);
     }
     const clonedInput = new Input({
-      key: this.key || (() => {
-      }),
-      keyup: this.keyup || (() => {
-      }),
-      mousemove: this.mousemove || (() => {
-      }),
-      click: this.click || (() => {
-      })
+      key: this.key || (() => {}),
+      keyup: this.keyup || (() => {}),
+      mousemove: this.mousemove || (() => {}),
+      click: this.click || (() => {})
     });
     memo.set(this, clonedInput);
     this._cloneProperties(clonedInput, memo);
@@ -11999,14 +12041,23 @@ class Collider extends Part {
   realWorldStart;
   realWorldEnd;
   vertices;
-  constructor({ tag }) {
+  active = true;
+  allowMerge;
+  randomTestingColors;
+  constructor({ tag, allowMerge }) {
     super({ name: "Collider" });
     this.type = "Collider";
     this.base = "Collider";
     this.tag = tag || "<Untagged>";
     this.radius = 0;
     this.realWorldStart = new Vector(0, 0);
+    this.allowMerge = allowMerge !== undefined ? allowMerge : true;
     this.realWorldEnd = new Vector(0, 0);
+    this.randomTestingColors = [
+      Math.random() * 255,
+      Math.random() * 255,
+      Math.random() * 255
+    ];
     this.vertices = [];
   }
   setTag(tag) {
@@ -12027,8 +12078,62 @@ class Collider extends Part {
       value.flats.colliders.push(this);
     }
   }
+  evaluateMerging() {
+    const layer = this.registrations["layer"];
+    if (!layer)
+      return;
+    const candidates = layer.spatialGrid.query(this);
+    const fellowColliders = candidates.filter((c) => c.tag == this.tag && c.id !== this.id && c.allowMerge && c.active);
+    if (fellowColliders.length == 0)
+      return;
+    for (const fellow of fellowColliders) {
+      if (!fellow.sibling("Transform")?.initialized)
+        continue;
+      if (this.id < fellow.id && this.checkCollision(fellow, true)) {
+        this.mergeWith(fellow);
+      }
+    }
+  }
+  mergeWith(other) {
+    if (this.tag !== other.tag || other.tag == "<Untagged>" || this.tag == "<Untagged>")
+      return;
+    const thisTransform = this.sibling("Transform");
+    if (!thisTransform) {
+      this.top?.warn(`Collider <${this.name}> has no Transform sibling, cannot merge.`);
+      return;
+    }
+    const allPolygons = [];
+    const g1 = this.getGeometry();
+    if (this.type === "MultiPolygonCollider") {
+      allPolygons.push(...g1);
+    } else {
+      allPolygons.push(g1);
+    }
+    const g2 = other.getGeometry();
+    if (other.type === "MultiPolygonCollider") {
+      allPolygons.push(...g2);
+    } else {
+      allPolygons.push(g2);
+    }
+    if (allPolygons.length === 0)
+      return;
+    const localPolygons = allPolygons.map((polygon) => {
+      return polygon.map(([x, y]) => thisTransform.worldToLocal(new Vector(x, y)));
+    });
+    this._updateVerticesAfterMerge(localPolygons);
+    other.inactivate();
+  }
+  onStart() {}
+  inactivate() {
+    this.active = false;
+  }
+  activate() {
+    this.active = true;
+  }
   act(delta) {
     super.act(delta);
+    if (!this.active)
+      return;
     if (!this.registrations?.layer) {
       throw new Error(`Collider <${this.name}> (${this.id}) is not registered to a layer. Collisions will not be checked.`);
     }
@@ -12039,8 +12144,8 @@ class Collider extends Part {
     this.colliding = false;
     this.collidingWith.clear();
     const layer = this.registrations.layer;
-    const colliders = layer.flats.colliders;
-    for (const other of colliders) {
+    const candidates = layer.spatialGrid.query(this);
+    for (const other of candidates) {
       if (other === this)
         continue;
       if (this.checkCollision(other)) {
@@ -12049,15 +12154,36 @@ class Collider extends Part {
       }
     }
     this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(", ")} objects`;
+    const fill = this.active;
+    const ctx = this.top instanceof Game ? this.top.context : null;
+    if (ctx) {
+      ctx.beginPath();
+      ctx.strokeStyle = `rgb(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]})`;
+      ctx.fillStyle = fill ? `rgba(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]}, 0.5)` : "transparent";
+      ctx.moveTo(this.worldVertices[0].x, this.worldVertices[0].y);
+      for (const vertex of this.worldVertices) {
+        ctx.lineTo(vertex.x, vertex.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fill();
+    }
     if (this.top instanceof Game && this.top.devmode) {
-      const ctx = this.top.context;
-      if (ctx) {
-        this.drawDebug(ctx);
+      const ctx2 = this.top.context;
+      if (ctx2) {
+        this.drawDebug(ctx2);
       }
     }
   }
-  checkCollision(other) {
-    if (other.tag === this.tag && this.tag !== "<Untagged>")
+  checkCollision(other, ignoreTags = false) {
+    const thisTransform = this.sibling("Transform");
+    const otherTransform = other.sibling("Transform");
+    if (!thisTransform || !otherTransform) {
+      return false;
+    }
+    this.updateCollider(thisTransform);
+    other.updateCollider(otherTransform);
+    if (!ignoreTags && other.tag === this.tag && this.tag !== "<Untagged>")
       return false;
     if (this.realWorldEnd.x < other.realWorldStart.x || this.realWorldStart.x > other.realWorldEnd.x || this.realWorldEnd.y < other.realWorldStart.y || this.realWorldStart.y > other.realWorldEnd.y) {
       return false;
@@ -12089,9 +12215,15 @@ class Collider extends Part {
   }
   checkVerticesAgainstVertices(vertices1, vertices2) {
     const axes1 = this.getAxes(vertices1);
+    for (const axis of axes1) {
+      const projection1 = this.project(vertices1, axis);
+      const projection2 = this.project(vertices2, axis);
+      if (!this.overlap(projection1, projection2)) {
+        return false;
+      }
+    }
     const axes2 = this.getAxes(vertices2);
-    const axes = axes1.concat(axes2);
-    for (const axis of axes) {
+    for (const axis of axes2) {
       const projection1 = this.project(vertices1, axis);
       const projection2 = this.project(vertices2, axis);
       if (!this.overlap(projection1, projection2)) {
@@ -12127,14 +12259,159 @@ class Collider extends Part {
   overlap(proj1, proj2) {
     return proj1.max >= proj2.min && proj2.max >= proj1.min;
   }
+  _checkPolygonVsPolygon(vertices1, vertices2) {
+    const axes1 = this.getAxes(vertices1);
+    const axes2 = this.getAxes(vertices2);
+    const axes = axes1.concat(axes2);
+    for (const axis of axes) {
+      const projection1 = this.project(vertices1, axis);
+      const projection2 = this.project(vertices2, axis);
+      if (!this.overlap(projection1, projection2)) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+// Parts/Children/MultiPolygonCollider.ts
+class MultiPolygonCollider extends Collider {
+  polygons;
+  _worldPolygons = [];
+  unioned = [];
+  constructor({ polygons, tag = "<Untagged>" }) {
+    super({ tag, allowMerge: tag !== "<Untagged>" });
+    this.name = "MultiPolygonCollider";
+    this.polygons = polygons;
+    this.type = "MultiPolygonCollider";
+    let maxDist = 0;
+    const allVertices = polygons.flat();
+    for (let i = 0;i < allVertices.length; i++) {
+      for (let j = i + 1;j < allVertices.length; j++) {
+        const dist = allVertices[i].distance(allVertices[j]);
+        if (dist > maxDist) {
+          maxDist = dist;
+        }
+      }
+    }
+    this.radius = maxDist;
+  }
+  getGeometry() {
+    return this._worldPolygons.map((polygon) => {
+      return polygon.map((v) => v.toArray());
+    });
+  }
+  get worldVertices() {
+    const allVertices = this._worldPolygons.flat();
+    allVertices.sort((a, b) => {
+      return a.x < b.x || a.x == b.x && a.y < b.y ? -1 : 1;
+    });
+    const cross = (o, a, b) => {
+      return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    };
+    const lower = [];
+    for (const p of allVertices) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+        lower.pop();
+      }
+      lower.push(p);
+    }
+    const upper = [];
+    for (let i = allVertices.length - 1;i >= 0; i--) {
+      const p = allVertices[i];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+        upper.pop();
+      }
+      upper.push(p);
+    }
+    upper.pop();
+    lower.pop();
+    return lower.concat(upper);
+  }
+  act(delta) {
+    super.act(delta);
+  }
+  _updateVerticesAfterMerge(polygons) {
+    this.polygons = polygons;
+  }
+  updateCollider(transform) {
+    const position = transform.worldPosition;
+    const rotation = transform.rotation;
+    const scale = transform.scale;
+    this._worldPolygons = this.polygons.map((polygon) => {
+      return polygon.map((vertex) => {
+        let scaledVertex = vertex.multiply(scale);
+        if (rotation !== 0) {
+          const cos = Math.cos(rotation);
+          const sin = Math.sin(rotation);
+          scaledVertex = new Vector(scaledVertex.x * cos - scaledVertex.y * sin, scaledVertex.x * sin + scaledVertex.y * cos);
+        }
+        return position.add(scaledVertex);
+      });
+    });
+    const allWorldVertices = this._worldPolygons.flat();
+    const xs = allWorldVertices.map((v) => v.x);
+    const ys = allWorldVertices.map((v) => v.y);
+    this.realWorldStart.set(Math.min(...xs), Math.min(...ys));
+    this.realWorldEnd.set(Math.max(...xs), Math.max(...ys));
+  }
+  narrowPhaseCheck(other) {
+    if (other instanceof MultiPolygonCollider) {
+      for (const p1 of this._worldPolygons) {
+        for (const p2 of other._worldPolygons) {
+          if (this._checkPolygonVsPolygon(p1, p2)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    for (const polygon of this._worldPolygons) {
+      if (this._checkPolygonVsPolygon(polygon, other.worldVertices)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  drawDebug(ctx) {
+    ctx.save();
+    ctx.strokeStyle = this.colliding ? "rgba(255, 0, 100, 0.8)" : "rgba(0, 255, 100, 0.8)";
+    ctx.lineWidth = 1;
+    for (const polygon of this._worldPolygons) {
+      ctx.beginPath();
+      ctx.moveTo(polygon[0].x, polygon[0].y);
+      for (let i = 1;i < polygon.length; i++) {
+        ctx.lineTo(polygon[i].x, polygon[i].y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  clone(memo = new Map) {
+    if (memo.has(this)) {
+      return memo.get(this);
+    }
+    const clonedMultiPolygonCollider = new MultiPolygonCollider({
+      polygons: this.polygons.map((p) => p.map((v) => v.clone())),
+      tag: this.tag
+    });
+    memo.set(this, clonedMultiPolygonCollider);
+    this._cloneProperties(clonedMultiPolygonCollider, memo);
+    clonedMultiPolygonCollider.colliding = false;
+    clonedMultiPolygonCollider.base = this.base;
+    clonedMultiPolygonCollider.type = this.type;
+    clonedMultiPolygonCollider.collidingWith = new Set;
+    return clonedMultiPolygonCollider;
+  }
 }
 
 // Parts/Children/PolygonCollider.ts
 class PolygonCollider extends Collider {
   localVertices;
   _worldVertices = [];
-  constructor({ vertices, tag }) {
-    super({ tag });
+  constructor({ vertices, tag = "<Untagged>" }) {
+    super({ tag, allowMerge: tag !== "<Untagged>" });
     this.name = "PolygonCollider";
     this.localVertices = vertices;
     this.vertices = vertices;
@@ -12153,8 +12430,21 @@ class PolygonCollider extends Collider {
   get worldVertices() {
     return this._worldVertices;
   }
+  getGeometry() {
+    return [this.worldVertices.map((v) => v.toArray())];
+  }
   act(delta) {
     super.act(delta);
+  }
+  _updateVerticesAfterMerge(polygons) {
+    const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
+    newCollider.active = this.active;
+    newCollider.allowMerge = this.allowMerge;
+    const parent = this.parent;
+    if (parent) {
+      parent.removeChild(this);
+      parent.addChild(newCollider);
+    }
   }
   updateCollider(transform) {
     const position = transform.worldPosition;
@@ -12179,22 +12469,14 @@ class PolygonCollider extends Collider {
       return this.checkPolygonVsBox(this, other);
     } else if (other instanceof PolygonCollider) {
       return this.checkPolygonVsPolygon(this, other);
+    } else if (other instanceof MultiPolygonCollider) {
+      return other.narrowPhaseCheck(this);
     }
     this.top?.warn("Collision checks are only supported between BoxColliders and PolygonColliders.");
     return false;
   }
   checkPolygonVsPolygon(poly1, poly2) {
-    const axes1 = this.getAxes(poly1.worldVertices);
-    const axes2 = this.getAxes(poly2.worldVertices);
-    const axes = axes1.concat(axes2);
-    for (const axis of axes) {
-      const projection1 = this.project(poly1.worldVertices, axis);
-      const projection2 = this.project(poly2.worldVertices, axis);
-      if (!this.overlap(projection1, projection2)) {
-        return false;
-      }
-    }
-    return true;
+    return this._checkPolygonVsPolygon(poly1.worldVertices, poly2.worldVertices);
   }
   checkPolygonVsBox(poly, box) {
     const boxVertices = box.worldVertices;
@@ -12251,8 +12533,8 @@ class BoxCollider extends Collider {
   cachedAxes = [];
   lastRotation = NaN;
   lastScale = new Vector(NaN, NaN);
-  constructor({ width, height, tag }) {
-    super({ tag });
+  constructor({ width, height, tag = "<Untagged>" }) {
+    super({ tag, allowMerge: tag !== "<Untagged>" });
     this.name = "BoxCollider";
     this.width = width;
     this.height = height;
@@ -12267,6 +12549,9 @@ class BoxCollider extends Collider {
   }
   get worldVertices() {
     return this.rotatedCorners;
+  }
+  getGeometry() {
+    return [this.worldVertices.map((v) => v.toArray())];
   }
   updateCollider(transform) {
     const cos = Math.cos(transform.rotation);
@@ -12306,7 +12591,7 @@ class BoxCollider extends Collider {
   narrowPhaseCheck(other) {
     if (other instanceof BoxCollider) {
       return this.checkBoxVsBox(this, other);
-    } else if (other instanceof PolygonCollider) {
+    } else if (other instanceof PolygonCollider || other instanceof MultiPolygonCollider) {
       return other.narrowPhaseCheck(this);
     }
     this.top?.warn(`Collision with unsupported collider type: ${other.type}`);
@@ -12321,6 +12606,16 @@ class BoxCollider extends Collider {
         return false;
     }
     return true;
+  }
+  _updateVerticesAfterMerge(polygons) {
+    const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
+    newCollider.active = this.active;
+    newCollider.allowMerge = this.allowMerge;
+    const parent = this.parent;
+    if (parent) {
+      parent.removeChild(this);
+      parent.addChild(newCollider);
+    }
   }
   act(delta) {
     super.act(delta);
@@ -12510,14 +12805,10 @@ class Button extends Renderer {
     if (scene) {
       if (!scene.child("Input")) {
         const input = new Input({
-          key: () => {
-          },
-          keyup: () => {
-          },
-          mousemove: () => {
-          },
-          click: () => {
-          }
+          key: () => {},
+          keyup: () => {},
+          mousemove: () => {},
+          click: () => {}
         });
         scene.addChild(input);
       }
@@ -12643,9 +12934,6 @@ class ColorRender extends Renderer {
     super.act(delta);
     if (!this.top) {
       throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a top-level parent. Ensure it is added to a Game instance or Scene before rendering.`);
-    }
-    if (!(this.top instanceof Game)) {
-      throw new Error(`ColorRender <${this.parent?.name}.${this.name}> is not attached to a Game instance. Ensure it is added to a Game, Scene, or Layer with a game ancestor.`);
     }
     const transform = this.sibling("Transform");
     if (!transform) {
@@ -12822,6 +13110,7 @@ class Transform extends Part {
   worldPosition;
   rotation;
   scale;
+  initialized;
   constructor({ position, rotation, scale } = {}) {
     super({ name: "Transform" });
     this.position = position || Vector.From(0);
@@ -12831,15 +13120,11 @@ class Transform extends Part {
     this.scale = scale || new Vector(1, 1);
     this.debugEmoji = "\uD83D\uDCD0";
     this.type = "Transform";
+    this.initialized = false;
   }
   onMount(parent) {
     super.onMount(parent);
-    const grandparentTransform = parent.sibling("Transform");
-    if (grandparentTransform) {
-      this.worldPosition.set(this.position.add(grandparentTransform.worldPosition));
-    } else {
-      this.worldPosition.set(this.position);
-    }
+    this.updateWorldPosition();
     if (parent.superficialWidth && parent.superficialHeight) {
       this.superficialWidth = parent.superficialWidth;
       this.superficialHeight = parent.superficialHeight;
@@ -12862,16 +13147,32 @@ class Transform extends Part {
     this.rotation = rotation % (2 * Math.PI);
     this.updateWorldPosition();
   }
+  worldToLocal(position) {
+    const translated = position.subtract(this.worldPosition);
+    const cos = Math.cos(-this.rotation);
+    const sin = Math.sin(-this.rotation);
+    const rotated = new Vector(translated.x * cos - translated.y * sin, translated.x * sin + translated.y * cos);
+    const scaled = new Vector(rotated.x / this.scale.x, rotated.y / this.scale.y);
+    return scaled;
+  }
+  preFrame() {
+    super.preFrame();
+    this.updateWorldPosition();
+  }
   updateWorldPosition() {
-    const parentTransform = this.parent?.sibling("Transform");
+    const parentTransform = this.parent?.parent?.child("Transform");
     if (parentTransform) {
-      this.worldPosition.set(this.position.add(parentTransform.worldPosition));
+      const scaledPosition = this.position.multiply(parentTransform.scale);
+      const cos = Math.cos(parentTransform.rotation);
+      const sin = Math.sin(parentTransform.rotation);
+      const rotatedPosition = new Vector(scaledPosition.x * cos - scaledPosition.y * sin, scaledPosition.x * sin + scaledPosition.y * cos);
+      this.worldPosition.set(rotatedPosition.add(parentTransform.worldPosition));
     } else {
       this.worldPosition.set(this.position);
     }
+    this.initialized = true;
   }
   act(_delta) {
-    this.updateWorldPosition();
     this.hoverbug = `${this.position.toString()} | ${this.worldPosition.toString()} | ${(this.rotation / Math.PI).toFixed(2)}pi | ${this.scale.toString()}`;
   }
 }
@@ -13056,8 +13357,7 @@ class Health extends Part {
   currentHealth;
   onDeath;
   isDead = false;
-  constructor({ maxHealth = 100, onDeath = () => {
-  } }) {
+  constructor({ maxHealth = 100, onDeath = () => {} }) {
     super({ name: "Health" });
     this.maxHealth = maxHealth;
     this.currentHealth = maxHealth;
@@ -13270,7 +13570,7 @@ class CharacterMovement extends Part {
     this.input = input;
     this.type = "CharacterMovement";
   }
-  act(_delta) {
+  act(delta) {
     if (!this.input) {
       if (!this.warned.has("MissingInput"))
         this.top?.warn(`CharacterMovement <${this.name}> (${this.id}) is missing an input property. Please create an input on the scene and pass it.`) && this.warned.add("MissingInput");
@@ -13280,6 +13580,7 @@ class CharacterMovement extends Part {
     if (!transform) {
       return;
     }
+    const speed = this.speed * delta;
     const keys = this.input.downkeys;
     let dx = 0;
     let dy = 0;
@@ -13316,7 +13617,7 @@ class CharacterMovement extends Part {
       dy *= Math.SQRT1_2;
     }
     if (dx !== 0 || dy !== 0) {
-      transform.move(new Vector(dx * this.speed, dy * this.speed));
+      transform.move(new Vector(dx * speed, dy * speed));
     }
   }
 }
@@ -13379,17 +13680,20 @@ class ParallaxLayer extends Layer {
 }
 // Parts/PhysicsEngine.ts
 var import_matter_js = __toESM(require_matter(), 1);
-
 class PhysicsEngine extends Part {
   engine;
   world;
-  constructor({ gravity }) {
+  gravity;
+  scale;
+  constructor({ gravity, scale }) {
     super({ name: "PhysicsEngine" });
+    this.gravity = gravity?.toObject() || new Vector(0, 1).toObject();
+    this.scale = scale || 0.001;
     this.engine = import_matter_js.Engine.create({
-      gravity: gravity || {
-        x: 0,
-        y: 1,
-        scale: 0.001
+      gravity: {
+        x: this.gravity.x,
+        y: this.gravity.y,
+        scale: this.scale
       }
     });
     this.world = this.engine.world;
@@ -13401,7 +13705,8 @@ class PhysicsEngine extends Part {
       return memo.get(this);
     }
     const clonedEngine = new PhysicsEngine({
-      gravity: this.engine.gravity
+      gravity: new Vector(this.gravity.x, this.gravity.y),
+      scale: this.scale
     });
     memo.set(this, clonedEngine);
     this._cloneProperties(clonedEngine, memo);
@@ -13986,13 +14291,17 @@ class GravityCharacterMovement extends Part {
   velocity;
   jumpForce;
   facing;
+  waterFraction;
+  landFraction;
   constructor({
     speed = 5,
     movementType = "WASD",
     input,
     gravityScale,
     maxSpeed,
-    jumpForce
+    jumpForce,
+    waterFraction,
+    landFraction
   }) {
     super({ name: "GravityCharacterMovement" });
     this.speed = speed;
@@ -14004,6 +14313,8 @@ class GravityCharacterMovement extends Part {
     this.velocity = new Vector(0, 0);
     this.jumpForce = jumpForce;
     this.facing = new Vector(1, 1);
+    this.waterFraction = waterFraction || 0.5;
+    this.landFraction = landFraction || 0.9;
   }
   getStandingGround() {
     const myCollider = this.siblingOf("Collider", "BoxCollider", "PolygonCollider");
@@ -14048,9 +14359,9 @@ class GravityCharacterMovement extends Part {
     const groundCollider = this.getStandingGround();
     const onGround = !!groundCollider;
     const inWater = this.isInWater();
-    const speedMultiplier = inWater ? 0.5 : 1;
-    const gravityMultiplier = inWater ? 0.5 : 1;
-    const jumpForceMultiplier = inWater ? 0.8 : 1;
+    const speedMultiplier = inWater ? this.waterFraction : onGround ? this.landFraction : 1;
+    const gravityMultiplier = inWater ? this.gravityScale.y : 1;
+    const jumpForceMultiplier = inWater ? this.jumpForce * this.waterFraction : this.jumpForce;
     let dx = 0;
     if (this.movementType === "WASD" || this.movementType === "BOTH") {
       if (keys.has("a")) {
@@ -14165,8 +14476,7 @@ function defaults(args, defs, croak) {
     }
   return ret;
 }
-function noop() {
-}
+function noop() {}
 function return_false() {
   return false;
 }
@@ -17435,8 +17745,7 @@ var AST_Node = DEFNODE("Node", "start end", function AST_Node2(props) {
   walk: function(visitor) {
     return this._walk(visitor);
   },
-  _children_backwards: () => {
-  }
+  _children_backwards: () => {}
 }, null);
 var AST_Statement = DEFNODE("Statement", null, function AST_Statement2(props) {
   if (props) {
@@ -19929,8 +20238,7 @@ var AST_Undefined = DEFNODE("Undefined", null, function AST_Undefined2(props) {
   this.flags = 0;
 }, {
   $documentation: "The `undefined` value",
-  value: function() {
-  }()
+  value: function() {}()
 }, AST_Atom);
 var AST_Hole = DEFNODE("Hole", null, function AST_Hole2(props) {
   if (props) {
@@ -19940,8 +20248,7 @@ var AST_Hole = DEFNODE("Hole", null, function AST_Hole2(props) {
   this.flags = 0;
 }, {
   $documentation: "A hole in an array",
-  value: function() {
-  }()
+  value: function() {}()
 }, AST_Atom);
 var AST_Infinity = DEFNODE("Infinity", null, function AST_Infinity2(props) {
   if (props) {
@@ -22355,8 +22662,7 @@ function OutputStream(options) {
           }
         }
         options.source_map.add(mapping.token.file, mapping.line, mapping.col, mapping.token.line, mapping.token.col, is_basic_identifier_string(name) ? name : undefined);
-      } catch (ex) {
-      }
+      } catch (ex) {}
     });
     mappings = [];
   } : noop;
@@ -26640,8 +26946,7 @@ def_eval(AST_TemplateString, function() {
 });
 def_eval(AST_Function, function(compressor) {
   if (compressor.option("unsafe")) {
-    var fn = function() {
-    };
+    var fn = function() {};
     fn.node = this;
     fn.toString = () => this.print_to_string();
     return fn;
@@ -26958,8 +27263,7 @@ def_eval(AST_Call, function(compressor, depth) {
     }
     try {
       return val[key].apply(val, args);
-    } catch (ex) {
-    }
+    } catch (ex) {}
   }
   return this;
 });
@@ -33685,8 +33989,7 @@ function addSegmentInternal(skipable, map, genLine, genColumn, source, sourceLin
   }
   return insert2(line, index, name ? [genColumn, sourcesIndex, sourceLine, sourceColumn, namesIndex] : [genColumn, sourcesIndex, sourceLine, sourceColumn]);
 }
-function assert(_val) {
-}
+function assert(_val) {}
 function getIndex(arr, index) {
   for (let i = arr.length;i <= index; i++) {
     arr[i] = [];
@@ -33798,8 +34101,7 @@ var SourceMapConsumer = class _SourceMapConsumer {
   eachMapping(callback, context) {
     eachMapping(this._map, context ? callback.bind(context) : callback);
   }
-  destroy() {
-  }
+  destroy() {}
 };
 var SourceMapGenerator = class _SourceMapGenerator {
   constructor(opts) {
@@ -42949,8 +43251,7 @@ function find_builtins(reserved) {
   var objects = {};
   var global_ref = typeof global === "object" ? global : self;
   new_globals.forEach(function(new_global) {
-    objects[new_global] = global_ref[new_global] || function() {
-    };
+    objects[new_global] = global_ref[new_global] || function() {};
   });
   [
     "null",
@@ -43068,8 +43369,7 @@ function mangle_private_properties(ast, options) {
 function find_annotated_props(ast) {
   var annotated_props = new Set;
   walk(ast, (node) => {
-    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {
-    } else if (node instanceof AST_ObjectKeyVal) {
+    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {} else if (node instanceof AST_ObjectKeyVal) {
       if (typeof node.key == "string" && has_annotation(node, _MANGLEPROP)) {
         annotated_props.add(node.key);
       }
@@ -43128,8 +43428,7 @@ function mangle_properties(ast, options, annotated_props = find_annotated_props(
   cache.forEach((mangled_name) => unmangleable.add(mangled_name));
   var keep_quoted = !!options.keep_quoted;
   ast.walk(new TreeWalker(function(node) {
-    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {
-    } else if (node instanceof AST_ObjectKeyVal) {
+    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {} else if (node instanceof AST_ObjectKeyVal) {
       if (typeof node.key == "string" && (!keep_quoted || !node.quote)) {
         add(node.key);
       }
@@ -43162,8 +43461,7 @@ function mangle_properties(ast, options, annotated_props = find_annotated_props(
     }
   }));
   return ast.transform(new TreeTransformer(function(node) {
-    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {
-    } else if (node instanceof AST_ObjectKeyVal) {
+    if (node instanceof AST_ClassPrivateProperty || node instanceof AST_PrivateMethod || node instanceof AST_PrivateGetter || node instanceof AST_PrivateSetter || node instanceof AST_DotHash) {} else if (node instanceof AST_ObjectKeyVal) {
       if (typeof node.key == "string" && (!keep_quoted || !node.quote)) {
         node.key = mangle(node.key);
       }
@@ -43473,8 +43771,7 @@ function* minify_sync_or_async(files, options, _fs_module) {
   }
   if (timings)
     timings.rename = Date.now();
-  if (0) {
-  }
+  if (0) {}
   if (timings)
     timings.compress = Date.now();
   if (options.compress) {
@@ -43938,8 +44235,7 @@ async function run_cli({ program, packageJson, fs, path }) {
       var dir = path.dirname(glob);
       try {
         var entries = fs.readdirSync(dir);
-      } catch (ex) {
-      }
+      } catch (ex) {}
       if (entries) {
         var pattern = "^" + path.basename(glob).replace(/[.+^$[\]\\(){}]/g, "\\$&").replace(/\*/g, "[^/\\\\]*").replace(/\?/g, "[^/\\\\]") + "$";
         var mod = process.platform === "win32" ? "i" : "";
@@ -44094,7 +44390,9 @@ async function infer_options(options) {
   }
 }
 export {
+  vecEq,
   resetCamera,
+  pointInPoly,
   minify_sync,
   minify,
   isPointInPolygon,

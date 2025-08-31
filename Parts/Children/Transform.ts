@@ -1,12 +1,12 @@
-import { version } from "bun";
-import { Vector } from "../../Math/Vector";
 import { Part } from "../Part";
+import { Vector } from "../../Math/Vector";
 
 export class Transform extends Part {
     position: Vector;
     worldPosition: Vector; // Will be updated when mounted to a parent
     rotation: number; // radians
     scale: Vector;
+    initialized: boolean;
 
     constructor({ position, rotation, scale }: { position?: Vector, rotation?: number, scale?: Vector } = {}) {
         super({ name: "Transform" });
@@ -17,19 +17,12 @@ export class Transform extends Part {
         this.scale = scale || new Vector(1, 1); // Default scale
         this.debugEmoji = "📐"; // Emoji for debugging Transform
         this.type = "Transform";
+        this.initialized = false;
     }
 
     onMount(parent: Part) {
         super.onMount(parent);
-        // Transform's world position is determined from it's own local position and the parent's world position.
-        // If we reference the parent's world position, we will get this Transform itself
-        // Therefore, we need to use the grandparent's world position, if it exists
-        const grandparentTransform = parent.sibling<Transform>("Transform");
-        if (grandparentTransform) {
-            this.worldPosition.set(this.position.add(grandparentTransform.worldPosition));
-        } else {
-            this.worldPosition.set(this.position); // If no grandparent, worldPosition is same as local position
-        }
+        this.updateWorldPosition();
         // Inherit superficial dimensions from parent if available
         if (parent.superficialWidth && parent.superficialHeight) {
             this.superficialWidth = parent.superficialWidth;
@@ -53,17 +46,53 @@ export class Transform extends Part {
         this.rotation = rotation % (2 * Math.PI); // Normalize rotation to [0, 2π)
         this.updateWorldPosition();
     }
+    worldToLocal(position: Vector): Vector {
+        // 1. Translate back to origin
+        const translated = position.subtract(this.worldPosition);
+
+        // 2. Rotate back by the inverse of the transform's rotation
+        const cos = Math.cos(-this.rotation);
+        const sin = Math.sin(-this.rotation);
+        const rotated = new Vector(
+            translated.x * cos - translated.y * sin,
+            translated.x * sin + translated.y * cos
+        );
+
+        // 3. Scale back by the inverse of the transform's scale
+        const scaled = new Vector(
+            rotated.x / this.scale.x,
+            rotated.y / this.scale.y
+        );
+
+        return scaled;
+    }
+    preFrame(): void {
+        super.preFrame();
+        this.updateWorldPosition();
+    }
     updateWorldPosition() {
-        // Update world position based on parent's world position
-        const parentTransform = this.parent?.sibling<Transform>("Transform");
+        const parentTransform = this.parent?.parent?.child<Transform>("Transform");
         if (parentTransform) {
-            this.worldPosition.set(this.position.add(parentTransform.worldPosition));
+            // 1. Scale the local position by the parent's scale
+            const scaledPosition = this.position.multiply(parentTransform.scale);
+
+            // 2. Rotate the scaled position by the parent's rotation
+            const cos = Math.cos(parentTransform.rotation);
+            const sin = Math.sin(parentTransform.rotation);
+            const rotatedPosition = new Vector(
+                scaledPosition.x * cos - scaledPosition.y * sin,
+                scaledPosition.x * sin + scaledPosition.y * cos
+            );
+
+            // 3. Add the parent's world position
+            this.worldPosition.set(rotatedPosition.add(parentTransform.worldPosition));
         } else {
-            this.worldPosition.set(this.position); // If no parent, worldPosition is same as local position
+            this.worldPosition.set(this.position);
         }
+
+        this.initialized = true; // We have at least one tick with an actual world position instead of a default 0,0 
     }
     act(_delta: number) {
-        this.updateWorldPosition();
         this.hoverbug = `${this.position.toString()} | ${this.worldPosition.toString()} | ${(this.rotation / Math.PI).toFixed(2)}pi | ${this.scale.toString()}`;
     }
 }

@@ -1,3 +1,5 @@
+import type { Point } from "./LineIntersections";
+
 export class Vector {
     x: number;
     y: number;
@@ -54,7 +56,9 @@ export class Vector {
     }
     normalize(): Vector {
         const len = this.length();
-        if (len === 0) throw new Error("Cannot normalize zero-length vector");
+        if (len === 0) {
+            return new Vector(0, 0);
+        }
         return new Vector(this.x / len, this.y / len);
     }
     dot(other: Vector): number {
@@ -80,7 +84,11 @@ export class Vector {
         this.y += other.y;
         return this;
     }
-    static From(scalar: number): Vector {
-        return new Vector(scalar, scalar);
+    static From(scalar: number | Point): Vector {
+        if (typeof scalar === "number") {
+            return new Vector(scalar, scalar);
+        } else {
+            return new Vector(scalar.x, scalar.y);
+        }
     }
 }

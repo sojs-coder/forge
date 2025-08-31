@@ -3,7 +3,9 @@ import { Game } from "../Game";
 import { Part } from "../Part";
 import { Collider } from "./Collider";
 import { Transform } from "./Transform";
+import { MultiPolygonCollider } from "./MultiPolygonCollider";
 import { PolygonCollider } from "./PolygonCollider";
+import type { Polygon } from "martinez-polygon-clipping";
 
 export class BoxCollider extends Collider {
     start: Vector;
@@ -16,8 +18,8 @@ export class BoxCollider extends Collider {
     private lastRotation: number = NaN;
     private lastScale: Vector = new Vector(NaN, NaN);
 
-    constructor({ width, height, tag }: { width: number; height: number; tag?: string }) {
-        super({ tag });
+    constructor({ width, height, tag = "<Untagged>" }: { width: number; height: number; tag?: string }) {
+        super({ tag, allowMerge: tag !== '<Untagged>' });
         this.name = "BoxCollider";
         this.width = width;
         this.height = height;
@@ -34,6 +36,10 @@ export class BoxCollider extends Collider {
 
     get worldVertices(): Vector[] {
         return this.rotatedCorners;
+    }
+
+    getGeometry(): Polygon {
+        return [this.worldVertices.map(v => v.toArray())];
     }
 
     updateCollider(transform: Transform) {
@@ -78,7 +84,7 @@ export class BoxCollider extends Collider {
     narrowPhaseCheck(other: Collider): boolean {
         if (other instanceof BoxCollider) {
             return this.checkBoxVsBox(this, other);
-        } else if (other instanceof PolygonCollider) {
+        } else if (other instanceof PolygonCollider || other instanceof MultiPolygonCollider) {
             return other.narrowPhaseCheck(this);
         }
 
@@ -94,6 +100,19 @@ export class BoxCollider extends Collider {
             if (!this.overlap(proj1, proj2)) return false;
         }
         return true;
+    }
+
+    override _updateVerticesAfterMerge(polygons: Vector[][][]): void {
+        const newCollider = new MultiPolygonCollider({ polygons, tag: this.tag });
+
+        newCollider.active = this.active;
+        newCollider.allowMerge = this.allowMerge;
+        
+        const parent = this.parent;
+        if (parent) {
+            parent.removeChild(this);
+            parent.addChild(newCollider);
+        }
     }
 
     act(delta: number) {

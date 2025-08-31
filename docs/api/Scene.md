@@ -8,13 +8,10 @@ Only one `Scene` can be active at a time, and the `Game` object is responsible f
 
 ## Constructor
 
-`new Scene({ name, backgroundColor })`
+`new Scene({ name })`
 
 -   `name: string`
     The name of the scene.
-
--   `backgroundColor?: string`
-    The background color of the scene. Defaults to `"#000"` (black).
 
 ## Properties
 

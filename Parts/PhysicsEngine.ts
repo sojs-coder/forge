@@ -5,14 +5,19 @@ import { Vector } from "../Math/Vector";
 export class PhysicsEngine extends Part {
     engine: Engine;
     world: World;
+    gravity: { x: number, y: number };
+    scale: number;
 
-    constructor({ gravity }: { gravity?: { x: number, y: number, scale: number } }) {
+    constructor({ gravity, scale }: { gravity?: Vector, scale: number }) {
         super({ name: 'PhysicsEngine' });
+        this.gravity = gravity?.toObject() || new Vector(0, 1).toObject();
+        this.scale = scale || 0.001;
+
         this.engine = Engine.create({
-            gravity: gravity || {
-                x: 0,
-                y: 1, // Default gravity pointing downwards
-                scale: 0.001 // Scale for the gravity vector
+            gravity: {
+                x: this.gravity.x,
+                y: this.gravity.y,
+                scale: this.scale
             }
         });
         this.world = this.engine.world;
@@ -26,7 +31,8 @@ export class PhysicsEngine extends Part {
         }
 
         const clonedEngine = new PhysicsEngine({
-            gravity: this.engine.gravity // Pass original gravity settings to constructor
+            gravity: new Vector(this.gravity.x, this.gravity.y),
+            scale: this.scale
         });
 
         memo.set(this, clonedEngine);
