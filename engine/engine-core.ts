@@ -34,6 +34,7 @@ export * from '../Parts/HealthBar';
 export * from '../Parts/PhysicsBody';
 export * from '../Parts/GravityCharacterMovement';
 export * from '../Math/Vector';
+export * from '../Math/rng';
 export * from '../helpers';
 export * from '../types';
 export * from 'terser';

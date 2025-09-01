@@ -12154,24 +12154,10 @@ class Collider extends Part {
       }
     }
     this.hoverbug = `${this.colliding ? "\uD83D\uDFE5" : "\uD83D\uDFE9"} - ${Array.from(this.collidingWith).map((o) => o.name).join(", ")} objects`;
-    const fill = this.active;
-    const ctx = this.top instanceof Game ? this.top.context : null;
-    if (ctx) {
-      ctx.beginPath();
-      ctx.strokeStyle = `rgb(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]})`;
-      ctx.fillStyle = fill ? `rgba(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]}, 0.5)` : "transparent";
-      ctx.moveTo(this.worldVertices[0].x, this.worldVertices[0].y);
-      for (const vertex of this.worldVertices) {
-        ctx.lineTo(vertex.x, vertex.y);
-      }
-      ctx.closePath();
-      ctx.stroke();
-      ctx.fill();
-    }
     if (this.top instanceof Game && this.top.devmode) {
-      const ctx2 = this.top.context;
-      if (ctx2) {
-        this.drawDebug(ctx2);
+      const ctx = this.top.context;
+      if (ctx) {
+        this.drawDebug(ctx);
       }
     }
   }
@@ -14431,6 +14417,38 @@ class GravityCharacterMovement extends Part {
     }
     transform.position.addInPlace(this.velocity.multiply(delta));
   }
+}
+// Math/rng.ts
+function sfc32(a, b, c, d) {
+  return function() {
+    a |= 0;
+    b |= 0;
+    c |= 0;
+    d |= 0;
+    let t = (a + b | 0) + d | 0;
+    d = d + 1 | 0;
+    a = b ^ b >>> 9;
+    b = c + (c << 3) | 0;
+    c = c << 21 | c >>> 11;
+    c = c + t | 0;
+    return (t >>> 0) / 4294967296;
+  };
+}
+function cyrb128(str) {
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+  for (let i = 0, k;i < str.length; i++) {
+    k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ h1 >>> 18, 597399067);
+  h2 = Math.imul(h4 ^ h2 >>> 22, 2869860233);
+  h3 = Math.imul(h1 ^ h3 >>> 17, 951274213);
+  h4 = Math.imul(h2 ^ h4 >>> 19, 2716044179);
+  h1 ^= h2 ^ h3 ^ h4, h2 ^= h1, h3 ^= h1, h4 ^= h1;
+  return [h1 >>> 0, h2 >>> 0, h3 >>> 0, h4 >>> 0];
 }
 // node_modules/terser/lib/utils/index.js
 function characters(str) {
@@ -44391,6 +44409,7 @@ async function infer_options(options) {
 }
 export {
   vecEq,
+  sfc32,
   resetCamera,
   pointInPoly,
   minify_sync,
@@ -44400,6 +44419,7 @@ export {
   getDebugInfo,
   generateUID,
   drawBox,
+  cyrb128,
   convertTexturePackerToSpriteSheetData,
   applyCamera,
   run_cli as _run_cli,

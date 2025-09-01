@@ -225,26 +225,6 @@ export abstract class Collider extends Part {
         }
 
         this.hoverbug = `${this.colliding ? "🟥" : "🟩"} - ${Array.from(this.collidingWith).map(o => o.name).join(", ")} objects`;
-
-        // Debugging manually
-
-        const fill = this.active;
-
-        const ctx = this.top instanceof Game ? this.top.context : null;
-        if (ctx) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgb(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]})`;
-            ctx.fillStyle = fill ? `rgba(${this.randomTestingColors[0]}, ${this.randomTestingColors[1]}, ${this.randomTestingColors[2]}, 0.5)` : "transparent";
-
-            ctx.moveTo(this.worldVertices[0].x, this.worldVertices[0].y);
-            for (const vertex of this.worldVertices) {
-                ctx.lineTo(vertex.x, vertex.y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.fill();
-        }
-
         if (this.top instanceof Game && this.top.devmode) {
             const ctx = this.top.context;
             if (ctx) {
